@@ -1,6 +1,7 @@
 import { createChatUI } from './chat-ui.js';
 import { moduleStyles } from './memory-viz.js';
 import { moduleIcon, iconSvg, CUSTOM_ICONS } from './module-icons.js';
+import { initBackground, openBackgroundDialog } from './background.js';
 import { localDay } from './knowledge-store.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
@@ -185,11 +186,12 @@ function boot() {
     const inApp = Boolean(chat), locked = inApp ? chat.locked : gate.busy;
     app.innerHTML = `
       <header class="header"><a class="brand" href="/" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
-        <div class="header-actions">${inApp && profile && !editing ? chat.nav() : ''}${themeButton()}<button class="text-button" id="language" ${locked ? 'disabled' : ''}>${t('language')}</button></div></header>
+        <div class="header-actions">${inApp && profile && !editing ? chat.nav() : ''}${themeButton()}<button class="text-button theme-toggle" id="background-open" aria-label="${locale === 'zh' ? '背景' : 'Background'}"><span aria-hidden="true">▧</span><span class="theme-name">${locale === 'zh' ? '背景' : 'Background'}</span></button><button class="text-button" id="language" ${locked ? 'disabled' : ''}>${t('language')}</button></div></header>
       <main>${!inApp ? gate.view() : editing ? setupView() : chat.isHome ? homeView() : chat.view()}</main>
       <footer>${t('preview')}</footer>`;
     // Day / night switch (theme.js applies it before paint and remembers it per device).
     document.querySelector('#theme-toggle').onclick = () => { window.knowledgeReviewTheme?.toggle(); render(); };
+    document.querySelector('#background-open').onclick = () => openBackgroundDialog(locale);
     document.querySelector('#language').onclick = () => {
       const next = locale === 'zh' ? 'en' : 'zh';
       if (inApp && profile && !editing) {
@@ -362,6 +364,7 @@ function boot() {
   }
   render();
   void gate.start();
+  initBackground();
   if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 

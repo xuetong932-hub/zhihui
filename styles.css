@@ -147,3 +147,40 @@ footer{color:var(--stone);border-top:1px solid var(--hairline-soft);margin-top:4
 [data-theme="dark"] .module-badge,[data-theme="dark"] .icon-choice.active{background:#7cc4a01f;color:#7cc4a0;border-color:#7cc4a0}
 [data-theme="dark"] .module-badge{border:0}
 @media(max-width:700px){.icon-choice{width:44px;height:44px}}
+
+/* Page background (background.js): an image layer under the page; cards keep solid surfaces */
+.app-background{position:fixed;inset:-24px;z-index:0;pointer-events:none;background-size:cover;background-position:center;filter:blur(var(--bg-blur,0))}
+#app{position:relative;z-index:1}
+.has-background main,.has-background footer{background:transparent}
+[data-theme="dark"] .app-background{filter:blur(var(--bg-blur,0)) brightness(.55)}
+.bg-dialog{border:0;border-radius:16px;padding:0;width:min(560px,calc(100vw - 32px));background:var(--surface,#fff);color:var(--ink);box-shadow:0 20px 60px #0003}
+.bg-dialog::backdrop{background:#0006}
+.bg-panel{padding:20px 22px}
+.bg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+.bg-tile{padding:0;border:2px solid transparent;border-radius:10px;background:none;cursor:pointer;text-align:left;color:inherit}
+.bg-tile img,.bg-empty{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;background:repeating-linear-gradient(45deg,#0000000a 0 6px,transparent 6px 12px);border:1px solid var(--line)}
+.bg-tile.active{border-color:#30694f}
+.bg-label{display:block;font-size:12px;padding:4px 2px 2px;color:var(--muted)}
+.bg-tile.active .bg-label{color:var(--ink);font-weight:600}
+.bg-upload{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bg-upload-button{cursor:pointer}
+.bg-slider{display:grid;grid-template-columns:64px 1fr 48px;align-items:center;gap:10px;margin-top:10px;font-size:14px}
+.bg-slider input{accent-color:#30694f;width:100%}
+.bg-slider output{font-size:13px;color:var(--muted);text-align:right}
+.bg-credit{margin:14px 0 0;font-size:12px;color:var(--muted)}
+[data-theme="dark"] .bg-dialog{background:#1a1d21}
+@media(max-width:700px){.bg-grid{grid-template-columns:repeat(3,1fr)}}
+/* Text that sits straight on a background image gets a soft halo in the page colour */
+.has-background .intro,.has-background .modules-section>.section-heading,.has-background .development-note,.has-background footer{text-shadow:0 0 2px #fff,0 0 10px #fff,0 0 18px #fff}
+[data-theme="dark"].has-background .intro,[data-theme="dark"].has-background .modules-section>.section-heading,[data-theme="dark"].has-background .development-note,[data-theme="dark"].has-background footer{text-shadow:0 0 2px #000,0 0 10px #000,0 0 18px #000}
+.has-background .intro p,.has-background .intro .eyebrow,.has-background .modules-section>.section-heading .muted{color:var(--ink)}
+.app-background{background-repeat:no-repeat}
+.bg-layout{display:grid;grid-template-columns:1fr auto;gap:18px;margin-top:14px;align-items:start}
+.bg-field{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.bg-fit button{min-height:34px}
+.bg-position{display:grid;grid-template-columns:repeat(3,26px);gap:4px}
+.bg-position button{width:26px;height:26px;padding:0;border:1px solid var(--line);border-radius:6px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.bg-position button i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+.bg-position button.active{border-color:#30694f}
+.bg-position button.active i{background:#30694f}
+@media(max-width:700px){.bg-position{grid-template-columns:repeat(3,36px)}.bg-position button{width:36px;height:36px}}
