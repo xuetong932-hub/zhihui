@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check app.js && node --check chat-ui.js && node --check chat-store.js && node --check providers.js && node --check model-service.mjs && node --check knowledge-store.js && node --check knowledge-service.mjs && node --check knowledge-ui.js && node --check review-store.js && node --check review-service.mjs && node --check review-ui.js && node --check device-ui.js && node --check cloud-ui.js && node --check sw.js && node --check server.mjs && node --check model-help.js && node --check local-space.js && node --check snapshot-merge.js && node --check auth.js && node --check auth-ui.js && node --check admin-ui.js && node --check modules.js && node --check memory-viz.js && node --check memory-ui.js && node --check docx.js && node --check google-docs.js",
+    "check": "node --check app.js && node --check chat-ui.js && node --check chat-store.js && node --check providers.js && node --check model-service.mjs && node --check knowledge-store.js && node --check knowledge-service.mjs && node --check knowledge-ui.js && node --check review-store.js && node --check review-service.mjs && node --check review-ui.js && node --check device-ui.js && node --check cloud-ui.js && node --check sw.js && node --check server.mjs && node --check model-help.js && node --check local-space.js && node --check snapshot-merge.js && node --check auth.js && node --check auth-ui.js && node --check admin-ui.js && node --check modules.js && node --check memory-viz.js && node --check memory-ui.js && node --check docx.js && node --check google-docs.js && node --check graph-view.js && node --check mindmap.js",
     "test": "node --test tests/*.test.js"
   },
   "engines": {

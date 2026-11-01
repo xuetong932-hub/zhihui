@@ -97,6 +97,9 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   const library = createKnowledgeUI({locale:getLocale, enabled:()=>activeModuleIds(getProfile()), moduleName, refresh,
     // review is created below; these run only when the library renders.
     reviews:()=>review.events(), dueIds:()=>review.dueIds(), googleClientId:()=>auth?.googleClientId||'',
+    // User-triggered model calls for the graph's semantic relations and mind map expansion.
+    relate:cards=>{if(!ready())return Promise.reject(new Error('key'));const id=activeModuleIds(getProfile())[0];return request('/api/relations',{config:{...config},apiKey,consent,...moduleInfo(id),level:getProfile().modules[id].level,locale:getLocale(),cards});},
+    expand:card=>{if(!ready())return Promise.reject(new Error('key'));return request('/api/mindmap',{config:{...config},apiKey,consent,...moduleInfo(card.module),level:getProfile().modules[card.module].level,locale:getLocale(),card:{title:card.title,summary:card.summary,example:card.example}});},
     origins:allOrigins, extract:async(origin,candidates)=> {
       if(!ready())throw new Error('key');
       return request('/api/extract',{config:{...config},apiKey,consent,...moduleInfo(origin.sourceModule),level:getProfile().modules[origin.sourceModule].level,locale:getLocale(),question:origin.question,answer:origin.answer.slice(0,24000),candidates,enabled:enabledModules()},controller?.signal);

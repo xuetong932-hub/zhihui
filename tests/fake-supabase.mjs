@@ -10,7 +10,8 @@ const REGIONS = ['CN','HK','MO','TW','SG','MY','US','GB','CA','AU','JP','KR','OT
 // seedAdmin: an administrator that exists from the start and signs in with a password (like an operator-created one).
 export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedAdmin = null, now = () => new Date() } = {}) {
   const users = new Map(), tokens = new Map(), refreshTokens = new Map(), eligibility = new Map(), profiles = new Map(), admins = new Set(), snapshots = new Map();
-  if (seedAdmin) { const user = { id: randomUUID(), email: seedAdmin.email, phone: '', password: seedAdmin.password, created_at: now().toISOString() }; users.set(user.id, user); admins.add(user.id); }
+  // A fixed id keeps the preset administrator the same account across test-service restarts.
+  if (seedAdmin) { const user = { id: '00000000-0000-4000-8000-0000000000ad', email: seedAdmin.email, phone: '', password: seedAdmin.password, created_at: now().toISOString() }; users.set(user.id, user); admins.add(user.id); }
   const send = (response, status, data) => { response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); response.end(data === undefined ? '' : JSON.stringify(data)); };
   const fail = (response, status, message) => send(response, status, { code: String(status), message });
   async function body(request) { const chunks = []; for await (const chunk of request) chunks.push(chunk); try { return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'); } catch { return {}; } }

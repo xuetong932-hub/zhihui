@@ -58,3 +58,27 @@ test('Google upload asks Drive to convert the Word file into a Google Doc and re
   assert.match(await request.options.body.text(), /"mimeType":"application\/vnd.google-apps.document"/);
   await assert.rejects(uploadAsGoogleDoc('t', 'n', new Uint8Array(), async () => new Response('{}', { status: 403 })), error => error.code === 'http-403');
 });
+
+import { keyPoints, buildMindmap, mindmapSvg } from '../mindmap.js';
+import { relateKnowledge, expandMindmap } from '../knowledge-service.mjs';
+import { defaultConfig } from '../providers.js';
+const qwen = content => async () => Response.json({ output: { choices: [{ message: { content: JSON.stringify(content) }, finish_reason: 'stop' }] } });
+const base = { config: defaultConfig(), apiKey: 'test-only-not-real', consent: true, module: 'coding', level: 'beginner', locale: 'zh' };
+
+test('mind map branches come from the card, model branches are marked, and labels are escaped', () => {
+  assert.deepEqual(keyPoints('第一点。第二点！\n- 第三点'), ['第一点。', '第二点！', '第三点']);
+  const labels = { locale: 'zh-CN', points: '要点', example: '例子', belongs: '归属', related: '相关', questions: '提问', history: '复习', rating: r => r, ai: { prerequisites: '前置', subconcepts: '子概念', misconceptions: '误区', applications: '应用' } };
+  const tree = buildMindmap(card('m', { title: '<b>闭包</b>', summary: '函数记住外部变量。常用于回调。', example: '背包', origins: [{ question: '什么是闭包？' }] }), { moduleName: () => '编程', related: ['作用域'], events: [], expansion: { prerequisites: ['函数'] }, labels });
+  assert.deepEqual(tree.children.map(b => b.label), ['要点', '例子', '归属', '相关', '提问', '✦ 前置']);
+  const svg = mindmapSvg(tree, new Set([0]));
+  assert.ok(!svg.includes('<b>')); assert.match(svg, /\(\+2\)/, 'a collapsed branch shows how many items it hides');
+});
+
+test('model relations keep only links between known, different ideas; mind map expansion is trimmed', async () => {
+  const cards = [{ id: 'a', title: '闭包' }, { id: 'b', title: '作用域' }];
+  const { relations } = await relateKnowledge({ ...base, cards }, { fetchImpl: qwen({ relations: [{ a: 'a', b: 'b', label: '前置知识<script>' }, { a: 'b', b: 'a', label: '重复' }, { a: 'a', b: 'x', label: '未知' }, { a: 'a', b: 'a', label: '自己' }] }) });
+  assert.deepEqual(relations, [{ a: 'a', b: 'b', label: '前置知识script' }]);
+  await assert.rejects(relateKnowledge({ ...base, cards: cards.slice(0, 1) }), error => error.code === 'request');
+  const branches = await expandMindmap({ ...base, card: { title: '闭包', summary: 's', example: '' } }, { fetchImpl: qwen({ prerequisites: ['函数', 3, ''], subconcepts: Array(8).fill('x'), misconceptions: [], applications: ['回调'] }) });
+  assert.deepEqual(branches, { prerequisites: ['函数'], subconcepts: ['x', 'x', 'x', 'x', 'x'], misconceptions: [], applications: ['回调'] });
+});

@@ -3,12 +3,12 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { callModel, ServiceError } from './model-service.mjs';
-import { extractKnowledge } from './knowledge-service.mjs';
+import { extractKnowledge, relateKnowledge, expandMindmap } from './knowledge-service.mjs';
 import { reviewTask } from './review-service.mjs';
 
 const files = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
-  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
+  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','graph-view.js','mindmap.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
   ['/manifest.webmanifest',['manifest.webmanifest','application/manifest+json']],['/icon.svg',['icon.svg','image/svg+xml']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   ['/oauth-callback.html', ['oauth-callback.html', 'text/html; charset=utf-8']],
@@ -43,7 +43,7 @@ export function publicConfigFromEnv(env = process.env) {
   const googleClientId = (env.GOOGLE_CLIENT_ID || '').trim();
   return { url, publicKey, ...(username && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? { adminLogin: { username, email } } : {}), ...(/^[\w.-]+\.apps\.googleusercontent\.com$/.test(googleClientId) ? { googleClientId } : {}) };
 }
-export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask, publicConfig = () => publicConfigFromEnv(), extraRoute } = {}) {
+export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask, relationCaller = relateKnowledge, mindmapCaller = expandMindmap, publicConfig = () => publicConfigFromEnv(), extraRoute } = {}) {
   let activeRequests = 0;
   return http.createServer(async (request, response) => {
     // Prototype is loopback-only. Reject foreign origins and DNS-rebinding hosts.
@@ -54,7 +54,7 @@ export function createApp({ modelCaller = callModel, knowledgeCaller = extractKn
     if (path === '/api/public-config') { if (request.method !== 'GET') { json(response, 405, { error: 'method' }); return; } json(response, 200, publicConfig(host)); return; }
     // Test servers mount extra routes (the fake account service); production passes none.
     if (extraRoute && await extraRoute(request, response, path)) return;
-    if (path === '/api/chat' || path === '/api/test' || path === '/api/extract'||path==='/api/review-task') {
+    if (['/api/chat', '/api/test', '/api/extract', '/api/review-task', '/api/relations', '/api/mindmap'].includes(path)) {
       if (request.method !== 'POST') { json(response, 405, { error: 'method' }); return; }
       if (activeRequests >= 2) { json(response, 429, { error: 'busy' }); return; }
       activeRequests++;
@@ -63,7 +63,8 @@ export function createApp({ modelCaller = callModel, knowledgeCaller = extractKn
       try {
         let input = await readJson(request);
         if (path === '/api/test' && input && typeof input === 'object') input = { ...input, config: { ...input.config, search: false }, messages: [{ role: 'user', content: 'Reply only: OK' }] };
-        const result = await (path==='/api/review-task'?reviewCaller:path === '/api/extract' ? knowledgeCaller : modelCaller)(input, { signal: controller.signal });
+        const caller = { '/api/review-task': reviewCaller, '/api/extract': knowledgeCaller, '/api/relations': relationCaller, '/api/mindmap': mindmapCaller }[path] || modelCaller;
+        const result = await caller(input, { signal: controller.signal });
         json(response, 200, path === '/api/test' ? { ok: true } : result);
       } catch (error) {
         json(response, error instanceof ServiceError ? error.status : 500, { error: error instanceof ServiceError ? error.code : 'internal' });
