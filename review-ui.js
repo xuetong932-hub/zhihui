@@ -57,5 +57,6 @@ export function createReviewUI({locale,profile,cards,markWeak,call,refresh,adapt
       next();
     });
   }
-  return {view,bind,reload:load,count:()=>queue().length,get busy(){return busy;}};
+  // For the library's memory view: all review events and today's planned cards.
+  return {view,bind,reload:load,count:()=>queue().length,events:()=>data,dueIds:()=>new Set(reviewQueue(cards(),data,profile(),new Date()).map(card=>card.id)),get busy(){return busy;}};
 }

@@ -8,13 +8,14 @@ import { reviewTask } from './review-service.mjs';
 
 const files = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
-  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
+  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
   ['/manifest.webmanifest',['manifest.webmanifest','application/manifest+json']],['/icon.svg',['icon.svg','image/svg+xml']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
+  ['/oauth-callback.html', ['oauth-callback.html', 'text/html; charset=utf-8']],
 ]);
 const headers = {
   'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
-  'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://*.supabase.co; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+  'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://*.supabase.co https://www.googleapis.com; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
 };
 function json(response, status, data) {
   if (response.destroyed) return;
@@ -38,7 +39,9 @@ export function publicConfigFromEnv(env = process.env) {
   if (!(/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url) && publicKey.length > 10 && !publicKey.startsWith('sb_secret_'))) return {};
   // Administrator username shown on the admin sign-in page, mapped to the email of the operator-created account.
   const username = (env.ADMIN_USERNAME || '').trim(), email = (env.ADMIN_LOGIN_EMAIL || '').trim();
-  return { url, publicKey, ...(username && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? { adminLogin: { username, email } } : {}) };
+  // Optional Google OAuth client for exporting to Google Docs (public identifier, not a secret).
+  const googleClientId = (env.GOOGLE_CLIENT_ID || '').trim();
+  return { url, publicKey, ...(username && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? { adminLogin: { username, email } } : {}), ...(/^[\w.-]+\.apps\.googleusercontent\.com$/.test(googleClientId) ? { googleClientId } : {}) };
 }
 export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask, publicConfig = () => publicConfigFromEnv(), extraRoute } = {}) {
   let activeRequests = 0;

@@ -1,7 +1,8 @@
 import { KNOWLEDGE_KEY, emptyKnowledge, loadKnowledge, addKnowledge, mergeCards, localDay, validCard } from './knowledge-store.js';
 import { escapeHtml as e, renderAnswer } from './chat-store.js';
+import { createMemoryPanel } from './memory-ui.js';
 
-export function createKnowledgeUI({ locale, enabled, moduleName, extract, refresh, origins }) {
+export function createKnowledgeUI({ locale, enabled, moduleName, extract, refresh, origins, reviews, dueIds, googleClientId }) {
   const text = (zh,en) => locale() === 'zh' ? zh : en;
   const name = id => e(moduleName(id));
   // Active modules, plus a card's own module when it is disabled or deleted so the edit form never moves it silently.
@@ -39,7 +40,16 @@ export function createKnowledgeUI({ locale, enabled, moduleName, extract, refres
     } catch { error = text('问答已保留；知识提炼未完成，可在知识库中重试。重试会调用模型。','Q&A is kept. Knowledge extraction is incomplete; retry in the library (uses the model).'); }
     finally { busy = false; refresh(); }
   }
-  function view() {
+  // Library tabs: cards, forgetting curve, knowledge graph, export.
+  let tab = 'cards';
+  const panel = createMemoryPanel({ locale, cards: () => data.cards, reviews, dueIds, moduleName, modules: enabled, googleClientId, refresh });
+  const tabs = () => `<div class="module-tabs library-tabs" role="tablist">${[['cards', text('知识卡片', 'Cards')], ['curve', text('遗忘曲线', 'Forgetting curve')], ['graph', text('知识图谱', 'Knowledge graph')], ['export', text('导出', 'Export')]].map(([id, label]) => `<button class="module-tab ${tab === id ? 'active' : ''}" role="tab" aria-selected="${tab === id}" data-library-tab="${id}">${label}</button>`).join('')}</div>`;
+  function view() { return tab === 'cards' ? cardsView().replace('</section>', '</section>' + tabs()) : `<section class="intro"><span class="eyebrow">${text('知识库', 'Knowledge library')}</span><h1>${text('让问过的，成为记得住的。', 'Keep what you learn.')}</h1></section>${tabs()}${panel.view(tab)}`; }
+  function bind() {
+    document.querySelectorAll('[data-library-tab]').forEach(button => { button.onclick = () => { if (busy || panel.busy) return; tab = button.dataset.libraryTab; refresh(); }; });
+    if (tab === 'cards') cardsBind(); else panel.bind(tab);
+  }
+  function cardsView() {
     const visible = data.cards.filter(card => (trash ? card.status === 'deleted' : ['active','paused'].includes(card.status)) && (!moduleFilter || card.module === moduleFilter) && (!dateFilter || card.origins.some(origin => localDay(origin.createdAt) === dateFilter)) && (!query || `${card.title} ${card.summary} ${card.category} ${card.origins.map(origin=>origin.question).join(' ')}`.toLowerCase().includes(query.toLowerCase()))).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
     let day = '';
     return `<section class="intro"><span class="eyebrow">${text('知识库','Knowledge library')}</span><h1>${text('让问过的，成为记得住的。','Keep what you learn.')}</h1><p>${text('自动整理与分类；同义提问谨慎合并，重复提问标为重点。可在顶部进入逐题复习。','Automatic extraction and categories; repeated concepts are highlighted. Open Review above to practice one idea at a time.')}</p></section>
@@ -55,7 +65,7 @@ export function createKnowledgeUI({ locale, enabled, moduleName, extract, refres
       ${card.status==='deleted'?`<button class="secondary-button" data-restore-card="${card.id}">${text('恢复','Restore')}</button>`:`<div class="card-actions"><button class="text-button" data-important="${card.id}">${text(card.important?'取消重点':'标为重点',card.important?'Unmark':'Mark important')}</button><button class="text-button" data-pause="${card.id}">${text(card.status==='paused'?'恢复复习':'暂停复习',card.status==='paused'?'Resume review':'Pause review')}</button><button class="text-button" data-delete-card="${card.id}">${text('移入回收站','Move to trash')}</button>${card.extraction==='pending'?`<button class="secondary-button" data-extract-card="${card.id}">${text('重试提炼','Retry extraction')}</button>`:''}</div>
       <details data-section="edit:${card.id}" ${edits.has(card.id)?'open':opened(`edit:${card.id}`)}><summary>${text('编辑、调整分类或合并','Edit, recategorize or merge')}${edits.has(card.id)?` · ${text('有未保存的修改','Unsaved changes')}`:''}</summary><form data-card-edit="${card.id}"><label>${text('标题','Title')}<input name="title" type="text" value="${e(field(card,'title'))}" maxlength="120" required></label><label>${text('模块','Module')}<select name="module">${moduleOptions(card.module).map(id=>`<option value="${id}" ${field(card,'module')===id?'selected':''}>${name(id)}</option>`).join('')}</select></label><label>${text('分类','Category')}<input name="category" type="text" value="${e(field(card,'category'))}" maxlength="60"></label><label>${text('核心解释','Core explanation')}<textarea name="summary" maxlength="2400" required>${e(field(card,'summary'))}</textarea></label><label>${text('生活例子','Example')}<textarea name="example" maxlength="1200">${e(field(card,'example'))}</textarea></label><button class="secondary-button" type="submit">${text('保存修改','Save changes')}</button>${edits.has(card.id)?`<button class="text-button" type="button" data-discard-edit="${card.id}">${text('放弃修改','Discard changes')}</button>`:''}</form><div class="merge-row"><select data-merge-target="${card.id}" aria-label="${text('合并到','Merge into')}"><option value="">${text('选择同模块的目标卡片','Select a target in the same module')}</option>${data.cards.filter(other=>other.id!==card.id && other.module===card.module && ['active','paused'].includes(other.status)).map(other=>`<option value="${other.id}" ${mergeChoices.get(card.id)===other.id?'selected':''}>${e(other.title)}</option>`).join('')}</select><button class="secondary-button" data-merge-card="${card.id}">${text('合并到所选卡片','Merge into selected')}</button></div><p class="field-hint">${text('合并保留目标解释和全部原始问答；暂停不会删除记录。','Merging keeps the target explanation and all original Q&A. Pausing keeps records.')}</p></details>`}</article>`;
   }
-  function bind() {
+  function cardsBind() {
     document.querySelector('#knowledge-module').onchange=event=>{moduleFilter=event.target.value;refresh();};
     document.querySelector('#knowledge-date').onchange=event=>{dateFilter=event.target.value;refresh();};
     document.querySelector('#knowledge-search').oninput=event=>{query=event.target.value;};
@@ -79,5 +89,5 @@ export function createKnowledgeUI({ locale, enabled, moduleName, extract, refres
     document.querySelectorAll('[data-merge-card]').forEach(button=>{button.disabled=busy||blocked;button.onclick=()=>{const target=document.querySelector(`[data-merge-target="${button.dataset.mergeCard}"]`).value;if(!target)return;mergeCards(data,target,button.dataset.mergeCard);mergeChoices.delete(button.dataset.mergeCard);edits.delete(button.dataset.mergeCard);save();refresh();};});
     document.querySelector('#knowledge-backfill').onclick=async()=>{if(busy||blocked)return;for(const origin of origins()){await ingest(origin);if(error)break;}};
   }
-  return {view,bind,ingest,reload:load,get busy(){return busy;},cards:()=>data.cards,markWeak(id,reason){const card=data.cards.find(item=>item.id===id);if(card){card.important=true;card.reason=reason;save();}},count:module=>data.cards.filter(card=>card.module===module&&card.status==='active').length};
+  return {view,bind,ingest,reload:load,get busy(){return busy||panel.busy;},cards:()=>data.cards,markWeak(id,reason){const card=data.cards.find(item=>item.id===id);if(card){card.important=true;card.reason=reason;save();}},count:module=>data.cards.filter(card=>card.module===module&&card.status==='active').length};
 }

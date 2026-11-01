@@ -95,6 +95,8 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     return message.role==='assistant'&&message.status==='done'&&question?.role==='user'&&question.status==='done'?[{id:message.id,threadId:thread.id,sourceModule,question:question.content,answer:message.content,createdAt:question.createdAt,sources:message.sources||[]}]:[];
   })));
   const library = createKnowledgeUI({locale:getLocale, enabled:()=>activeModuleIds(getProfile()), moduleName, refresh,
+    // review is created below; these run only when the library renders.
+    reviews:()=>review.events(), dueIds:()=>review.dueIds(), googleClientId:()=>auth?.googleClientId||'',
     origins:allOrigins, extract:async(origin,candidates)=> {
       if(!ready())throw new Error('key');
       return request('/api/extract',{config:{...config},apiKey,consent,...moduleInfo(origin.sourceModule),level:getProfile().modules[origin.sourceModule].level,locale:getLocale(),question:origin.question,answer:origin.answer.slice(0,24000),candidates,enabled:enabledModules()},controller?.signal);
