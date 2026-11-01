@@ -8,6 +8,7 @@ import {attachModelHelp} from './model-help.js';
 import {createAdminUI} from './admin-ui.js';
 import {moduleLabel,activeModuleIds,isActiveModule,isCustomModule} from './modules.js';
 import {moduleIcon} from './module-icons.js';
+import {createDiscoverUI} from './discover-ui.js';
 
 const copy = {
   zh: {
@@ -123,6 +124,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   // The signed-in account as the local-data owner; backups of other accounts cannot be swapped in.
   const owner=()=>auth?.user&&auth.config?{url:auth.config.url,userId:auth.user.id,label:getAccount?.()?.username||''}:null;
   const admin=createAdminUI({locale:getLocale,refresh,auth});
+  const discover=createDiscoverUI({locale:getLocale,refresh,cards:library.cards,profile:getProfile,account:()=>getAccount?.(),modules:()=>activeModuleIds(getProfile()).map(id=>({id,name:moduleName(id)}))});
   const device=createDeviceUI({locale:getLocale,refresh,validateProfile,reloadLocal,owner,due:()=>getProfile()?review.count():0,openReview:()=>{page='review';refresh();}});
   const cloud=createCloudUI({locale:getLocale,validateProfile,refresh,reloadLocal,auth,getAccount,owner,signOut,getModelKey:()=>({config:{...config},apiKey}),acceptModelKey:value=>{
     if(!validConfig(value?.config)||typeof value.apiKey!=='string'||!/^[\x21-\x7e]{8,512}$/.test(value.apiKey))return false;
@@ -158,10 +160,14 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     modelDraft = { ...config }; keyDraft = apiKey; consentDraft = consent;
     modelError = ''; testMessage = ''; page = 'model'; refresh();
   }
+  // Learning pages sit in the bar; device, account, admin and model settings are grouped under "更多".
   function nav() {
-    return `<nav class="app-nav" aria-label="${t('home')}"><button class="text-button" data-chat-home>${t('home')}</button><button class="text-button" data-review>${getLocale()==='zh'?'复习':'Review'}</button><button class="text-button" data-library>${getLocale()==='zh'?'知识库':'Knowledge'}</button><button class="text-button" data-device>${getLocale()==='zh'?'设备':'Device'}</button><button class="text-button" data-cloud>${getLocale()==='zh'?'账号':'Account'}</button>${getAccount?.()?.is_admin?`<button class="text-button" data-admin>${getLocale()==='zh'?'管理':'Admin'}</button>`:''}<button class="text-button" data-model-settings>${t('modelSettings')} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span></button></nav>`;
+    const zh=getLocale()==='zh',item=(attr,label,current)=>`<button class="text-button ${current.includes(page)?'active':''}" ${attr} ${current.includes(page)?'aria-current="page"':''}>${label}</button>`;
+    const inMore=['device','cloud','admin','model'].includes(page);
+    return `<nav class="app-nav" aria-label="${t('home')}">${item('data-chat-home',t('home'),['home','chat'])}${item('data-review',zh?'复习':'Review',['review'])}${item('data-library',zh?'知识库':'Knowledge',['library'])}${item('data-recommend',zh?'推荐':'For you',['recommend'])}${item('data-square',zh?'广场':'Square',['square'])}
+      <details class="nav-more"><summary class="text-button ${inMore?'active':''}">${zh?'更多':'More'} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span><span aria-hidden="true">▾</span></summary><div class="nav-menu">${item('data-device',zh?'设备':'Device',['device'])}${item('data-cloud',zh?'账号':'Account',['cloud'])}${getAccount?.()?.is_admin?item('data-admin',zh?'管理':'Admin',['admin']):''}${item('data-model-settings',`${t('modelSettings')} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span>`,['model'])}</div></details></nav>`;
   }
-  function view() { return page==='admin'?admin.view():page==='cloud'?cloud.view():page==='device'?device.view():page === 'review' ? review.view() : page === 'library' ? library.view() : page === 'model' ? modelView() : chatView(); }
+  function view() { return page==='recommend'?discover.recommendView():page==='square'?discover.squareView():page==='admin'?admin.view():page==='cloud'?cloud.view():page==='device'?device.view():page === 'review' ? review.view() : page === 'library' ? library.view() : page === 'model' ? modelView() : chatView(); }
   function modelView() {
     const p = providers[modelDraft.provider];
     return `<section class="intro model-intro"><div><span class="eyebrow">${t('modelSettings')}</span><h1>${t('modelTitle')}</h1><p>${t('modelHint')}</p></div><a class="inline-link model-help-link" id="model-help-link" href="#model-config-guide" aria-haspopup="dialog">${getLocale()==='zh'?'配置说明':'Setup guide'} ↗</a></section>
@@ -209,6 +215,11 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     document.querySelectorAll('.app-nav button').forEach(button=>{button.disabled=locked();});
     document.querySelectorAll('[data-review]').forEach(button=>button.onclick=()=>{if(!busy&&!testing&&!review.busy&&!library.busy){page='review';refresh();}});
     document.querySelectorAll('[data-library]').forEach(button=>{button.onclick=()=>{if(!busy&&!testing&&!review.busy&&!library.busy){page='library';refresh();}};});
+    document.querySelectorAll('[data-recommend]').forEach(button=>button.onclick=()=>{if(!locked()){page='recommend';refresh();}});
+    document.querySelectorAll('[data-square]').forEach(button=>button.onclick=()=>{if(!locked()){page='square';refresh();}});
+    // The "更多" menu closes when clicking elsewhere (it is a <details>, so it needs no script to open).
+    const more=document.querySelector('.nav-more');if(more)more.ontoggle=()=>{if(more.open)setTimeout(()=>document.addEventListener('click',event=>{if(!more.contains(event.target))more.open=false;},{once:true}));};
+    discover.bind(page);
     document.querySelectorAll('[data-chat-home]').forEach(button => { button.onclick = () => { if (!busy && !testing&&!review.busy&&!library.busy) { page = 'home'; refresh(); } }; });
     document.querySelectorAll('[data-model-settings]').forEach(button => { button.onclick = openModel; });
     document.querySelectorAll('[data-open-module]').forEach(button => { button.onclick = () => openModule(button.dataset.openModule); });
