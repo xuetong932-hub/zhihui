@@ -12,8 +12,10 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
   const text = (zh, en) => locale() === 'zh' ? zh : en;
   let exportModule = '', scope = 'reviewed', message = '', busy = false, docLink = '';
   // Graph and mind map state. Model results (semantic relations, mind map expansions) are saved on this device.
-  let theme = 'light', relationMode = 'basic', graphMessage = '', mindmapId = '', mindmapMessage = '';
+  // theme null = follow the app's day/night mode until the user picks one in the graph toolbar.
+  let theme = null, relationMode = 'basic', graphMessage = '', mindmapId = '', mindmapMessage = '';
   const positions = new Map(), collapsed = new Set();
+  const graphTheme = () => theme || (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
   const store = { read(key, fallback) { try { const value = JSON.parse(localStorage.getItem(key)); return value?.version === 1 ? value : fallback; } catch { return fallback; } }, write(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; } } };
   const activeCards = () => cards().filter(card => card.status === 'active' && card.extraction === 'ready');
   // Basic relations come from existing data: same category in a module, or ideas from the same conversation.
@@ -65,7 +67,7 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
     if (tab === 'graph') {
       const semantic = semanticRelations(activeCards());
       return `<section class="panel"><h2>${text('知识图谱', 'Knowledge graph')}</h2><p><strong>${e(summary)}</strong></p><p>${text('拖动节点可以移动它（会固定在原处，双击解除固定）；拖动空白处平移，滚轮缩放。鼠标停在节点上会高亮相关知识，点击知识点打开它的思维导图。带光晕的是今天要复习的知识。', 'Drag a node to move it (it stays pinned; double-click to release). Drag the background to pan and scroll to zoom. Hover to highlight related ideas; click an idea to open its mind map. Glowing ideas are due today.')}</p>
-        <div class="graph-toolbar"><div class="segmented" role="group" aria-label="${text('外观', 'Appearance')}"><button data-graph-theme="light" class="${theme === 'light' ? 'active' : ''}">${text('浅色', 'Light')}</button><button data-graph-theme="dark" class="${theme === 'dark' ? 'active' : ''}">${text('深色星空', 'Dark')}</button></div>
+        <div class="graph-toolbar"><div class="segmented" role="group" aria-label="${text('外观', 'Appearance')}"><button data-graph-theme="light" class="${graphTheme() === 'light' ? 'active' : ''}">${text('浅色', 'Light')}</button><button data-graph-theme="dark" class="${graphTheme() === 'dark' ? 'active' : ''}">${text('深色星空', 'Dark')}</button></div>
           <div class="segmented" role="group" aria-label="${text('连线关系', 'Connections')}"><button data-graph-relations="basic" class="${relationMode === 'basic' ? 'active' : ''}">${text('基础关系', 'Basic')}</button><button data-graph-relations="semantic" class="${relationMode === 'semantic' ? 'active' : ''}">${text('语义关系', 'Semantic')}</button></div>
           ${relationMode === 'semantic' ? `<button class="secondary-button" id="graph-analyze" ${busy ? 'disabled' : ''}>${semantic.at ? text('重新分析关联', 'Analyze again') : text('分析关联（调用模型）', 'Analyze relations (uses model)')}</button>` : ''}<button class="text-button" id="graph-reset">${text('重新排布', 'Reset layout')}</button></div>
         <p class="field-hint">${relationMode === 'basic' ? text('基础关系：同一模块中分类相同，或来自同一次对话的知识点相连。不调用模型。', 'Basic: ideas sharing a category in a module, or from the same conversation, are linked. No model call.') : semantic.at ? text(`语义关系：由模型于 ${new Date(semantic.at).toLocaleString(locale() === 'zh' ? 'zh-CN' : 'en')} 分析，共 ${semantic.pairs.length} 条，连线上标注关系。模型可能判断错误。`, `Semantic: analysed by the model at ${new Date(semantic.at).toLocaleString('en')}, ${semantic.pairs.length} links labelled with the relation. The model can be wrong.`) : text('语义关系：点击“分析关联”，将知识点标题（最多 60 个）发送给已配置的模型来找出概念之间的关系。会产生模型费用，结果只保存在本机。', 'Semantic: click Analyze to send up to 60 idea titles to your configured model to find conceptual relations. This uses model credit; results stay on this device.')}</p>
@@ -104,7 +106,7 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
         .concat(list.slice(0, 160).map(card => { const last = latestReview(data, card.id); return { id: card.id, label: card.title.replace(/^示例：/, ''), kind: 'card', module: card.module, color: style.get(card.module).color, size: card.origins.length, today: today.has(card.id),
           detail: [['strong', card.title], ['span', `${text('模块', 'Module')}：${moduleName(card.module)}${card.category ? ` · ${card.category}` : ''}`], ['span', `${text('上次复习', 'Last review')}：${last ? `${new Date(last.at).toLocaleDateString(locale() === 'zh' ? 'zh-CN' : 'en')} · ${ratingName(last.rating)}` : ratingName(null)}`], ['span', today.has(card.id) ? text('今天需要复习', 'Review today') : text('今天不用复习', 'Not due today')], ['span', text('点击打开思维导图', 'Click to open its mind map')]] }; }));
       const links = list.slice(0, 160).map(card => ({ source: `hub:${card.module}`, target: card.id, kind: 'spoke' })).concat(relationsFor(list).map(p => ({ source: p.a, target: p.b, kind: 'relation', label: p.label })));
-      const graph = mountGraph(host, { nodes, links, theme, positions, onOpen: id => { mindmapId = id; collapsed.clear(); openTab('mindmap'); } });
+      const graph = mountGraph(host, { nodes, links, theme: graphTheme(), positions, onOpen: id => { mindmapId = id; collapsed.clear(); openTab('mindmap'); } });
       document.querySelector('#graph-reset').onclick = () => { positions.clear(); graph.reset(); };
     }
     const analyze = document.querySelector('#graph-analyze');

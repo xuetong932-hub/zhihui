@@ -169,15 +169,24 @@ function boot() {
     restoreFocus(focus);
   }
 
+  function themeButton() {
+    const mode = window.knowledgeReviewTheme?.theme === 'dark' ? 'dark' : 'light', next = mode === 'dark' ? 'light' : 'dark';
+    const name = key => ({ light: locale === 'zh' ? '白天' : 'Day', dark: locale === 'zh' ? '黑夜' : 'Night' })[key];
+    const label = locale === 'zh' ? `外观：${name(mode)}，点击切换为${name(next)}` : `Appearance: ${name(mode)}. Click for ${name(next)}`;
+    return `<button class="text-button theme-toggle" id="theme-toggle" title="${label}" aria-label="${label}"><span aria-hidden="true">${mode === 'dark' ? '☾' : '☀'}</span><span class="theme-name">${name(mode)}</span></button>`;
+  }
+
   function renderPage() {
     document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
     document.title = t('brand');
     const inApp = Boolean(chat), locked = inApp ? chat.locked : gate.busy;
     app.innerHTML = `
       <header class="header"><a class="brand" href="/" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
-        <div class="header-actions">${inApp && profile && !editing ? chat.nav() : ''}<button class="text-button" id="language" ${locked ? 'disabled' : ''}>${t('language')}</button></div></header>
+        <div class="header-actions">${inApp && profile && !editing ? chat.nav() : ''}${themeButton()}<button class="text-button" id="language" ${locked ? 'disabled' : ''}>${t('language')}</button></div></header>
       <main>${!inApp ? gate.view() : editing ? setupView() : chat.isHome ? homeView() : chat.view()}</main>
       <footer>${t('preview')}</footer>`;
+    // Day / night switch (theme.js applies it before paint and remembers it per device).
+    document.querySelector('#theme-toggle').onclick = () => { window.knowledgeReviewTheme?.toggle(); render(); };
     document.querySelector('#language').onclick = () => {
       const next = locale === 'zh' ? 'en' : 'zh';
       if (inApp && profile && !editing) {
