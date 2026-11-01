@@ -1,0 +1,14 @@
+{
+  "name": "knowledge-review",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check app.js && node --check chat-ui.js && node --check chat-store.js && node --check providers.js && node --check model-service.mjs && node --check knowledge-store.js && node --check knowledge-service.mjs && node --check knowledge-ui.js && node --check review-store.js && node --check review-service.mjs && node --check review-ui.js && node --check device-ui.js && node --check cloud-ui.js && node --check sw.js && node --check server.mjs && node --check model-help.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
