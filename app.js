@@ -138,7 +138,7 @@ function boot() {
   let errorKey = '';
   const app = document.querySelector('#app');
   const t = key => words[locale][key];
-  // Sign-in is required: the gate runs first; the learning app is created only after it passes.
+  // The gate runs first; the learning app is created after sign-in or after the user picks local mode ({ local: true }).
   const auth = createAuth();
   let chat = null, account = null;
   const gate = createAuthGate({ auth, locale: () => locale, refresh: () => render(), onReady: acct => {

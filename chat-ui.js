@@ -9,6 +9,7 @@ import {createAdminUI} from './admin-ui.js';
 import {moduleLabel,activeModuleIds,isActiveModule,isCustomModule} from './modules.js';
 import {moduleIcon} from './module-icons.js';
 import {createDiscoverUI} from './discover-ui.js';
+import {LOCAL_MODE_KEY} from './auth-ui.js';
 
 const copy = {
   zh: {
@@ -165,7 +166,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     const zh=getLocale()==='zh',item=(attr,label,current)=>`<button class="text-button ${current.includes(page)?'active':''}" ${attr} ${current.includes(page)?'aria-current="page"':''}>${label}</button>`;
     const inMore=['device','cloud','admin','model'].includes(page);
     return `<nav class="app-nav" aria-label="${t('home')}">${item('data-chat-home',t('home'),['home','chat'])}${item('data-review',zh?'复习':'Review',['review'])}${item('data-library',zh?'知识库':'Knowledge',['library'])}${item('data-recommend',zh?'推荐':'For you',['recommend'])}${item('data-square',zh?'广场':'Square',['square'])}
-      <details class="nav-more"><summary class="text-button ${inMore?'active':''}">${zh?'更多':'More'} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span><span aria-hidden="true">▾</span></summary><div class="nav-menu">${item('data-device',zh?'设备':'Device',['device'])}${item('data-cloud',zh?'账号':'Account',['cloud'])}${getAccount?.()?.is_admin?item('data-admin',zh?'管理':'Admin',['admin']):''}${item('data-model-settings',`${t('modelSettings')} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span>`,['model'])}</div></details></nav>`;
+      <details class="nav-more"><summary class="text-button ${inMore?'active':''}">${zh?'更多':'More'} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span><span aria-hidden="true">▾</span></summary><div class="nav-menu">${item('data-device',zh?'设备':'Device',['device'])}${getAccount?.()?.local?`<button class="text-button" data-signin>${zh?'登录 / 注册':'Sign in / Register'}</button>`:item('data-cloud',zh?'账号':'Account',['cloud'])}${getAccount?.()?.is_admin?item('data-admin',zh?'管理':'Admin',['admin']):''}${item('data-model-settings',`${t('modelSettings')} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span>`,['model'])}</div></details></nav>`;
   }
   function view() { return page==='recommend'?discover.recommendView():page==='square'?discover.squareView():page==='admin'?admin.view():page==='cloud'?cloud.view():page==='device'?device.view():page === 'review' ? review.view() : page === 'library' ? library.view() : page === 'model' ? modelView() : chatView(); }
   function modelView() {
@@ -215,6 +216,8 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     document.querySelectorAll('.app-nav button').forEach(button=>{button.disabled=locked();});
     document.querySelectorAll('[data-review]').forEach(button=>button.onclick=()=>{if(!busy&&!testing&&!review.busy&&!library.busy){page='review';refresh();}});
     document.querySelectorAll('[data-library]').forEach(button=>{button.onclick=()=>{if(!busy&&!testing&&!review.busy&&!library.busy){page='library';refresh();}};});
+    // Leaving local mode: forget the choice and show the sign-in page; local records stay and are offered to the account.
+    document.querySelectorAll('[data-signin]').forEach(button=>button.onclick=()=>{if(locked())return;try{localStorage.removeItem(LOCAL_MODE_KEY);}catch{/* Ignored. */}location.reload();});
     document.querySelectorAll('[data-recommend]').forEach(button=>button.onclick=()=>{if(!locked()){page='recommend';refresh();}});
     document.querySelectorAll('[data-square]').forEach(button=>button.onclick=()=>{if(!locked()){page='square';refresh();}});
     // The "更多" menu closes when clicking elsewhere (it is a <details>, so it needs no script to open).

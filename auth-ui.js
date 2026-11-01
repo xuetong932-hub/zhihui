@@ -4,6 +4,7 @@ import {escapeHtml as esc} from './chat-store.js';
 // Sign-in gate shown before the app. Stages: loading, unconfigured, signin, signup, code, register, denied, error, local.
 // Sign-up asks for username, email, phone, country or region and birthday; the birthday is sent once for the
 // server's adult check and then cleared from memory.
+export const LOCAL_MODE_KEY='knowledge-review.local-mode.v1';
 export function createAuthGate({auth,locale,refresh,onReady}){
   const tr=(zh,en)=>locale()==='zh'?zh:en;
   let stage='loading',busy=false,message='',errors={},codeFor='signin',otp='',acct=null,deleteConsent=false;
@@ -50,7 +51,17 @@ export function createAuthGate({auth,locale,refresh,onReady}){
       throw error;
     }finally{form.birthdate='';}
   }
-  async function start(){await auth.init();if(!auth.config){stage='unconfigured';refresh();return;}if(!auth.session){stage='signin';refresh();return;}await run(check);}
+  // Local mode: use the app without an account; everything stays in this browser. The choice is remembered on this
+  // device until the user picks "登录 / 注册". A signed-in session always wins, and signing in ends local mode.
+  function enterLocal(){try{localStorage.setItem(LOCAL_MODE_KEY,'1');}catch{/* This page only. */}stage='ready';onReady({local:true},null);}
+  async function start(){
+    await auth.init();
+    let local=false;try{local=localStorage.getItem(LOCAL_MODE_KEY)==='1';}catch{/* Not remembered. */}
+    if(!auth.session&&local){enterLocal();refresh();return;}
+    if(!auth.config){stage='unconfigured';refresh();return;}if(!auth.session){stage='signin';refresh();return;}
+    try{localStorage.removeItem(LOCAL_MODE_KEY);}catch{/* Ignored. */}
+    await run(check);
+  }
 
   function header(title,hint){return `<section class="intro"><span class="eyebrow">${tr('知回','Knowledge Review')}</span><h1>${title}</h1><p>${hint}</p></section>`;}
   const status=()=>`<p class="error" role="alert">${esc(message)}</p>${busy?`<p class="verified" role="status">${tr('正在处理…','Working…')}</p>`:''}`;
@@ -76,10 +87,12 @@ export function createAuthGate({auth,locale,refresh,onReady}){
   function view(){
     if(stage==='loading')return header(tr('正在连接…','Connecting…'),tr('正在检查登录状态。','Checking your sign-in.'));
     if(stage==='unconfigured')return header(tr('服务尚未配置','Service not configured'),tr('使用本应用需要登录，但服务器还没有配置账号服务（Supabase）。运营者需在服务器设置 SUPABASE_URL 和 SUPABASE_PUBLISHABLE_KEY，或由开发者在下方填写测试项目。','Sign-in is required, but the server has no account service (Supabase) configured. The operator must set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY on the server, or a developer can enter a test project below.'))
-      +`<section class="panel"><details><summary>${tr('开发者：填写云项目','Developer: enter a cloud project')}</summary><label class="field-label" for="dev-url">${tr('项目 URL','Project URL')}</label><input id="dev-url" type="text" placeholder="https://your-project.supabase.co" value="${esc(devConfig.url)}"><label class="field-label" for="dev-key">${tr('公开 Key（不能填服务端密钥）','Public key (never a server secret)')}</label><input id="dev-key" type="text" value="${esc(devConfig.publicKey)}"><div class="followups"><button class="secondary-button" id="dev-save">${tr('保存并继续','Save and continue')}</button></div></details>${status()}</section>`;
+      +`<section class="panel local-entry"><h2>${tr('不登录，先在本机使用','Use on this device without signing in')}</h2><p>${tr('提问、知识卡片和复习都可以用，记录只保存在这个浏览器。以后登录时，可以把这些记录并入账号。','Asking, knowledge cards and review all work; records stay in this browser. When you sign in later, you can add them to your account.')}</p><button class="primary-button" data-local-mode>${tr('使用本地模式','Use local mode')} →</button></section>
+      <section class="panel"><details><summary>${tr('开发者：填写云项目','Developer: enter a cloud project')}</summary><label class="field-label" for="dev-url">${tr('项目 URL','Project URL')}</label><input id="dev-url" type="text" placeholder="https://your-project.supabase.co" value="${esc(devConfig.url)}"><label class="field-label" for="dev-key">${tr('公开 Key（不能填服务端密钥）','Public key (never a server secret)')}</label><input id="dev-key" type="text" value="${esc(devConfig.publicKey)}"><div class="followups"><button class="secondary-button" id="dev-save">${tr('保存并继续','Save and continue')}</button></div></details>${status()}</section>`;
     if(stage==='signin')return header(tr('登录','Sign in'),tr('使用注册时的邮箱或手机号接收验证码。','Use the email or phone you registered with to receive a code.'))
       +`<section class="panel auth-panel"><div class="module-tabs"><button class="module-tab ${form.method==='email'?'active':''}" data-auth-method="email">${tr('邮箱','Email')}</button><button class="module-tab ${form.method==='phone'?'active':''}" data-auth-method="phone">${tr('手机号','Phone')}</button></div><label class="field-label" for="auth-identifier">${form.method==='email'?tr('邮箱','Email'):tr('手机号（含国家区号）','Phone (with country code)')}</label><input id="auth-identifier" type="text" inputmode="${form.method==='email'?'email':'tel'}" value="${esc(form.identifier)}" placeholder="${form.method==='email'?'name@example.com':'+8613800000000'}"><p class="error">${fieldError('identifier')}</p>
         <div class="actions"><button class="text-button" id="go-signup">${tr('没有账号？注册','No account? Register')}</button><button class="primary-button" id="signin-send">${tr('发送验证码','Send code')}</button></div>
+        <div class="local-option"><button class="secondary-button" data-local-mode>${tr('不登录，先在本机使用','Use on this device without signing in')}</button><span class="field-hint">${tr('记录只保存在这个浏览器，以后登录时可并入账号。','Records stay in this browser; you can add them to an account later.')}</span></div>
         <div class="followups"><button class="text-button" id="go-admin">${tr('管理员使用密码登录','Administrator password sign-in')}</button></div>
         <div class="followups"><button class="secondary-button" data-oauth="google">${tr('使用 Google 登录','Continue with Google')}</button><button class="secondary-button" data-oauth="apple">${tr('使用 Apple 登录','Continue with Apple')}</button></div>${status()}${unregistered?`<div class="sharing-notice"><p>${tr('这个邮箱或手机号还没有注册。','This email or phone number is not registered yet.')}</p><button class="primary-button" id="go-signup-now">${tr('去注册','Go to registration')}</button></div>`:''}</section>`;
     if(stage==='signup')return header(tr('注册','Register'),tr('填写基本信息，选择用邮箱还是手机号接收验证码。带 * 为必填。','Enter your details and choose whether to receive the code by email or phone. * is required.'))
@@ -111,6 +124,7 @@ export function createAuthGate({auth,locale,refresh,onReady}){
     on('#go-signup',()=>{unregistered=false;const id=form.identifier;if(validEmail(id)){form.email=id;form.method='email';}else if(validPhone(id)){form.phone=id;form.method='phone';}go('signup');});
     on('#go-signin',()=>{form.birthdate='';adminForm.password='';go('signin');});
     on('#go-admin',()=>{unregistered=false;go('admin');});
+    document.querySelectorAll('[data-local-mode]').forEach(button=>{button.onclick=()=>{if(!busy)enterLocal();};});
     const adminUsername=document.querySelector('#admin-username');if(adminUsername)adminUsername.oninput=()=>{adminForm.username=adminUsername.value.trim();};
     const adminPassword=document.querySelector('#admin-password');if(adminPassword){adminPassword.value=adminForm.password;adminPassword.oninput=()=>{adminForm.password=adminPassword.value;};}
     const adminSignIn=async credentials=>{
