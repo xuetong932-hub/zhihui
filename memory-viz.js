@@ -21,8 +21,9 @@ export function memoryPoints(cards, reviews, dueIds, now = new Date()) {
     return { id: card.id, title: card.title, module: card.module, category: card.category, days, stability: s, retention: retention(days, s), kind, reviewed: Boolean(last), lastRating: last?.rating || null, lastAt: last?.at || null };
   });
 }
-function marker(kind, x, y, r = 6) {
-  const fill = COLORS[kind];
+function marker(kind, px, py, r = 6) {
+  // Coordinates may arrive as fixed-precision strings; convert so the shape arithmetic is numeric.
+  const fill = COLORS[kind], x = Number(px), y = Number(py);
   if (kind === 'weak') return `<polygon points="${x},${y - r} ${x + r},${y + r * 0.8} ${x - r},${y + r * 0.8}" fill="${fill}"/>`;
   if (kind === 'stable') return `<rect x="${x - r * 0.85}" y="${y - r * 0.85}" width="${r * 1.7}" height="${r * 1.7}" fill="${fill}"/>`;
   if (kind === 'new') return `<polygon points="${x},${y - r} ${x + r},${y} ${x},${y + r} ${x - r},${y}" fill="${fill}"/>`;
@@ -37,7 +38,7 @@ export function curveSvg(points, labels) {
   const x = d => L + (Math.min(d, maxDays) / maxDays) * (W - L - R), y = r => T + (1 - r / 100) * (H - T - B);
   const grid = [0, 25, 50, 75, 100].map(r => `<line x1="${L}" x2="${W - R}" y1="${y(r)}" y2="${y(r)}" stroke="#e6eaee"/><text x="${L - 8}" y="${y(r) + 4}" text-anchor="end" font-size="11" fill="#6c7784">${r}%</text>`).join('');
   const ticks = Array.from({ length: 5 }, (_, i) => Math.round(maxDays * i / 4)).map(d => `<text x="${x(d)}" y="${H - B + 18}" text-anchor="middle" font-size="11" fill="#6c7784">${d}</text>`).join('');
-  const curves = [1, 7, 30].map(s => { const path = Array.from({ length: 61 }, (_, i) => { const d = maxDays * i / 60; return `${i ? 'L' : 'M'}${x(d).toFixed(1)},${y(retention(d, s)).toFixed(1)}`; }).join(''); return `<path d="${path}" fill="none" stroke="#b7c0c8" stroke-dasharray="4 4"/><text x="${W - R - 4}" y="${y(retention(maxDays, s)) - 4}" text-anchor="end" font-size="10" fill="#8d979f">${esc(labels.curve(s))}</text>`; }).join('');
+  const curves = [1, 7, 30].map(s => { const path = Array.from({ length: 61 }, (_, i) => { const d = maxDays * i / 60; return `${i ? 'L' : 'M'}${x(d).toFixed(1)},${y(retention(d, s)).toFixed(1)}`; }).join(''); return `<path d="${path}" fill="none" stroke="#b7c0c8" stroke-dasharray="4 4"/><text x="${W - R - 4}" y="${y(retention(maxDays, s)) - 4}" text-anchor="end" font-size="10" fill="#6c7784" stroke="#fbfcfd" stroke-width="3" paint-order="stroke">${esc(labels.curve(s))}</text>`; }).join('');
   const order = { stable: 0, new: 1, weak: 2, due: 3 };
   const dots = [...points].sort((a, b) => order[a.kind] - order[b.kind]).map(p => `<g>${marker(p.kind, x(p.days).toFixed(1), y(p.retention).toFixed(1))}<title>${esc(p.title)} · ${p.retention}% · ${esc(labels[p.kind])}</title></g>`).join('');
   return `<svg class="viz" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(labels.y)}">${grid}${ticks}${curves}<line x1="${L}" x2="${L}" y1="${T}" y2="${H - B}" stroke="#9aa4ad"/><line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke="#9aa4ad"/>${dots}<text x="${(L + W - R) / 2}" y="${H - 6}" text-anchor="middle" font-size="12" fill="#43505c">${esc(labels.x)}</text><text x="14" y="${(T + H - B) / 2}" text-anchor="middle" font-size="12" fill="#43505c" transform="rotate(-90 14 ${(T + H - B) / 2})">${esc(labels.y)}</text></svg>`;
