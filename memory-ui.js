@@ -1,4 +1,4 @@
-import { memoryPoints, curveSvg, graphSvg, legend } from './memory-viz.js';
+import { memoryPoints, moduleCurves, moduleStyles, curveSvg, graphSvg, legend, attachVizInteraction } from './memory-viz.js';
 import { latestReview } from './review-store.js';
 import { buildDocx, DOCX_TYPE } from './docx.js';
 import { googleToken, uploadAsGoogleDoc } from './google-docs.js';
@@ -7,9 +7,12 @@ import { escapeHtml as e, renderAnswer } from './chat-store.js';
 export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, modules, googleClientId, refresh }) {
   const text = (zh, en) => locale() === 'zh' ? zh : en;
   let exportModule = '', scope = 'reviewed', message = '', busy = false, docLink = '';
-  const labels = () => ({ due: text('今天需要复习', 'Due today'), weak: text('薄弱（答错、不懂或猜对）', 'Weak (missed, unclear or guessed)'), stable: text('已理解或掌握', 'Understood or mastered'), new: text('新学，尚未复习', 'New, not yet reviewed'),
-    x: text('距上次复习（天）', 'Days since last review'), y: text('估计记忆保持率', 'Estimated retention'), graph: text('知识图谱', 'Knowledge graph'), curve: s => text(`稳定度 ${s} 天`, `Stability ${s}d`) });
+  const ratingName0 = rating => ({ wrong: text('答错', 'Missed'), unclear: text('还不懂', 'Unclear'), guessed: text('猜对', 'Guessed'), understood: text('理解', 'Understood'), mastered: text('掌握', 'Mastered') })[rating] || text('未复习', 'Not reviewed');
+  const labels = () => ({ locale: locale() === 'zh' ? 'zh-CN' : 'en', x: text('日期', 'Date'), y: text('估计记忆保持率', 'Estimated retention'), today: text('今天', 'Today'), todayDue: text('今天复习', 'Review today'), graph: text('知识图谱', 'Knowledge graph'),
+    filled: text('实心：今天需要复习', 'Filled: review today'), hollow: text('空心：之后复习（画在复习日期上）', 'Hollow: review later (on its date)'), dueCount: n => text(`今天 ${n} 个`, `today ${n}`), rating: ratingName0,
+    module: text('模块', 'Module'), last: text('上次复习', 'Last review'), estimate: text('估计保持率', 'Estimated retention'), next: text('下次复习', 'Next review'), asked: text('提问次数', 'Times asked') });
   const points = () => memoryPoints(cards(), reviews(), dueIds());
+  const styles = () => moduleStyles([...new Set([...modules(), ...cards().map(card => card.module)])]);
   const ratingName = rating => ({ wrong: text('答错', 'Missed'), unclear: text('还不懂', 'Unclear'), guessed: text('猜对', 'Guessed'), understood: text('理解', 'Understood'), mastered: text('掌握', 'Mastered') })[rating] || text('未复习', 'Not reviewed');
   function selectedCards() {
     const data = reviews();
@@ -35,9 +38,11 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
   }
   const fileName = () => `knowledge-review-${new Date().toISOString().slice(0, 10)}`;
   function view(tab) {
-    const list = points(), counts = Object.fromEntries(['due', 'weak', 'stable', 'new'].map(kind => [kind, list.filter(p => p.kind === kind).length]));
-    if (tab === 'curve') return `<section class="panel"><h2>${text('遗忘曲线', 'Forgetting curve')}</h2><p>${text(`每个点是一个知识点：横轴是距上次复习的天数，纵轴是估计的记忆保持率。今天需要复习 ${counts.due} 个，薄弱 ${counts.weak} 个。虚线是不同稳定度的参考曲线。`, `Each point is one idea: days since its last review against estimated retention. ${counts.due} due today, ${counts.weak} weak. Dashed lines are reference curves for different stability.`)}</p>${list.length ? curveSvg(list, labels()) + legend(labels()) : `<p>${text('还没有可显示的知识点。', 'No ideas to show yet.')}</p>`}<p class="field-hint">${text('保持率按常见的间隔复习近似公式估算（到期时约 90%），不是根据你的长期学习数据校准的结果。', 'Retention uses a common spaced-repetition approximation (about 90% when due), not a model calibrated on your long-term data.')}</p></section>`;
-    if (tab === 'graph') return `<section class="panel"><h2>${text('知识图谱', 'Knowledge graph')}</h2><p>${text('每个圆心是一个学习模块，周围是它的知识点；同一模块中分类相同的知识点用虚线相连。把鼠标停在点上可查看名称。', 'Each hub is a module surrounded by its ideas; ideas with the same category in a module are joined by dashed lines. Hover a point for its name.')}</p>${list.length ? graphSvg(list, moduleName, labels()) + legend(labels()) : `<p>${text('还没有可显示的知识点。', 'No ideas to show yet.')}</p>`}${list.length > 150 ? `<p class="field-hint">${text('只显示前 150 个知识点。', 'Showing the first 150 ideas.')}</p>` : ''}</section>`;
+    const list = points(), style = styles(), dueModules = [...new Set(list.filter(p => p.today).map(p => p.module))];
+    const summary = dueModules.length ? text(`今天需要复习：${dueModules.map(id => `${moduleName(id)} ${list.filter(p => p.today && p.module === id).length} 个`).join('、')}。`, `Review today: ${dueModules.map(id => `${moduleName(id)} ${list.filter(p => p.today && p.module === id).length}`).join(', ')}.`) : text('今天没有需要复习的知识。', 'Nothing to review today.');
+    const empty = `<p>${text('还没有可显示的知识点。', 'No ideas to show yet.')}</p>`;
+    if (tab === 'curve') return `<section class="panel"><h2>${text('遗忘曲线', 'Forgetting curve')}</h2><p><strong>${e(summary)}</strong></p><p>${text('每条线是一个模块的平均记忆保持率：随时间下降，复习后回升。虚线是“今天”。实心点是今天要复习的知识，空心点是之后要复习的知识，画在它的复习日期上。把鼠标停在点上（手机上点一下）可查看详情。', 'Each line is a module’s average retention: it falls over time and rises after reviews. The dashed line is today. Filled points are ideas to review today; hollow points come later, on their review date. Hover a point (tap on a phone) for details.')}</p>${list.length ? curveSvg(list, moduleCurves(cards(), reviews()), style, moduleName, labels()) + legend(style, moduleName, list, labels()) : empty}<p class="field-hint">${text('保持率按常见的间隔复习近似公式估算（到期时约 90%），不是根据你的长期学习数据校准的结果。', 'Retention uses a common spaced-repetition approximation (about 90% when due), not a model calibrated on your long-term data.')}</p></section>`;
+    if (tab === 'graph') return `<section class="panel"><h2>${text('知识图谱', 'Knowledge graph')}</h2><p><strong>${e(summary)}</strong></p><p>${text('每个圆心是一个学习模块，周围是它的知识点；同一模块中分类相同的知识点用虚线相连。颜色和形状代表模块，实心表示今天需要复习。把鼠标停在点上可查看详情。', 'Each hub is a module surrounded by its ideas; ideas sharing a category are joined by dashed lines. Colour and shape show the module; filled means review today. Hover a point for details.')}</p>${list.length ? graphSvg(list, style, moduleName, labels()) + legend(style, moduleName, list, labels()) : empty}${list.length > 150 ? `<p class="field-hint">${text('只显示前 150 个知识点。', 'Showing the first 150 ideas.')}</p>` : ''}</section>`;
     const chosen = selectedCards();
     return `<section class="panel"><h2>${text('导出复习好的知识', 'Export reviewed knowledge')}</h2><p>${text('选择范围后下载 Word 文档，或直接写入在线文档。只有你点击按钮时才会生成或发送。', 'Choose what to include, then download a Word document or send it to an online document. Nothing is generated or sent until you click.')}</p>
       <div class="library-controls"><label>${text('模块', 'Module')}<select id="export-module"><option value="">${text('全部', 'All')}</option>${modules().map(id => `<option value="${id}" ${id === exportModule ? 'selected' : ''}>${e(moduleName(id))}</option>`).join('')}</select></label><label>${text('范围', 'Include')}<select id="export-scope"><option value="reviewed" ${scope === 'reviewed' ? 'selected' : ''}>${text('已复习过的知识', 'Reviewed ideas')}</option><option value="stable" ${scope === 'stable' ? 'selected' : ''}>${text('已理解或掌握的知识', 'Understood or mastered')}</option><option value="all" ${scope === 'all' ? 'selected' : ''}>${text('全部知识点', 'All ideas')}</option></select></label></div>
@@ -50,7 +55,7 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
       ${chosen.length ? `<details><summary>${text('预览', 'Preview')}</summary>${chosen.slice(0, 20).map(card => `<h3>${e(card.title)}</h3><div class="knowledge-summary">${renderAnswer(card.summary)}</div>`).join('')}</details>` : ''}</section>`;
   }
   function bind(tab) {
-    if (tab !== 'export') return;
+    if (tab !== 'export') { attachVizInteraction(document.querySelector('main'), labels()); return; }
     document.querySelector('#export-module').onchange = event => { exportModule = event.target.value; docLink = ''; refresh(); };
     document.querySelector('#export-scope').onchange = event => { scope = event.target.value; docLink = ''; refresh(); };
     document.querySelector('#export-word').onclick = () => {

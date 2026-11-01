@@ -1,34 +1,41 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { memoryPoints, retention, stability, curveSvg, graphSvg, graphEdges, legend } from '../memory-viz.js';
+import { memoryPoints, moduleCurves, moduleStyles, retention, stability, curveSvg, graphSvg, graphEdges, legend } from '../memory-viz.js';
 import { buildDocx, crc32 } from '../docx.js';
 import { uploadAsGoogleDoc } from '../google-docs.js';
 import { emptyReviews, recordReview } from '../review-store.js';
 
 const card = (id, extra = {}) => ({ id, title: `卡片 ${id}`, module: 'coding', category: '函数', status: 'active', extraction: 'ready', createdAt: '2026-10-25T09:00:00Z', origins: [{}], summary: 's', example: '', ...extra });
-const labels = { due: '今天复习', weak: '薄弱', stable: '已掌握', new: '新学', x: 'x', y: 'y', graph: 'g', curve: s => `S${s}` };
+const labels = { locale: 'zh-CN', x: '日期', y: '保持率', today: '今天', todayDue: '今天复习', graph: 'g', filled: '实心', hollow: '空心', dueCount: n => `今天 ${n} 个`, rating: r => r || '未复习' };
+const name = id => ({ coding: '编程', english: '英语' })[id];
 
-test('memory points classify today’s due, weak, stable and new cards with an estimated retention', () => {
-  const data = emptyReviews(), now = new Date('2026-11-01T12:00:00Z');
-  recordReview(data, 'weak', { answer: 'a', correct: false, explanation: 'e', rating: 'wrong' }, new Date('2026-10-31T12:00:00Z'));
-  recordReview(data, 'stable', { answer: 'a', correct: true, explanation: 'e', rating: 'mastered' }, new Date('2026-10-30T12:00:00Z'));
-  recordReview(data, 'due', { answer: 'a', correct: true, explanation: 'e', rating: 'understood' }, new Date('2026-10-30T12:00:00Z'));
-  const points = memoryPoints([card('weak'), card('stable'), card('due'), card('new'), card('paused', { status: 'paused' })], data, new Set(['due']), now);
-  assert.deepEqual(Object.fromEntries(points.map(p => [p.id, p.kind])), { weak: 'weak', stable: 'stable', due: 'due', new: 'new' }, 'paused cards are left out; due wins over other states');
-  assert.equal(retention(0, 3), 100); assert.equal(retention(3, 3), 90, 'about 90% when a card falls due');
-  assert.ok(retention(10, 1) < retention(10, 7), 'higher stability forgets more slowly');
+test('points: today’s batch is filled on today; later reviews are hollow on their date; module curves average retention', () => {
+  const data = emptyReviews(), now = new Date('2026-11-01T12:00:00');
+  recordReview(data, 'later', { answer: 'a', correct: true, explanation: 'e', rating: 'mastered' }, new Date('2026-10-31T12:00:00'));
+  const points = memoryPoints([card('due'), card('later'), card('paused', { status: 'paused' })], data, new Set(['due']), now);
+  const byId = Object.fromEntries(points.map(p => [p.id, p]));
+  assert.deepEqual(Object.keys(byId).sort(), ['due', 'later'], 'paused cards are left out');
+  assert.equal(byId.due.today, true); assert.equal(byId.due.offset, 0);
+  assert.equal(byId.later.today, false); assert.equal(byId.later.offset, 2, 'mastered yesterday with a 3-day interval: due in two days');
+  const curve = moduleCurves([card('due'), card('later')], data, now).get('coding');
+  assert.ok(curve.length > 20 && curve.every(p => p.retention >= 0 && p.retention <= 100));
+  assert.ok(curve.find(p => p.offset === -1).retention > curve.find(p => p.offset === -1.5).retention, 'the curve rises at yesterday’s review');
+  assert.equal(retention(3, 3), 90, 'about 90% when a card falls due'); assert.ok(retention(10, 1) < retention(10, 7));
   assert.equal(stability(null), 1); assert.equal(stability({ rating: 'wrong', interval: 0 }), 0.5);
 });
 
-test('the curve and graph mark each state with its own shape and colour, with escaped titles and a legend', () => {
-  const points = memoryPoints([card('a', { title: '<script>x</script>' }), card('b'), card('c', { module: 'english', category: '' })], emptyReviews(), new Set(['a']), new Date('2026-11-01T12:00:00Z'));
-  const curve = curveSvg(points, labels);
-  assert.match(curve, /<circle[^>]+#c0392b/); assert.match(curve, /<polygon[^>]+#2f6fb0/);
-  assert.ok(!curve.includes('<script>')); assert.match(curve, /&lt;script&gt;/);
+test('colour and shape identify the module; filled means today; details are escaped data for the hover card', () => {
+  const now = new Date('2026-11-01T12:00:00'), cards = [card('a', { title: '<script>x</script>' }), card('b'), card('c', { module: 'english', category: '' })];
+  const points = memoryPoints(cards, emptyReviews(), new Set(['a']), now), styles = moduleStyles(['coding', 'english']);
+  assert.notDeepEqual(styles.get('coding'), styles.get('english'));
+  const curve = curveSvg(points, moduleCurves(cards, emptyReviews(), now), styles, name, labels, now);
+  assert.match(curve, new RegExp(`fill="${styles.get('coding').color}"`), 'today’s point is filled with its module colour');
+  assert.match(curve, /fill="#fff" stroke="#[0-9a-f]{6}" stroke-width="2"/, 'later points are hollow');
+  assert.ok(!curve.includes('<script>')); assert.match(curve, /data-tip="[^"]*&lt;script&gt;/);
   assert.equal(graphEdges(points).length, 1, 'cards sharing a category in one module are linked');
-  assert.match(graphSvg(points, id => id === 'coding' ? '编程' : '英语', labels), /编程/);
-  const key = legend(labels);
-  for (const name of ['今天复习', '薄弱', '已掌握', '新学']) assert.ok(key.includes(name));
+  assert.match(graphSvg(points, styles, name, labels), /编程/);
+  const key = legend(styles, name, points, labels);
+  for (const text of ['编程 · 今天 1 个', '英语 · 今天 0 个', '实心', '空心']) assert.ok(key.includes(text), text);
 });
 
 test('Word export is a valid stored ZIP with the document parts and escaped text', () => {
