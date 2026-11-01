@@ -100,3 +100,12 @@ export function suggestedLevel(cards,events,module,current,since=''){
   if(recent.length===5&&recent.every(event=>event.correct===true&&['understood','mastered'].includes(event.rating)))return levels[Math.min(2,index+1)];
   return current;
 }
+// Consecutive local days with at least one review, counting back from today (or yesterday if today has none yet).
+export function streakDays(events,now=new Date()){
+  const days=new Set(events.map(event=>localDay(event.at)));let day=localDay(now),count=0;
+  if(!days.has(day))day=addDays(day,-1);
+  while(days.has(day)){count++;day=addDays(day,-1);}
+  return count;
+}
+// Stars for a finished session: correct means judged correct and rated understood/mastered (a guess does not count).
+export function sessionStars({reviewed,correct}){if(!reviewed)return 0;const rate=correct/reviewed;return rate>=0.8?3:rate>=0.5?2:1;}

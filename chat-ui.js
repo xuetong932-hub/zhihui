@@ -113,7 +113,9 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     }
     catch { notice = t('storage'); return false; }
   }
-  const review=createReviewUI({locale:getLocale,profile:getProfile,cards:library.cards,markWeak:library.markWeak,refresh,adaptLevel,call:(task,card,answer)=>{
+  // The completion popup lets the user pick a module to ask in next.
+  const review=createReviewUI({locale:getLocale,profile:getProfile,cards:library.cards,markWeak:library.markWeak,refresh,adaptLevel,
+    modules:()=>activeModuleIds(getProfile()).map(id=>({id,name:moduleName(id)})),openModule:id=>openModule(id),goHome:()=>{page='home';refresh();},call:(task,card,answer)=>{
     if(!ready())return Promise.reject(new Error('key'));
     return request('/api/review-task',{config:{...config},apiKey,consent,...moduleInfo(card.module),level:getProfile().modules[card.module].level,locale:getLocale(),task,card:{title:card.title,summary:card.summary,example:card.example},answer});
   }});

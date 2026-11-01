@@ -73,3 +73,14 @@ test('measured seconds are capped and validated; older events without seconds st
   const event=data.events[1];
   for(const seconds of [601,-1,1.5,'60'])assert.equal(validReviewEvent({...event,seconds}),false);
 });
+
+import { streakDays, sessionStars } from '../review-store.js';
+test('streak counts consecutive review days back from today (or yesterday); stars ignore guesses', () => {
+  zone('UTC');
+  const at = day => ({ at: `2026-11-${day}T09:00:00Z` });
+  assert.equal(streakDays([at('01'), at('02'), at('03')], new Date('2026-11-03T20:00:00Z')), 3);
+  assert.equal(streakDays([at('01'), at('02')], new Date('2026-11-03T08:00:00Z')), 2, 'not reviewed yet today keeps yesterday’s streak');
+  assert.equal(streakDays([at('01'), at('03')], new Date('2026-11-03T20:00:00Z')), 1);
+  assert.equal(streakDays([], new Date('2026-11-03T20:00:00Z')), 0);
+  assert.deepEqual([sessionStars({ reviewed: 5, correct: 4 }), sessionStars({ reviewed: 4, correct: 2 }), sessionStars({ reviewed: 3, correct: 0 }), sessionStars({ reviewed: 0, correct: 0 })], [3, 2, 1, 0]);
+});
