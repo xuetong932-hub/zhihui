@@ -8,11 +8,13 @@ export function createAuthGate({auth,locale,refresh,onReady}){
   const tr=(zh,en)=>locale()==='zh'?zh:en;
   let stage='loading',busy=false,message='',errors={},codeFor='signin',otp='',acct=null,deleteConsent=false;
   let devConfig={url:'',publicKey:''};
+  // Admin password stays in memory only until the sign-in attempt finishes.
+  const adminForm={email:'',password:''};
   const form={method:'email',identifier:'',username:'',email:'',phone:'',region:'',birthdate:''};
   // Only the method name is remembered on this device, to preselect it next time.
   try{const last=localStorage.getItem(LAST_LOGIN_KEY);if(['email','phone'].includes(last))form.method=last;}catch{/* Default to email. */}
   const regionName=code=>({CN:tr('中国大陆','Chinese mainland'),HK:tr('中国香港','Hong Kong, China'),MO:tr('中国澳门','Macao, China'),TW:tr('中国台湾','Taiwan, China'),SG:tr('新加坡','Singapore'),MY:tr('马来西亚','Malaysia'),US:tr('美国','United States'),GB:tr('英国','United Kingdom'),CA:tr('加拿大','Canada'),AU:tr('澳大利亚','Australia'),JP:tr('日本','Japan'),KR:tr('韩国','South Korea'),OTHER:tr('其他','Other')})[code];
-  const account=()=>auth.user&&auth.config?{url:auth.config.url,userId:auth.user.id,label:acct?.username||''}:null;
+  const account=()=>auth.user&&auth.config?{url:auth.config.url,userId:auth.user.id,label:acct?.username||(acct?.is_admin?tr('管理员','Administrator'):'')}:null;
   const fieldError=key=>({username:tr('用户名为 2–20 个字符，不能包含空格或 @ < > " \' / \\ 等符号。','Username: 2–20 characters, no spaces or @ < > " \' / \\.'),email:tr('请输入有效的邮箱。','Enter a valid email.'),phone:tr('请输入带国家区号的手机号，例如 +8613800000000。','Enter a phone number with country code, e.g. +8613800000000.'),region:tr('请选择国家或地区。','Choose a country or region.'),birthdate:tr('请输入有效的生日。','Enter a valid birthday.'),identifier:tr('请输入有效的邮箱或手机号。','Enter a valid email or phone number.')})[errors[key]?key:'']||'';
   const errorText=error=>({username_taken:tr('该用户名已被使用，请换一个。','This username is taken. Choose another.'),already_registered:tr('此账号已完成注册。','This account is already registered.'),invalid_registration:tr('注册信息未通过服务端校验，请检查后重试。','The server rejected the registration details. Check and try again.'),config:tr('服务尚未配置。','The service is not configured.')})[error?.code]||(error?.status===429?tr('操作过于频繁，请稍后再试。','Too many attempts. Try again later.'):tr('请求未完成，请检查网络后重试。','Request incomplete. Check your network and try again.'));
   async function run(action){if(busy)return;busy=true;message='';refresh();try{await action();}catch(error){message=errorText(error);}finally{busy=false;refresh();}}
@@ -22,7 +24,8 @@ export function createAuthGate({auth,locale,refresh,onReady}){
     try{acct=await auth.account();}
     catch(error){if(!auth.session){go('signin');return;}stage='error';message=errorText(error);return;}
     if(acct?.status==='denied'){stage='denied';return;}
-    if(!acct?.registered||acct.status!=='adult'){prefill();stage='register';return;}
+    // Administrators are created by the operator and skip the registration form.
+    if(!acct?.is_admin&&(!acct?.registered||acct.status!=='adult')){prefill();stage='register';return;}
     const state=ownership(localStorage,account()),previous=readOwner(localStorage);
     if(state==='unbound'||state==='other'){stage='local';return;}
     // No records, but the learning settings belong to another account: start this account from its own setup.
@@ -50,6 +53,8 @@ export function createAuthGate({auth,locale,refresh,onReady}){
   function header(title,hint){return `<section class="intro"><span class="eyebrow">${tr('知回','Knowledge Review')}</span><h1>${title}</h1><p>${hint}</p></section>`;}
   const status=()=>`<p class="error" role="alert">${esc(message)}</p>${busy?`<p class="verified" role="status">${tr('正在处理…','Working…')}</p>`:''}`;
   const regionSelect=()=>`<label class="field-label" for="auth-region">${tr('国家或地区','Country or region')} *</label><select id="auth-region"><option value="">${tr('请选择','Choose')}</option>${REGIONS.map(code=>`<option value="${code}" ${form.region===code?'selected':''}>${regionName(code)}</option>`).join('')}</select><p class="error">${fieldError('region')}</p>`;
+  // Shown only when the local test server provides a test administrator; real projects never do.
+  const testAdminBox=()=>auth.testAdmin?`<div class="sharing-notice test-admin"><p>${tr(`测试服务：已预置测试管理员（${esc(auth.testAdmin.email)}）。此按钮只在本机测试服务中出现，正式环境没有。`,`Test service: a test administrator (${esc(auth.testAdmin.email)}) is preset. This button only appears with the local test server, never in production.`)}</p><button class="primary-button" id="test-admin-login">${tr('一键以测试管理员身份进入','Enter as the test administrator')}</button></div>`:'';
   const privacy=()=>`<div class="sharing-notice"><p>${tr('注册即表示你了解：管理员可以查看你的用户名、国家或地区、部分隐藏的邮箱和手机号、注册时间与最近登录时间。生日只用于服务端判断是否年满 18 岁，不会保存；未满 18 岁无法完成注册，同一账号不能重新提交生日。生日由你自行填写，不是身份验证。','By registering you understand that administrators can see your username, country or region, partially hidden email and phone, and registration and last sign-in times. Your birthday is used only for the server’s 18+ check and is not stored; under-18 accounts cannot finish registering, and the same account cannot resubmit a birthday. The birthday is self-reported, not identity verification.')}</p></div>`;
   function fields({lockedMethod}={}){
     const user=auth.user;
@@ -74,10 +79,13 @@ export function createAuthGate({auth,locale,refresh,onReady}){
     if(stage==='signin')return header(tr('登录','Sign in'),tr('使用注册时的邮箱或手机号接收验证码。','Use the email or phone you registered with to receive a code.'))
       +`<section class="panel auth-panel"><div class="module-tabs"><button class="module-tab ${form.method==='email'?'active':''}" data-auth-method="email">${tr('邮箱','Email')}</button><button class="module-tab ${form.method==='phone'?'active':''}" data-auth-method="phone">${tr('手机号','Phone')}</button></div><label class="field-label" for="auth-identifier">${form.method==='email'?tr('邮箱','Email'):tr('手机号（含国家区号）','Phone (with country code)')}</label><input id="auth-identifier" type="text" inputmode="${form.method==='email'?'email':'tel'}" value="${esc(form.identifier)}" placeholder="${form.method==='email'?'name@example.com':'+8613800000000'}"><p class="error">${fieldError('identifier')}</p>
         <div class="actions"><button class="text-button" id="go-signup">${tr('没有账号？注册','No account? Register')}</button><button class="primary-button" id="signin-send">${tr('发送验证码','Send code')}</button></div>
+        <div class="followups"><button class="text-button" id="go-admin">${tr('管理员使用密码登录','Administrator password sign-in')}</button></div>${testAdminBox()}
         <div class="followups"><button class="secondary-button" data-oauth="google">${tr('使用 Google 登录','Continue with Google')}</button><button class="secondary-button" data-oauth="apple">${tr('使用 Apple 登录','Continue with Apple')}</button></div>${status()}</section>`;
     if(stage==='signup')return header(tr('注册','Register'),tr('填写基本信息，选择用邮箱还是手机号接收验证码。带 * 为必填。','Enter your details and choose whether to receive the code by email or phone. * is required.'))
       +`<section class="panel auth-panel"><label class="field-label" for="auth-method">${tr('验证方式','Verify with')}</label><select id="auth-method"><option value="email" ${form.method==='email'?'selected':''}>${tr('邮箱验证码','Email code')}</option><option value="phone" ${form.method==='phone'?'selected':''}>${tr('手机短信验证码','SMS code')}</option></select>${fields()}${privacy()}
         <div class="actions"><button class="text-button" id="go-signin">${tr('已有账号？登录','Have an account? Sign in')}</button><button class="primary-button" id="signup-send">${tr('发送验证码','Send code')}</button></div>${status()}</section>`;
+    if(stage==='admin')return header(tr('管理员登录','Administrator sign-in'),tr('使用运营者为管理员账号设置的邮箱和密码，无需验证码或注册信息。','Use the email and password the operator set for the administrator account. No code or registration details needed.'))
+      +`<section class="panel auth-panel"><label class="field-label" for="admin-email">${tr('邮箱','Email')}</label><input id="admin-email" type="text" inputmode="email" autocomplete="username" value="${esc(adminForm.email)}"><label class="field-label" for="admin-password">${tr('密码','Password')}</label><input id="admin-password" type="password" autocomplete="current-password"><div class="actions"><button class="text-button" id="go-signin">${tr('返回验证码登录','Back to code sign-in')}</button><button class="primary-button" id="admin-signin">${tr('登录','Sign in')}</button></div>${testAdminBox()}${status()}</section>`;
     if(stage==='code')return header(tr('输入验证码','Enter the code'),tr(`验证码已发送到 ${esc(codeFor==='signup'?(form.method==='email'?form.email:form.phone):form.identifier)}。`,`A code was sent to ${esc(codeFor==='signup'?(form.method==='email'?form.email:form.phone):form.identifier)}.`))
       +`<section class="panel auth-panel"><label class="field-label" for="auth-code">${tr('验证码','Code')}</label><input id="auth-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" value="${esc(otp)}"><div class="actions"><button class="text-button" id="code-back">${tr('返回修改','Go back')}</button><button class="primary-button" id="code-verify">${codeFor==='signup'?tr('验证并完成注册','Verify and register'):tr('验证并登录','Verify and sign in')}</button></div>${status()}</section>`;
     if(stage==='register')return header(tr('完善注册信息','Finish registering'),tr('这个账号还没有完成注册。补充以下信息后即可使用。','This account has not finished registering. Add the details below to continue.'))
@@ -99,7 +107,19 @@ export function createAuthGate({auth,locale,refresh,onReady}){
     const on=(selector,handler)=>{const element=document.querySelector(selector);if(element)element.onclick=handler;};
     document.querySelectorAll('[data-auth-method]').forEach(button=>button.onclick=()=>{form.method=button.dataset.authMethod;form.identifier='';errors={};refresh();});
     on('#go-signup',()=>{const id=form.identifier;if(validEmail(id)){form.email=id;form.method='email';}else if(validPhone(id)){form.phone=id;form.method='phone';}go('signup');});
-    on('#go-signin',()=>{form.birthdate='';go('signin');});
+    on('#go-signin',()=>{form.birthdate='';adminForm.password='';go('signin');});
+    on('#go-admin',()=>{if(validEmail(form.identifier))adminForm.email=form.identifier;go('admin');});
+    const adminEmail=document.querySelector('#admin-email');if(adminEmail)adminEmail.oninput=()=>{adminForm.email=adminEmail.value.trim();};
+    const adminPassword=document.querySelector('#admin-password');if(adminPassword){adminPassword.value=adminForm.password;adminPassword.oninput=()=>{adminForm.password=adminPassword.value;};}
+    const adminSignIn=async credentials=>{
+      try{await auth.signInWithPassword(credentials);}
+      catch(error){if(error.status>=400&&error.status<500&&error.status!==429){message=tr('邮箱或密码不正确。','Incorrect email or password.');return;}throw error;}
+      finally{adminForm.password='';}
+      // Password accounts that are not administrators still go through registration and the age check.
+      await check();
+    };
+    on('#admin-signin',()=>run(()=>adminSignIn({email:adminForm.email,password:adminForm.password})));
+    on('#test-admin-login',()=>run(()=>adminSignIn(auth.testAdmin)));
     on('#dev-save',()=>run(async()=>{if(!validConfig(devConfig))throw Object.assign(new Error('config'),{code:'config'});auth.saveDeviceConfig(devConfig);stage='signin';}));
     on('#signin-send',()=>run(async()=>{const id=form.identifier;if(form.method==='email'?!validEmail(id):!validPhone(id)){errors={identifier:'identifier'};return;}
       try{await auth.sendCode({method:form.method,identifier:id,create:false});}catch(error){if(error.status>=400&&error.status<500&&error.status!==429){message=tr('未能发送验证码：请确认已经注册，且邮箱或手机号填写正确。','Could not send a code. Check that you have registered and the email or phone is correct.');return;}throw error;}

@@ -1,7 +1,9 @@
 import { safeSourceUrl } from './providers.js';
+import { PRESET_MODULES, isModuleId } from './modules.js';
 export const CHAT_KEY = 'knowledge-review.chats.v1';
 export const CONFIG_KEY = 'knowledge-review.model.v1';
-export const moduleIds = ['coding', 'english', 'work', 'life'];
+// Built-in module lists always exist; custom module lists are added on first use.
+export const moduleIds = PRESET_MODULES;
 export const emptyChats = () => ({ version: 1, modules: Object.fromEntries(moduleIds.map(id => [id, []])) });
 // Limits follow what the app writes: questions ≤8,000 characters, model answers ≤60,000, titles are the first 60 characters.
 export const CHAT_LIMITS = { threads: 5000, messages: 5000, id: 100, title: 200, user: 8000, assistant: 60000, label: 100, sources: 30, sourceTitle: 300, url: 2048 };
@@ -19,6 +21,7 @@ export function loadChats(storage) {
   try {
     const data = JSON.parse(storage.getItem(CHAT_KEY));
     if (data?.version !== 1 || !moduleIds.every(id => Array.isArray(data.modules?.[id]))) return { chats: emptyChats(), issue: Boolean(data) };
+    if (!Object.keys(data.modules).every(isModuleId)) return { chats: emptyChats(), issue: true };
     for (const threads of Object.values(data.modules)) {
       if (!Array.isArray(threads) || threads.length > L.threads) return { chats: emptyChats(), issue: true };
       for (const thread of threads) {

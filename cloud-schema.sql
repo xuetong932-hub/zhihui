@@ -44,9 +44,11 @@ create table if not exists public.admins (
 alter table public.admins enable row level security;
 revoke all on public.admins from anon, authenticated;
 
+-- Administrators are created by the operator (with a password, no registration form) and count as eligible.
 create or replace function public.is_adult() returns boolean
 language sql stable security definer set search_path = '' as $$
-  select exists(select 1 from public.account_eligibility where user_id = auth.uid() and status = 'adult');
+  select exists(select 1 from public.account_eligibility where user_id = auth.uid() and status = 'adult')
+      or exists(select 1 from public.admins where user_id = auth.uid());
 $$;
 
 create or replace function public.my_account() returns jsonb

@@ -6,6 +6,7 @@ import {createDeviceUI} from './device-ui.js';
 import {createCloudUI} from './cloud-ui.js';
 import {attachModelHelp} from './model-help.js';
 import {createAdminUI} from './admin-ui.js';
+import {moduleLabel,activeModuleIds,isActiveModule,isCustomModule} from './modules.js';
 
 const copy = {
   zh: {
@@ -82,16 +83,21 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   let modelDraft, keyDraft = '', consentDraft = false, modelError = '', testMessage = '', testing = false;
   const selected = {}, inputs = {};
   const t = key => copy[getLocale()][key] || copy[getLocale()]['error-generic'];
-  const moduleName = id => ({ zh: { coding: '编程', english: '英语', work: '工作知识', life: '生活常识' }, en: { coding: 'Coding', english: 'English', work: 'Work knowledge', life: 'Everyday knowledge' } })[getLocale()][id];
+  const moduleName = id => moduleLabel(getProfile(), id, getLocale());
+  // Custom modules get their conversation list on first use; built-in lists always exist.
+  const threadsOf = id => (chats.modules[id] ||= []);
+  // The server gets each module's name so custom modules can be explained and classified.
+  const moduleInfo = id => ({ module: id, ...(isCustomModule(id) ? { moduleName: moduleName(id) } : {}) });
+  const enabledModules = () => activeModuleIds(getProfile()).map(id => ({ id, name: moduleName(id) }));
   const ready = () => Boolean(apiKey && consent);
   const allOrigins = () => Object.entries(chats.modules).flatMap(([sourceModule,threads])=>threads.flatMap(thread=>thread.messages.flatMap((message,index)=> {
     const question=thread.messages[index-1];
     return message.role==='assistant'&&message.status==='done'&&question?.role==='user'&&question.status==='done'?[{id:message.id,threadId:thread.id,sourceModule,question:question.content,answer:message.content,createdAt:question.createdAt,sources:message.sources||[]}]:[];
   })));
-  const library = createKnowledgeUI({locale:getLocale, enabled:()=>Object.keys(getProfile().modules).filter(id=>getProfile().modules[id].enabled), refresh,
+  const library = createKnowledgeUI({locale:getLocale, enabled:()=>activeModuleIds(getProfile()), moduleName, refresh,
     origins:allOrigins, extract:async(origin,candidates)=> {
       if(!ready())throw new Error('key');
-      return request('/api/extract',{config:{...config},apiKey,consent,module:origin.sourceModule,level:getProfile().modules[origin.sourceModule].level,locale:getLocale(),question:origin.question,answer:origin.answer.slice(0,24000),candidates,enabled:Object.keys(getProfile().modules).filter(id=>getProfile().modules[id].enabled)},controller?.signal);
+      return request('/api/extract',{config:{...config},apiKey,consent,...moduleInfo(origin.sourceModule),level:getProfile().modules[origin.sourceModule].level,locale:getLocale(),question:origin.question,answer:origin.answer.slice(0,24000),candidates,enabled:enabledModules()},controller?.signal);
     }});
   function saveChats() {
     if (corrupt) { notice = t('corrupt'); return false; }
@@ -104,7 +110,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   }
   const review=createReviewUI({locale:getLocale,profile:getProfile,cards:library.cards,markWeak:library.markWeak,refresh,adaptLevel,call:(task,card,answer)=>{
     if(!ready())return Promise.reject(new Error('key'));
-    return request('/api/review-task',{config:{...config},apiKey,consent,module:card.module,level:getProfile().modules[card.module].level,locale:getLocale(),task,card:{title:card.title,summary:card.summary,example:card.example},answer});
+    return request('/api/review-task',{config:{...config},apiKey,consent,...moduleInfo(card.module),level:getProfile().modules[card.module].level,locale:getLocale(),task,card:{title:card.title,summary:card.summary,example:card.example},answer});
   }});
   // The signed-in account as the local-data owner; backups of other accounts cannot be swapped in.
   const owner=()=>auth?.user&&auth.config?{url:auth.config.url,userId:auth.user.id,label:getAccount?.()?.username||''}:null;
@@ -123,18 +129,18 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     for(const id of Object.keys(selected))delete selected[id];
     reloadProfile();library.reload();review.reload();ensureModule();
   }
-  function ensureModule(){const profile=getProfile();if(profile&&!profile.modules[activeModule]?.enabled)activeModule=Object.keys(profile.modules).find(id=>profile.modules[id].enabled);}
+  function ensureModule(){const profile=getProfile();if(profile&&!isActiveModule(profile,activeModule))activeModule=activeModuleIds(profile)[0];}
   let recognition=null;
-  function thread() { return chats.modules[activeModule].find(item => item.id === selected[activeModule]); }
+  function thread() { return threadsOf(activeModule).find(item => item.id === selected[activeModule]); }
   function newThread() {
     const item = { id: crypto.randomUUID(), title: '', createdAt: new Date().toISOString(), messages: [] };
-    chats.modules[activeModule].push(item); selected[activeModule] = item.id;
+    threadsOf(activeModule).push(item); selected[activeModule] = item.id;
     return item;
   }
   function openModule(id) {
-    if (!getProfile()?.modules[id]?.enabled || busy || testing || library.busy || review.busy) return;
+    if (!isActiveModule(getProfile(), id) || busy || testing || library.busy || review.busy) return;
     activeModule = id;
-    const existing = chats.modules[id];
+    const existing = threadsOf(id);
     if (!existing.some(item => item.id === selected[id])) selected[id] = existing.at(-1)?.id;
     page = 'chat'; notice = ''; refresh();
   }
@@ -166,12 +172,12 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   }
   function chatView() {
     const profile = getProfile();
-    const threads = chats.modules[activeModule];
+    const threads = threadsOf(activeModule);
     const current = thread();
     const messages = current?.messages || [];
     const input = inputs[activeModule] || '';
-    return `<section class="intro"><span class="eyebrow">${moduleName(activeModule)}</span><h1>${t('chatTitle')}</h1><p>${t('chatHint')}</p></section>
-      <div class="module-tabs" role="group" aria-label="${getLocale() === 'zh' ? '学习模块' : 'Learning modules'}">${Object.keys(profile.modules).filter(id => profile.modules[id].enabled).map(id => `<button class="module-tab ${id === activeModule ? 'active' : ''}" data-switch-module="${id}" aria-pressed="${id === activeModule}" ${busy ? 'disabled' : ''}>${moduleName(id)}</button>`).join('')}</div>
+    return `<section class="intro"><span class="eyebrow">${esc(moduleName(activeModule))}</span><h1>${t('chatTitle')}</h1><p>${t('chatHint')}</p></section>
+      <div class="module-tabs" role="group" aria-label="${getLocale() === 'zh' ? '学习模块' : 'Learning modules'}">${activeModuleIds(profile).map(id => `<button class="module-tab ${id === activeModule ? 'active' : ''}" data-switch-module="${id}" aria-pressed="${id === activeModule}" ${busy ? 'disabled' : ''}>${esc(moduleName(id))}</button>`).join('')}</div>
       <section class="panel conversation-panel"><div class="chat-toolbar"><label class="thread-label" for="thread-select">${t('history')}</label><select id="thread-select" ${busy || !threads.length ? 'disabled' : ''}>${threads.length ? [...threads].reverse().map(item => `<option value="${esc(item.id)}" ${item.id === current?.id ? 'selected' : ''}>${esc(item.title || t('unnamed'))}</option>`).join('') : `<option>${t('unnamed')}</option>`}</select><button class="secondary-button" id="new-thread" ${busy ? 'disabled' : ''}>＋ ${t('fresh')}</button></div>
       <div class="connection-bar"><span class="status-dot ${ready() ? 'ready' : ''}"></span><span>${t(ready() ? 'configured' : 'needsKey')} · ${esc(providers[config.provider].name)} · ${esc(config.model)}</span><button class="text-button" data-model-settings ${busy ? 'disabled' : ''}>${t('modelSettings')}</button></div>
       <div class="messages" aria-label="${t('history')}" aria-busy="${busy}">${messages.length ? messages.map((message, index) => messageView(message, index === messages.length - 1)).join('') : `<div class="empty-state"><div class="empty-icon" aria-hidden="true">?</div><h3>${t('empty')}</h3><p>${t('emptyHint')}</p></div>`}</div>
@@ -242,7 +248,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
       if (modelError) { refresh(); return; }
       testing = true; refresh();
       try {
-        await request('/api/test', { config: modelDraft, apiKey: keyDraft, consent: consentDraft, module: activeModule, level: getProfile().modules[activeModule].level, locale: getLocale(), messages: [{ role: 'user', content: 'OK' }] });
+        await request('/api/test', { config: modelDraft, apiKey: keyDraft, consent: consentDraft, ...moduleInfo(activeModule), level: getProfile().modules[activeModule].level, locale: getLocale(), messages: [{ role: 'user', content: 'OK' }] });
         testMessage = t('testOk');
       } catch (error) { modelError = errorText(error.code); }
       finally { testing = false; refresh(); }
@@ -300,7 +306,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     user.status = 'pending'; delete user.error; notice = '';
     if (!saveChats()) { user.status = 'failed'; if (!retryId) inputs[activeModule] = text; refresh(); return; }
     const sentModule = activeModule;
-    const requestBody = { config: { ...config }, apiKey, consent, module: sentModule, level: getProfile().modules[sentModule].level, locale: getLocale(), messages };
+    const requestBody = { config: { ...config }, apiKey, consent, ...moduleInfo(sentModule), level: getProfile().modules[sentModule].level, locale: getLocale(), messages };
     // A retry resends a stored question; the box may hold a different draft that must stay.
     controller = new AbortController(); busy = true; if (!retryId) inputs[sentModule] = ''; refresh();
     try {
@@ -326,7 +332,9 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     openingPopup:()=>device.openingPopup(),
     reviewCount:()=>review.count(),
     knowledgeCount: id => library.count(id),
-    homeText: key => t(key), messageCount: id => chats.modules[id].reduce((sum, item) => sum + item.messages.filter(message => message.status === 'done').length, 0),
+    homeText: key => t(key), messageCount: id => (chats.modules[id] || []).reduce((sum, item) => sum + item.messages.filter(message => message.status === 'done').length, 0),
     ensureModule,
+    // Whether deleting this module would hide records (then it is archived instead of removed).
+    moduleHasData: id => (chats.modules[id] || []).some(item => item.messages.length) || library.cards().some(card => card.module === id),
   };
 }

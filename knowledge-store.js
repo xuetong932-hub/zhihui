@@ -1,6 +1,7 @@
 import { safeSourceUrl } from './providers.js';
+import { PRESET_MODULES, isModuleId } from './modules.js';
 export const KNOWLEDGE_KEY = 'knowledge-review.knowledge.v1';
-export const moduleIds = ['coding', 'english', 'work', 'life'];
+export const moduleIds = PRESET_MODULES;
 export const emptyKnowledge = () => ({ version: 1, cards: [], ignored: [] });
 export function localDay(value) {
   const date = new Date(value);
@@ -14,7 +15,7 @@ const optionalDate = value => value === undefined || (typeof value === 'string' 
 function validOrigin(origin) {
   const L = KNOWLEDGE_LIMITS;
   return Boolean(origin && text(origin.id, L.id) && text(origin.threadId, L.id) && text(origin.question, L.question) && text(origin.answer, L.answer)
-    && typeof origin.createdAt === 'string' && Number.isFinite(Date.parse(origin.createdAt)) && moduleIds.includes(origin.sourceModule)
+    && typeof origin.createdAt === 'string' && Number.isFinite(Date.parse(origin.createdAt)) && isModuleId(origin.sourceModule)
     && (origin.sources === undefined || Array.isArray(origin.sources)));
 }
 // Sources are display data, so unsafe or oversized entries are dropped rather than blocking the library.
@@ -27,7 +28,7 @@ export function cleanSources(sources) {
 }
 export function validCard(card) {
   const L = KNOWLEDGE_LIMITS;
-  return Boolean(card && typeof card.id === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(card.id) && moduleIds.includes(card.module)
+  return Boolean(card && typeof card.id === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(card.id) && isModuleId(card.module)
     && text(card.title, L.title) && text(card.summary, L.summary) && text(card.category, L.category) && text(card.example, L.example)
     && typeof card.createdAt === 'string' && Number.isFinite(Date.parse(card.createdAt)) && optionalDate(card.updatedAt)
     && ['active','paused','deleted','merged'].includes(card.status) && ['ready','pending'].includes(card.extraction) && typeof card.important === 'boolean'

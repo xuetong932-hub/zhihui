@@ -7,7 +7,7 @@
 5. 初次上传创建 revision 1；已有云记录须先下载。更新采用版本条件，冲突拒绝覆盖，不自动合并。下载替换本机前需要勾选确认，并在本机保存原数据快照。
 
 6. 注册与成年准入：`cloud-schema.sql` 创建 `user_profiles`（用户名、邮箱、手机号、国家或地区）、`account_eligibility`、`admins` 表，以及 `my_account`、`complete_registration`、`admin_list_users`、`is_adult` 函数。快照表只对已通过准入的账号开放。注册时 App 把生日交给 `complete_registration` 计算，只保存结果；未满 18 岁记为拒绝，且不能重新提交。上线前需确认项目日志不会记录 `complete_registration` 的请求参数（生日）。
-7. 管理员：只能在 SQL Editor 中指定，App 内没有授权入口。例如：
+7. 管理员：先在 Supabase 控制台的 Authentication → Users 中“Add user”，填写邮箱和密码，并勾选自动确认邮箱；确保 Email 登录方式允许密码登录。管理员在 App 登录页点“管理员使用密码登录”，用该邮箱和密码直接进入，不需要验证码，也不填写注册信息和学习设置（使用默认值，可在“学习设置”修改）。管理员账号视为已满足准入，可以使用同步。请为管理员设置强密码。再在 SQL Editor 中授予管理员身份（App 内没有授权入口），例如：
 
    ```sql
    insert into public.admins(user_id) select id from auth.users where email = '管理员邮箱';

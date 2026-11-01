@@ -48,7 +48,8 @@ function toSession(data){
 }
 
 export function createAuth({fetchImpl=(...args)=>fetch(...args),storage=localStorage,session:sessionStore=sessionStorage,location:loc=location,history:hist=history}={}){
-  let config=null,source='',session=readSession(storage);
+  // testAdmin: one-click credentials offered only by the local test server (loopback URL); never from a hosted project.
+  let config=null,source='',testAdmin=null,session=readSession(storage);
   const save=value=>{session=value;try{if(value)storage.setItem(SESSION_KEY,JSON.stringify(value));else storage.removeItem(SESSION_KEY);}catch{/* Session then lasts for this page only. */}};
   async function request(path,{method='GET',body,headers={},auth=true}={}){
     if(!config)throw Object.assign(new Error('config'),{code:'config'});
@@ -69,7 +70,7 @@ export function createAuth({fetchImpl=(...args)=>fetch(...args),storage=localSto
     catch(error){if(error.status===401&&session&&await refresh())return request(path,{method,body,headers});throw error;}
   }
   async function loadConfig(){
-    try{const response=await fetchImpl('/api/public-config');const value=await response.json();if(validConfig(value,{fromServer:true})){config={url:value.url,publicKey:value.publicKey};source='server';return;}}catch{/* Fall back to a device-entered project. */}
+    try{const response=await fetchImpl('/api/public-config');const value=await response.json();if(validConfig(value,{fromServer:true})){config={url:value.url,publicKey:value.publicKey};source='server';if(value.url.startsWith('http://')&&typeof value.testAdmin?.email==='string'&&typeof value.testAdmin.password==='string')testAdmin={email:value.testAdmin.email,password:value.testAdmin.password};return;}}catch{/* Fall back to a device-entered project. */}
     try{const value=JSON.parse(storage.getItem(DEVICE_CONFIG_KEY));if(validConfig(value)){config={url:value.url,publicKey:value.publicKey};source='device';}}catch{/* Not configured. */}
   }
   async function handleCallback(){
@@ -80,12 +81,14 @@ export function createAuth({fetchImpl=(...args)=>fetch(...args),storage=localSto
   }
   return {
     get config(){return config;},get source(){return source;},get session(){return session;},
-    get user(){return session?.user||null;},
+    get user(){return session?.user||null;},get testAdmin(){return testAdmin;},
     async init(){await loadConfig();if(!config)return;await handleCallback();if(session&&session.expires_at-60000<Date.now())await refresh();},
     saveDeviceConfig(value){if(!validConfig(value))return false;storage.setItem(DEVICE_CONFIG_KEY,JSON.stringify({url:value.url,publicKey:value.publicKey}));config={...value};source='device';save(null);return true;},
     api,
     sendCode:({method,identifier,create})=>request('/auth/v1/otp',{method:'POST',body:{[method]:identifier,create_user:Boolean(create)},auth:false}),
     async verify({method,identifier,token}){save(toSession(await request('/auth/v1/verify',{method:'POST',body:{[method]:identifier,token,type:method==='email'?'email':'sms'},auth:false})));return session;},
+    // Administrators sign in with the password the operator set; no code or registration form.
+    async signInWithPassword({email,password}){save(toSession(await request('/auth/v1/token?grant_type=password',{method:'POST',body:{email,password},auth:false})));return session;},
     async startOAuth(provider){
       const verifier=encode(crypto.getRandomValues(new Uint8Array(48))),challenge=encode(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier))));
       sessionStore.setItem('knowledge-review.pkce',JSON.stringify({verifier,url:config.url,provider}));

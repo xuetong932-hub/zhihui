@@ -7,8 +7,10 @@ export const FAKE_PREFIX = '/fake-supabase';
 export const FAKE_CODE = '123456';
 const REGIONS = ['CN','HK','MO','TW','SG','MY','US','GB','CA','AU','JP','KR','OTHER'];
 
-export function createFakeSupabase({ adminEmails = ['admin@example.test'], now = () => new Date() } = {}) {
+// seedAdmin: an administrator that exists from the start and signs in with a password (like an operator-created one).
+export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedAdmin = null, now = () => new Date() } = {}) {
   const users = new Map(), tokens = new Map(), refreshTokens = new Map(), eligibility = new Map(), profiles = new Map(), admins = new Set(), snapshots = new Map();
+  if (seedAdmin) { const user = { id: randomUUID(), email: seedAdmin.email, phone: '', password: seedAdmin.password, created_at: now().toISOString() }; users.set(user.id, user); admins.add(user.id); }
   const send = (response, status, data) => { response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); response.end(data === undefined ? '' : JSON.stringify(data)); };
   const fail = (response, status, message) => send(response, status, { code: String(status), message });
   async function body(request) { const chunks = []; for await (const chunk of request) chunks.push(chunk); try { return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'); } catch { return {}; } }
@@ -72,6 +74,11 @@ export function createFakeSupabase({ adminEmails = ['admin@example.test'], now =
       if (!id || !users.has(id)) { fail(response, 400, 'Invalid Refresh Token'); return true; }
       refreshTokens.delete(token); send(response, 200, session(users.get(id))); return true;
     }
+    if (sub === '/auth/v1/token' && method === 'POST' && url.searchParams.get('grant_type') === 'password') {
+      const { email, password } = await body(request), user = findUser(email, null);
+      if (!user || !user.password || user.password !== password) { fail(response, 400, 'Invalid login credentials'); return true; }
+      send(response, 200, session(user)); return true;
+    }
     if (sub === '/auth/v1/logout' && method === 'POST') { tokens.delete((request.headers.authorization || '').replace(/^Bearer /, '')); send(response, 204); return true; }
     if (sub.startsWith('/auth/v1/authorize')) { fail(response, 400, 'OAuth is not available in the test service'); return true; }
     const id = caller(request);
@@ -80,7 +87,7 @@ export function createFakeSupabase({ adminEmails = ['admin@example.test'], now =
     if (name && method === 'POST' && rpc[name]) { const [status, data] = rpc[name](id, await body(request)); if (status >= 400) fail(response, status, data); else send(response, status, data); return true; }
     if (sub === '/rest/v1/learning_snapshots') {
       // Row-level rule from cloud-schema.sql: own row only, and only after the age gate passed.
-      const ownRow = url.searchParams.get('user_id') === `eq.${id}`, isAdult = eligibility.get(id) === 'adult';
+      const ownRow = url.searchParams.get('user_id') === `eq.${id}`, isAdult = eligibility.get(id) === 'adult' || admins.has(id);
       if (method === 'GET') { send(response, 200, ownRow && isAdult && snapshots.has(id) ? [{ revision: snapshots.get(id).revision, envelope: snapshots.get(id).envelope }] : []); return true; }
       if (method === 'POST') { const row = await body(request); if (row.user_id !== id || !isAdult || snapshots.has(id)) { fail(response, 403, 'new row violates row-level security policy'); return true; } snapshots.set(id, { revision: row.revision, envelope: row.envelope }); send(response, 201, null); return true; }
       if (method === 'PATCH') { const row = await body(request), current = snapshots.get(id); if (!ownRow || !isAdult || !current || url.searchParams.get('revision') !== `eq.${current.revision}`) { send(response, 200, []); return true; } snapshots.set(id, { revision: row.revision, envelope: row.envelope }); send(response, 200, [{ revision: row.revision }]); return true; }

@@ -1,4 +1,5 @@
 import { moduleIds, normalizeQuestion } from './knowledge-store.js';
+import { isCustomModule, MAX_CUSTOM_MODULES } from './modules.js';
 // Merges two learning snapshots without losing records: every thread, message, card origin and review
 // event from both sides is kept by ID. `keep` wins for settings; for the same card ID the newer edit wins.
 // Used by file import now and by duplicate-account merging later (docs/ACCOUNT_DESIGN.md §5.3).
@@ -12,13 +13,21 @@ function mergeProfile(keep, other) {
   const result = clone(keep);
   // A module enabled on either side stays enabled; levels and other settings come from `keep`.
   if (other?.modules) for (const id of moduleIds) if (result.modules?.[id] && other.modules[id]?.enabled) result.modules[id].enabled = true;
+  // Custom modules only the other side has are added; beyond the visible limit they arrive archived (records kept).
+  const visible = () => Object.keys(result.modules || {}).filter(id => isCustomModule(id) && !result.modules[id].archived).length;
+  const names = () => new Set(Object.keys(result.modules || {}).filter(id => isCustomModule(id) && !result.modules[id].archived).map(id => result.modules[id].name.toLowerCase()));
+  for (const [id, item] of Object.entries(other?.modules || {})) {
+    if (!isCustomModule(id) || result.modules?.[id]) continue;
+    const hidden = item.archived || visible() >= MAX_CUSTOM_MODULES || names().has(item.name.toLowerCase());
+    result.modules[id] = hidden ? { ...clone(item), archived: true, enabled: false } : clone(item);
+  }
   return result;
 }
 
 function mergeChats(keep, other, stats) {
   if (!keep && !other) return null;
   const result = { version: 1, modules: {} };
-  for (const id of moduleIds) {
+  for (const id of new Set([...moduleIds, ...Object.keys(keep?.modules || {}), ...Object.keys(other?.modules || {})])) {
     const threads = new Map((keep?.modules?.[id] || []).map(thread => [thread.id, clone(thread)]));
     let addedThread = false;
     for (const thread of other?.modules?.[id] || []) {

@@ -2,9 +2,11 @@
 import { createApp } from '../server.mjs';
 import { validateRequest, ServiceError } from '../model-service.mjs';
 import { createFakeSupabase, FAKE_PREFIX } from './fake-supabase.mjs';
-// Fake account service: every code is 123456; QA_ADMIN_EMAIL (default admin@example.test) becomes an administrator.
-const fake = createFakeSupabase({ adminEmails: [process.env.QA_ADMIN_EMAIL || 'admin@example.test'] });
-const app = createApp({publicConfig: host => ({ url: `http://${host}${FAKE_PREFIX}`, publicKey: 'sb_publishable_fake_test_only' }), extraRoute: fake.route, reviewCaller:async input=>input.task==='question'?{question:'测试题：请选择正确选项',options:['正确概念','干扰项一','干扰项二','干扰项三'],correctIndex:0,explanation:'这是隔离测试讲解，不是真实判题。'}:input.task==='grade'?{correct:!input.answer.includes('wrong'),explanation:'隔离测试判题与生活例子，不是真实模型输出。'}:{explanation:'隔离测试：换一个笔记本的例子继续解释。'}, knowledgeCaller: async input => ({learnable:true,module:input.module,title:'测试知识：闭包',summary:'仅为第三步验收的测试摘要，不是真实模型输出。',category:'测试分类',example:'独立笔记本。',duplicateId:input.candidates[0]?.id||null}), modelCaller: async (input, { signal }) => {
+// Fake account service: every code is 123456. A test administrator exists from the start and can enter with
+// one click (the page offers it only because this test server advertises it); the password is a test value.
+const testAdmin = { email: process.env.QA_ADMIN_EMAIL || 'admin@example.test', password: 'test-only-admin-password' };
+const fake = createFakeSupabase({ adminEmails: [testAdmin.email], seedAdmin: testAdmin });
+const app = createApp({publicConfig: host => ({ url: `http://${host}${FAKE_PREFIX}`, publicKey: 'sb_publishable_fake_test_only', testAdmin }), extraRoute: fake.route, reviewCaller:async input=>input.task==='question'?{question:'测试题：请选择正确选项',options:['正确概念','干扰项一','干扰项二','干扰项三'],correctIndex:0,explanation:'这是隔离测试讲解，不是真实判题。'}:input.task==='grade'?{correct:!input.answer.includes('wrong'),explanation:'隔离测试判题与生活例子，不是真实模型输出。'}:{explanation:'隔离测试：换一个笔记本的例子继续解释。'}, knowledgeCaller: async input => ({learnable:true,module:input.module,title:'测试知识：闭包',summary:'仅为第三步验收的测试摘要，不是真实模型输出。',category:'测试分类',example:'独立笔记本。',duplicateId:input.candidates[0]?.id||null}), modelCaller: async (input, { signal }) => {
   validateRequest(input);
   const question = input.messages.at(-1).content;
   if (question.includes('TEST_ERROR')) throw new ServiceError('unauthorized', 401);

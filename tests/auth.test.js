@@ -69,6 +69,27 @@ test('sign-up, the server age check, admin listing and session restore work end 
   await restored.signOut(); assert.equal(storage.getItem(SESSION_KEY), null);
 });
 
+test('an operator-created administrator signs in with a password and needs no registration; production never offers a one-click admin', async t => {
+  const fake = createFakeSupabase({ seedAdmin: { email: 'ops@example.test', password: 'test-only-pass' } });
+  const testAdmin = { email: 'ops@example.test', password: 'test-only-pass' };
+  const app = createApp({ publicConfig: host => ({ url: `http://${host}${FAKE_PREFIX}`, publicKey: 'sb_publishable_fake_test_only', testAdmin }), extraRoute: fake.route });
+  app.listen(0, '127.0.0.1'); await once(app, 'listening');
+  t.after(() => { app.closeAllConnections(); app.close(); });
+  const origin = `http://127.0.0.1:${app.address().port}`;
+  const auth = createAuth({ fetchImpl: (url, options) => fetch(url.startsWith('/') ? origin + url : url, options), storage: memory(), session: memory(), location: { href: origin + '/', origin, assign() {} }, history: { replaceState() {} } });
+  await auth.init();
+  assert.deepEqual(auth.testAdmin, testAdmin, 'the local test server may offer its test administrator');
+  await assert.rejects(auth.signInWithPassword({ email: 'ops@example.test', password: 'wrong' }), error => error.status === 400);
+  await auth.signInWithPassword(testAdmin);
+  const account = await auth.account();
+  assert.equal(account.is_admin, true); assert.equal(account.registered, false, 'no registration details were required');
+  assert.deepEqual(await auth.api(`/rest/v1/learning_snapshots?user_id=eq.${auth.user.id}&select=revision`), [], 'the administrator may use sync');
+  // A hosted project config can never carry one-click credentials.
+  const hosted = createAuth({ fetchImpl: async () => Response.json({ url: 'https://abc.supabase.co', publicKey: 'sb_publishable_x1234567', testAdmin }), storage: memory(), session: memory(), location: { href: 'https://app.example/', origin: 'https://app.example' }, history: { replaceState() {} } });
+  await hosted.init();
+  assert.equal(hosted.testAdmin, null);
+});
+
 test('with sign-in required, other accounts’ local records are set aside and only their owner can swap them back', () => {
   const storage = memory(), alice = { url: 'u', userId: 'alice', label: 'alice' }, bob = { url: 'u', userId: 'bob', label: 'bob' };
   storage.setItem(PROFILE_KEY, '{"version":1}'); storage.setItem(CHAT_KEY, JSON.stringify({ version: 1, modules: { coding: [{ id: 't', title: 'alice', messages: [{ id: 'm' }] }] } }));

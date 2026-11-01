@@ -1,4 +1,5 @@
 import { localDay } from './knowledge-store.js';
+import { isActiveModule } from './modules.js';
 export const REVIEW_KEY='knowledge-review.reviews.v1';
 export const emptyReviews=()=>({version:1,events:[]});
 // Limits follow what the app writes: answers ≤4,000 characters, model explanations ≤6,000.
@@ -58,7 +59,7 @@ export function scheduleReview(previous,rating,now=new Date()){
 export function reviewQueue(cards,data,profile,now=new Date(),{extra=false}={}){
   const today=localDay(now),weekStart=new Date(now);weekStart.setDate(weekStart.getDate()-((weekStart.getDay()+6)%7));weekStart.setHours(0,0,0,0);
   const plan=dailyPlan(data,profile,now),todayEvents=plan.todayEvents,completedToday=new Set(todayEvents.map(event=>event.cardId));
-  const eligible=cards.filter(card=>card.status==='active'&&card.extraction==='ready'&&profile.modules[card.module]?.enabled);
+  const eligible=cards.filter(card=>card.status==='active'&&card.extraction==='ready'&&isActiveModule(profile,card.module));
   const recentDay=eligible.map(card=>localDay(card.createdAt)).filter(day=>day<today).sort().at(-1);
   const candidates=eligible.map(card=>{
     const last=latestReview(data,card.id),info=dueInfo(card,last),due=dueTime(info);

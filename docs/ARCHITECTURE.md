@@ -23,6 +23,7 @@
 | review-ui.js | 一题一题会话、作答、反馈、继续练习 |
 | device-ui.js | 打开弹窗、页面运行时通知检查、设置、JSON 导出与导入（预览、确认、撤销） |
 | cloud-ui.js | Supabase REST OTP/PKCE、AES-GCM 快照、版本冲突与恢复 |
+| modules.js | 学习模块：预设与自定义模块、名称与数量规则、已删除（归档）、每日时长范围；前后端共用 |
 | auth.js | 账号会话（本设备保存并自动刷新）、服务配置、验证码登录、注册与管理员调用；注册表单校验 |
 | auth-ui.js | 登录关卡：登录、注册、完善注册、被拒、本机记录归属处理 |
 | admin-ui.js | 管理员用户表（服务端脱敏、权限检查） |
@@ -52,7 +53,7 @@
 
 | localStorage key | 内容 |
 |---|---|
-| knowledge-review.profile.v1 | 语言、dailyMinutes、各模块 enabled/level、成年自报记录；不存生日 |
+| knowledge-review.profile.v1 | 语言、dailyMinutes（1–120）、modules（预设与自定义：enabled/level，自定义另有 name、archived）、成年记录；不存生日 |
 | knowledge-review.model.v1 | 服务商、model、workspace、search；不含 Key |
 | knowledge-review.chats.v1 | version/modules/threads/messages，时间、状态、模型与来源 |
 | knowledge-review.knowledge.v1 | cards 与 ignored，origins 保留问题、回答、原模块、消息和日期 |
