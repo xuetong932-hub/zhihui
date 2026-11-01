@@ -8,7 +8,7 @@ const words = {
   zh: {
     brand: '知回', subtitle: '把好问题，变成记得住的知识。', language: 'English',
     preview: '体验版 · 学习记录保存在当前浏览器，可在账号页加密同步', setup: '建立你的学习空间',
-    setupHint: '随时可以回来调整。', skipHint: '选择感兴趣的领域和每日复习时长。也可以先跳过，使用默认设置（全部模块、入门、每天 10 分钟），之后在“学习设置”中修改。',
+    setupHint: '随时可以回来调整。', skipHint: '选择感兴趣的学习模块。也可以先跳过，使用默认设置（全部内置模块、入门），之后在“学习设置”中修改。',
     skip: '跳过，使用默认设置', areas: '学习模块', areasHint: '至少启用一个模块；各模块分别记录学习水平和复习进度。',
     coding: '编程', english: '英语', work: '工作知识', life: '生活常识',
     codingHint: '理解代码背后的逻辑', englishHint: '在真实情境中理解与表达', workHint: '把方法用到日常工作', lifeHint: '弄懂身边的为什么',
@@ -21,19 +21,23 @@ const words = {
     emptyHint: '问答会自动整理到知识库。可在顶部进入逐题复习。', zero: '待复习',
     modulesTitle: '我的学习模块', isolated: '独立记录 · 按你的基础学习',
     next: '问答、知识整理与逐题复习已接入。设备提醒与账号同步可在顶部设置。',
-    reviewPlan: '每日计划', weekly: '周日回顾', weekHint: '周日回顾一周知识，仍可自由提问。',
+    reviewPlan: '复习安排', weekly: '周日回顾', weekHint: '周日回顾一周知识，仍可自由提问。',
     notifications: '复习提醒', notificationHint: '后续接入系统通知时，将先征求你的同意。当前没有发送通知。',
     sunday: '今天是周日，适合回顾这一周的收获。', local: '本地保存',
     customHint: '自定义模块', moduleName: '模块名称', addModule: '添加模块', newModulePlaceholder: '新模块名称，例如：历史、摄影、理财',
-    addHint: `最多 ${MAX_CUSTOM_MODULES} 个自定义模块，名称 1–20 字。内置模块可以停用，不能删除。`, deleteModule: '删除模块',
-    archived: '已删除的模块（学习记录保留）', restore: '恢复', customMinutes: '自定义', customMinutesLabel: '自定义每日时长（1–120 分钟）',
-    nameError: '模块名称需为 1–20 个字，且不能与其他自定义模块重名。', tooMany: `最多 ${MAX_CUSTOM_MODULES} 个自定义模块。`, minutesError: '自定义时长请填写 1–120 之间的整数。',
+    addHint: `最多 ${MAX_CUSTOM_MODULES} 个自定义模块，名称 1–20 字。`, deleteModule: '删除模块',
+    archived: '已删除的模块（学习记录保留）', restore: '恢复',
+    nameError: '模块名称需为 1–20 个字，且不能与其他自定义模块重名。', tooMany: `最多 ${MAX_CUSTOM_MODULES} 个自定义模块。`,
+    enable: '启用', select: '选择', selectAll: '全选', clearSelection: '取消全选', enableSelected: '启用所选', disableSelected: '停用所选', deleteSelected: '删除所选',
+    selectedCount: '已选 {n} 个', selectNone: '请先选择模块。', keepOne: '至少保留一个启用的模块。',
+    deleteHint: '删除的模块会移到“已删除的模块”，学习记录保留，可随时恢复；没有记录的自定义模块会直接移除。',
+    batchHint: '每天按到期和薄弱程度分批安排复习，长时间未打开也不会一次塞入全部积压。',
     pendingChanges: '以上修改在保存后生效；取消则不改动。',
   },
   en: {
     brand: 'Knowledge Review', subtitle: 'Turn good questions into lasting knowledge.', language: '中文',
     preview: 'Preview · Learning records stay in this browser; encrypted sync is on the Account page', setup: 'Make room for learning',
-    setupHint: 'You can adjust these anytime.', skipHint: 'Choose your interests and daily review time. You can also skip and use the defaults (all modules, beginner, 10 minutes a day) and change them later in Learning settings.',
+    setupHint: 'You can adjust these anytime.', skipHint: 'Choose the learning modules you want. You can also skip and use the defaults (all built-in modules, beginner) and change them later in Learning settings.',
     skip: 'Skip and use defaults', areas: 'Learning modules', areasHint: 'Enable at least one. Each module has its own level and review progress.',
     coding: 'Coding', english: 'English', work: 'Work knowledge', life: 'Everyday knowledge',
     codingHint: 'Understand the logic behind code', englishHint: 'Understand and express ideas in context', workHint: 'Put useful methods into practice', lifeHint: 'Explore the reasons behind everyday things',
@@ -46,13 +50,17 @@ const words = {
     emptyHint: 'Q&A becomes knowledge cards. Open Review above to practice.', zero: 'to review',
     modulesTitle: 'My learning modules', isolated: 'Separate progress · Your own level',
     next: 'Q&A, knowledge cards and review are connected. Device and account settings are available above.',
-    reviewPlan: 'Daily plan', weekly: 'Sunday recap', weekHint: 'Review the week on Sundays. New questions are always welcome.',
+    reviewPlan: 'Review schedule', weekly: 'Sunday recap', weekHint: 'Review the week on Sundays. New questions are always welcome.',
     notifications: 'Review reminders', notificationHint: 'We will ask permission before connecting system notifications. No notifications are being sent.',
     sunday: 'It’s Sunday. A good time to revisit what you learned this week.', local: 'Saved locally',
     customHint: 'Custom module', moduleName: 'Module name', addModule: 'Add module', newModulePlaceholder: 'New module name, e.g. History, Photography',
-    addHint: `Up to ${MAX_CUSTOM_MODULES} custom modules, 1–20 characters each. Built-in modules can be disabled but not deleted.`, deleteModule: 'Delete module',
-    archived: 'Deleted modules (learning records kept)', restore: 'Restore', customMinutes: 'Custom', customMinutesLabel: 'Custom daily time (1–120 minutes)',
-    nameError: 'Module names must be 1–20 characters and not repeat another custom module.', tooMany: `Up to ${MAX_CUSTOM_MODULES} custom modules.`, minutesError: 'Enter a whole number of minutes from 1 to 120.',
+    addHint: `Up to ${MAX_CUSTOM_MODULES} custom modules, 1–20 characters each.`, deleteModule: 'Delete module',
+    archived: 'Deleted modules (learning records kept)', restore: 'Restore',
+    nameError: 'Module names must be 1–20 characters and not repeat another custom module.', tooMany: `Up to ${MAX_CUSTOM_MODULES} custom modules.`,
+    enable: 'Enabled', select: 'Select', selectAll: 'Select all', clearSelection: 'Clear selection', enableSelected: 'Enable selected', disableSelected: 'Disable selected', deleteSelected: 'Delete selected',
+    selectedCount: '{n} selected', selectNone: 'Select modules first.', keepOne: 'Keep at least one module enabled.',
+    deleteHint: 'Deleted modules move to “Deleted modules” with their learning records kept and can be restored anytime; custom modules without records are removed.',
+    batchHint: 'Review is scheduled in daily batches by due date and weakness, so a long break never arrives as one huge backlog.',
     pendingChanges: 'Changes apply when you save; Cancel leaves everything as it was.',
   },
 };
@@ -118,9 +126,10 @@ function boot() {
     modules: Object.fromEntries(moduleIds.map(id => [id, { enabled: true, level: 'beginner' }])),
   });
   let editing = false;
-  // Settings draft plus its unsaved inputs: new module name and custom daily minutes.
-  let draft, newModuleName = '', minutesMode = 'preset', customMinutes = '';
-  const openDraft = value => { draft = structuredClone(value); newModuleName = ''; minutesMode = [5, 10, 20].includes(draft.dailyMinutes) ? 'preset' : 'custom'; customMinutes = minutesMode === 'custom' ? String(draft.dailyMinutes) : ''; };
+  // Settings draft plus its unsaved inputs: the new module name and the modules picked for bulk actions.
+  let draft, newModuleName = '';
+  const picked = new Set();
+  const openDraft = value => { draft = structuredClone(value); newModuleName = ''; picked.clear(); };
   openDraft(profile || blankDraft());
   let errorKey = '';
   const app = document.querySelector('#app');
@@ -190,32 +199,32 @@ function boot() {
     }
   }
 
-  // Learning modules and review plan. After registration this step is optional; skipping saves the defaults.
-  // Built-in modules can be enabled or disabled; custom modules can also be added, renamed and deleted.
+  // Learning modules. After registration this step is optional; skipping saves the defaults.
+  // Modules can be picked for bulk actions (select all, enable, disable, delete). Deleting archives a module with
+  // its records kept (built-in modules always), or removes a custom module that has no records.
   // Every change stays in the draft until saved.
+  const draftName = id => isCustomModule(id) ? draft.modules[id].name : t(id);
   function moduleCard(id, index) {
     const item = draft.modules[id], custom = isCustomModule(id);
-    return `<div class="module-option ${item.enabled ? 'selected' : ''}">
-      <label class="module-label"><span class="module-number">${String(index + 1).padStart(2, '0')}</span><strong data-module-title="${id}">${custom ? esc(item.name) : t(id)}</strong><input type="checkbox" data-module="${id}" ${item.enabled ? 'checked' : ''}></label>
+    return `<div class="module-option ${item.enabled ? 'selected' : ''} ${picked.has(id) ? 'picked' : ''}">
+      <div class="module-label"><input type="checkbox" class="module-pick" data-pick="${id}" ${picked.has(id) ? 'checked' : ''} aria-label="${t('select')} ${esc(draftName(id))}"><span class="module-number">${String(index + 1).padStart(2, '0')}</span><strong data-module-title="${id}">${esc(draftName(id))}</strong><label class="enable-toggle"><input type="checkbox" data-module="${id}" ${item.enabled ? 'checked' : ''}>${t('enable')}</label></div>
       ${custom ? `<label class="level-label" for="name-${id}">${t('moduleName')} · ${t('customHint')}</label><input id="name-${id}" class="module-name-input" type="text" maxlength="20" data-module-name="${id}" value="${esc(item.name)}">` : `<p class="module-description">${t(`${id}Hint`)}</p>`}
       <label class="level-label" for="level-${id}">${t('level')}</label>
       <select id="level-${id}" data-level="${id}" ${item.enabled ? '' : 'disabled'}>${levels.map(level => `<option value="${level}" ${item.level === level ? 'selected' : ''}>${t(level)}</option>`).join('')}</select>
-      ${custom ? `<button type="button" class="text-button module-delete" data-delete-module="${id}">${t('deleteModule')}</button>` : ''}
+      <button type="button" class="text-button module-delete" data-delete-module="${id}">${t('deleteModule')}</button>
     </div>`;
   }
   function setupView() {
-    const visible = Object.keys(draft.modules).filter(id => !draft.modules[id].archived), archived = Object.keys(draft.modules).filter(id => draft.modules[id].archived);
+    const visible = visibleModules(), archived = Object.keys(draft.modules).filter(id => draft.modules[id].archived);
     const customCount = visible.filter(isCustomModule).length;
     return `<section class="intro"><span class="eyebrow">${t('brand')}</span><h1>${t(profile ? 'settings' : 'setup')}</h1><p>${t(profile ? 'setupHint' : 'skipHint')}</p></section>
       <form id="setup" novalidate>
-        <section class="panel"><h2><span class="step">01</span>${t('areas')}</h2><p>${t('areasHint')}</p>
+        <section class="panel"><h2>${t('areas')}</h2><p>${t('areasHint')}</p>
+          <div class="module-toolbar"><button type="button" class="secondary-button" id="pick-all">${t('selectAll')}</button><button type="button" class="secondary-button" id="pick-none" ${picked.size ? '' : 'disabled'}>${t('clearSelection')}</button><span class="muted" id="pick-count">${t('selectedCount').replace('{n}', picked.size)}</span><span class="toolbar-gap"></span><button type="button" class="secondary-button" id="enable-picked" ${picked.size ? '' : 'disabled'}>${t('enableSelected')}</button><button type="button" class="secondary-button" id="disable-picked" ${picked.size ? '' : 'disabled'}>${t('disableSelected')}</button><button type="button" class="secondary-button danger-button" id="delete-picked" ${picked.size ? '' : 'disabled'}>${t('deleteSelected')}</button></div>
           <div class="module-grid">${visible.map(moduleCard).join('')}</div>
+          <p class="field-hint">${t('deleteHint')}</p>
           <div class="add-module"><label class="field-label" for="new-module-name">${t('addModule')}</label><div class="add-module-row"><input id="new-module-name" type="text" maxlength="20" placeholder="${t('newModulePlaceholder')}" value="${esc(newModuleName)}" ${customCount >= MAX_CUSTOM_MODULES ? 'disabled' : ''}><button type="button" class="secondary-button" id="add-module" ${customCount >= MAX_CUSTOM_MODULES ? 'disabled' : ''}>＋ ${t('addModule')}</button></div><p class="field-hint">${t('addHint')}</p></div>
-          ${archived.length ? `<div class="archived-modules"><h3>${t('archived')}</h3>${archived.map(id => `<div class="archived-row"><span>${esc(draft.modules[id].name)}</span><button type="button" class="text-button" data-restore-module="${id}">${t('restore')}</button></div>`).join('')}</div>` : ''}
-        </section>
-        <section class="panel"><h2><span class="step">02</span>${t('plan')}</h2><p>${t('planHint')}</p>
-          <div class="duration-options">${[5, 10, 20].map(minutes => `<label class="duration"><input type="radio" name="duration" value="${minutes}" ${minutesMode === 'preset' && draft.dailyMinutes === minutes ? 'checked' : ''}><span><strong>${minutes}</strong> ${t('minutes')}</span></label>`).join('')}<label class="duration"><input type="radio" name="duration" value="custom" ${minutesMode === 'custom' ? 'checked' : ''}><span><strong>${minutesMode === 'custom' && customMinutes ? esc(customMinutes) : '…'}</strong> ${t('customMinutes')}</span></label></div>
-          ${minutesMode === 'custom' ? `<label class="field-label" for="custom-minutes">${t('customMinutesLabel')}</label><input id="custom-minutes" class="minutes-input" type="number" min="1" max="120" step="1" inputmode="numeric" value="${esc(customMinutes)}">` : ''}
+          ${archived.length ? `<div class="archived-modules"><h3>${t('archived')}</h3>${archived.map(id => `<div class="archived-row"><span>${esc(draftName(id))}</span><button type="button" class="text-button" data-restore-module="${id}">${t('restore')}</button></div>`).join('')}</div>` : ''}
         </section>
         ${profile ? `<p class="field-hint">${t('pendingChanges')}</p>` : ''}
         <p id="form-error" class="error" role="alert" tabindex="-1">${errorKey ? t(errorKey) : ''}</p>
@@ -229,7 +238,7 @@ function boot() {
       ${new Date().getDay() === 0 ? `<div class="sunday-note">${t('sunday')}</div>` : ''}
       <div class="dashboard"><section class="panel review-panel"><div class="section-heading"><h2>${t('today')}</h2><span class="pill">${chat.reviewCount()} ${t('zero')}</span></div>
         <div class="empty-state"><div class="empty-icon" aria-hidden="true">✧</div><h3>${chat.reviewCount()?(locale==='zh'?'今天的复习已准备好':'Your review is ready'):t('emptyTitle')}</h3><p>${t('emptyHint')}</p><button class="primary-button" data-review>${locale==='zh'?'进入复习':'Open review'} →</button></div></section>
-        <aside class="panel plan-panel"><span class="eyebrow">${t('reviewPlan')}</span><div class="plan-value">${profile.dailyMinutes}<span>${t('minutes')}</span></div><hr><h3>${t('weekly')}</h3><p>${t('weekHint')}</p><h3>${t('notifications')}</h3><p>${t('notificationHint')}</p></aside></div>
+        <aside class="panel plan-panel"><span class="eyebrow">${t('reviewPlan')}</span><p>${t('batchHint')}</p><hr><h3>${t('weekly')}</h3><p>${t('weekHint')}</p><h3>${t('notifications')}</h3><p>${t('notificationHint')}</p></aside></div>
       <section class="modules-section"><div class="section-heading"><h2>${t('modulesTitle')}</h2><span class="muted">${t('local')}</span></div><div class="module-grid">${activeModuleIds(profile).map(id => `<article class="panel home-module"><span class="eyebrow">${t(profile.modules[id].level)}${isCustomModule(id) ? ` · ${t('customHint')}` : ''}</span><h3>${esc(moduleLabel(profile, id, locale))}</h3><p>${t('isolated')}</p><div class="module-count">${chat.messageCount(id)} <span>${chat.homeText('records')}</span></div><button class="secondary-button module-open" data-open-module="${id}">${chat.homeText('open')} →</button></article>`).join('')}</div></section>
       <p class="development-note">${t('next')}</p>`;
   }
@@ -241,14 +250,41 @@ function boot() {
   }
   // The account service confirmed the user is an adult before the app opened.
   const adultRecord = () => profile?.adultVerification || { isAdult: true, verifiedAt: new Date().toISOString(), method: 'server-birthdate' };
-  const visibleCustom = () => Object.keys(draft.modules).filter(id => isCustomModule(id) && !draft.modules[id].archived);
+  const visibleModules = () => Object.keys(draft.modules).filter(id => !draft.modules[id].archived);
+  const visibleCustom = () => visibleModules().filter(isCustomModule);
   const nameTaken = (name, except) => visibleCustom().some(id => id !== except && draft.modules[id].name.toLowerCase() === name.toLowerCase());
   const showError = key => { errorKey = key; render(); document.querySelector('#form-error')?.focus(); };
+  // Whether at least one module stays enabled if these ids are removed or disabled.
+  const keepsOneActive = ids => visibleModules().some(id => !ids.includes(id) && draft.modules[id].enabled);
+  function deleteModules(ids) {
+    if (!keepsOneActive(ids)) { showError('keepOne'); return; }
+    for (const id of ids) {
+      if (isCustomModule(id) && !chat.moduleHasData(id)) delete draft.modules[id];
+      else Object.assign(draft.modules[id], { archived: true, enabled: false }, isCustomModule(id) ? { name: cleanModuleName(draft.modules[id].name) || t('customHint') } : {});
+      picked.delete(id);
+    }
+    errorKey = ''; render();
+  }
 
   function bindSetup() {
     document.querySelectorAll('[data-module]').forEach(input => {
-      input.onchange = () => { draft.modules[input.dataset.module].enabled = input.checked; input.closest('.module-option').classList.toggle('selected', input.checked); document.querySelector(`#level-${input.dataset.module}`).disabled = !input.checked; };
+      input.onchange = () => {
+        const id = input.dataset.module;
+        if (!input.checked && !keepsOneActive([id])) { input.checked = true; showError('keepOne'); return; }
+        draft.modules[id].enabled = input.checked; input.closest('.module-option').classList.toggle('selected', input.checked); document.querySelector(`#level-${id}`).disabled = !input.checked;
+      };
     });
+    document.querySelectorAll('[data-pick]').forEach(input => { input.onchange = () => { if (input.checked) picked.add(input.dataset.pick); else picked.delete(input.dataset.pick); errorKey = ''; render(); }; });
+    document.querySelector('#pick-all').onclick = () => { visibleModules().forEach(id => picked.add(id)); errorKey = ''; render(); };
+    document.querySelector('#pick-none').onclick = () => { picked.clear(); errorKey = ''; render(); };
+    document.querySelector('#enable-picked').onclick = () => { if (!picked.size) { showError('selectNone'); return; } for (const id of picked) draft.modules[id].enabled = true; errorKey = ''; render(); };
+    document.querySelector('#disable-picked').onclick = () => {
+      if (!picked.size) { showError('selectNone'); return; }
+      if (!keepsOneActive([...picked])) { showError('keepOne'); return; }
+      for (const id of picked) draft.modules[id].enabled = false; errorKey = ''; render();
+    };
+    document.querySelector('#delete-picked').onclick = () => { if (!picked.size) { showError('selectNone'); return; } deleteModules([...picked]); };
+    document.querySelectorAll('[data-delete-module]').forEach(button => { button.onclick = () => deleteModules([button.dataset.deleteModule]); });
     document.querySelectorAll('[data-level]').forEach(input => { input.onchange = () => { draft.modules[input.dataset.level].level = input.value; }; });
     document.querySelectorAll('[data-module-name]').forEach(input => { input.oninput = () => {
       const id = input.dataset.moduleName; draft.modules[id].name = input.value;
@@ -263,25 +299,12 @@ function boot() {
       draft.modules[newCustomModuleId()] = { enabled: true, level: 'beginner', name };
       newModuleName = ''; errorKey = ''; render(); document.querySelector('#new-module-name')?.focus();
     };
-    // A module that already holds records is archived (records kept, restorable); an empty one is removed.
-    document.querySelectorAll('[data-delete-module]').forEach(button => { button.onclick = () => {
-      const id = button.dataset.deleteModule;
-      if (chat.moduleHasData(id)) Object.assign(draft.modules[id], { archived: true, enabled: false, name: cleanModuleName(draft.modules[id].name) || t('customHint') });
-      else delete draft.modules[id];
-      errorKey = ''; render();
-    }; });
     document.querySelectorAll('[data-restore-module]').forEach(button => { button.onclick = () => {
       const id = button.dataset.restoreModule;
-      if (visibleCustom().length >= MAX_CUSTOM_MODULES) { showError('tooMany'); return; }
-      if (nameTaken(draft.modules[id].name, id)) { showError('nameError'); return; }
+      if (isCustomModule(id) && visibleCustom().length >= MAX_CUSTOM_MODULES) { showError('tooMany'); return; }
+      if (isCustomModule(id) && nameTaken(draft.modules[id].name, id)) { showError('nameError'); return; }
       Object.assign(draft.modules[id], { archived: false, enabled: true }); errorKey = ''; render();
     }; });
-    document.querySelectorAll('[name="duration"]').forEach(input => { input.onchange = () => {
-      if (input.value === 'custom') { minutesMode = 'custom'; customMinutes ||= String(draft.dailyMinutes); render(); document.querySelector('#custom-minutes')?.focus(); }
-      else { minutesMode = 'preset'; draft.dailyMinutes = Number(input.value); render(); }
-    }; });
-    const minutes = document.querySelector('#custom-minutes');
-    if (minutes) minutes.oninput = () => { customMinutes = minutes.value.trim(); };
     const cancel = document.querySelector('#cancel');
     if (cancel) cancel.onclick = () => { locale = profile.locale; editing = false; errorKey = ''; openDraft(profile); render(); };
     const skip = document.querySelector('#skip-setup');
@@ -290,10 +313,10 @@ function boot() {
       event.preventDefault(); errorKey = '';
       const modules = structuredClone(draft.modules);
       for (const id of Object.keys(modules)) if (isCustomModule(id)) modules[id].name = cleanModuleName(modules[id].name);
-      const dailyMinutes = minutesMode === 'custom' ? Number(customMinutes) : draft.dailyMinutes;
       if (!Object.values(modules).some(item => item.enabled && !item.archived)) { showError('chooseModule'); return; }
-      if (!validDailyMinutes(dailyMinutes)) { showError('minutesError'); return; }
       if (!validModules(modules)) { showError('nameError'); return; }
+      // The daily duration is no longer a setting; the stored value is kept only for older app versions.
+      const dailyMinutes = validDailyMinutes(draft.dailyMinutes) ? draft.dailyMinutes : 10;
       const candidate = { ...draft, modules, dailyMinutes, locale, adultVerification: adultRecord() };
       if (profile) for (const id of Object.keys(modules)) if (profile.modules[id] && profile.modules[id].level !== modules[id].level) modules[id].adaptedAt = new Date().toISOString();
       saveProfile(candidate);

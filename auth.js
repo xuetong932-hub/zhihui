@@ -48,8 +48,9 @@ function toSession(data){
 }
 
 export function createAuth({fetchImpl=(...args)=>fetch(...args),storage=localStorage,session:sessionStore=sessionStorage,location:loc=location,history:hist=history}={}){
-  // testAdmin: one-click credentials offered only by the local test server (loopback URL); never from a hosted project.
-  let config=null,source='',testAdmin=null,session=readSession(storage);
+  // adminLogin: {username, email} from the server, so the administrator signs in with a username and password.
+  // The password itself is set on the account service, never in this code.
+  let config=null,source='',adminLogin=null,session=readSession(storage);
   const save=value=>{session=value;try{if(value)storage.setItem(SESSION_KEY,JSON.stringify(value));else storage.removeItem(SESSION_KEY);}catch{/* Session then lasts for this page only. */}};
   async function request(path,{method='GET',body,headers={},auth=true}={}){
     if(!config)throw Object.assign(new Error('config'),{code:'config'});
@@ -70,7 +71,7 @@ export function createAuth({fetchImpl=(...args)=>fetch(...args),storage=localSto
     catch(error){if(error.status===401&&session&&await refresh())return request(path,{method,body,headers});throw error;}
   }
   async function loadConfig(){
-    try{const response=await fetchImpl('/api/public-config');const value=await response.json();if(validConfig(value,{fromServer:true})){config={url:value.url,publicKey:value.publicKey};source='server';if(value.url.startsWith('http://')&&typeof value.testAdmin?.email==='string'&&typeof value.testAdmin.password==='string')testAdmin={email:value.testAdmin.email,password:value.testAdmin.password};return;}}catch{/* Fall back to a device-entered project. */}
+    try{const response=await fetchImpl('/api/public-config');const value=await response.json();if(validConfig(value,{fromServer:true})){config={url:value.url,publicKey:value.publicKey};source='server';if(typeof value.adminLogin?.username==='string'&&validEmail(value.adminLogin.email))adminLogin={username:value.adminLogin.username,email:value.adminLogin.email};return;}}catch{/* Fall back to a device-entered project. */}
     try{const value=JSON.parse(storage.getItem(DEVICE_CONFIG_KEY));if(validConfig(value)){config={url:value.url,publicKey:value.publicKey};source='device';}}catch{/* Not configured. */}
   }
   async function handleCallback(){
@@ -81,7 +82,7 @@ export function createAuth({fetchImpl=(...args)=>fetch(...args),storage=localSto
   }
   return {
     get config(){return config;},get source(){return source;},get session(){return session;},
-    get user(){return session?.user||null;},get testAdmin(){return testAdmin;},
+    get user(){return session?.user||null;},adminEmail:username=>adminLogin&&typeof username==='string'&&username.trim().toLowerCase()===adminLogin.username.toLowerCase()?adminLogin.email:null,
     async init(){await loadConfig();if(!config)return;await handleCallback();if(session&&session.expires_at-60000<Date.now())await refresh();},
     saveDeviceConfig(value){if(!validConfig(value))return false;storage.setItem(DEVICE_CONFIG_KEY,JSON.stringify({url:value.url,publicKey:value.publicKey}));config={...value};source='device';save(null);return true;},
     api,

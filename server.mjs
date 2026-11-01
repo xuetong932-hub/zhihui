@@ -35,7 +35,10 @@ async function readJson(request) {
 // Account service settings come from the operator's environment; only the public (publishable) key is exposed.
 export function publicConfigFromEnv(env = process.env) {
   const url = (env.SUPABASE_URL || '').trim().replace(/\/$/, ''), publicKey = (env.SUPABASE_PUBLISHABLE_KEY || '').trim();
-  return /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url) && publicKey.length > 10 && !publicKey.startsWith('sb_secret_') ? { url, publicKey } : {};
+  if (!(/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url) && publicKey.length > 10 && !publicKey.startsWith('sb_secret_'))) return {};
+  // Administrator username shown on the admin sign-in page, mapped to the email of the operator-created account.
+  const username = (env.ADMIN_USERNAME || '').trim(), email = (env.ADMIN_LOGIN_EMAIL || '').trim();
+  return { url, publicKey, ...(username && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? { adminLogin: { username, email } } : {}) };
 }
 export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask, publicConfig = () => publicConfigFromEnv(), extraRoute } = {}) {
   let activeRequests = 0;

@@ -32,9 +32,12 @@ export function itemSeconds(events){
   if(measured.length<3)return DEFAULT_ITEM_SECONDS;
   return Math.min(300,Math.max(30,measured[Math.floor(measured.length/2)]));
 }
+// Daily review is batched at about this many minutes so a long absence never arrives as one huge queue.
+// The duration is no longer a user setting; extra practice and same-day retries are not limited by it.
+export const DAILY_REVIEW_MINUTES=10;
 export function dailyPlan(data,profile,now=new Date()){
   const today=localDay(now),todayEvents=data.events.filter(event=>localDay(event.at)===today);
-  const budget=profile.dailyMinutes*60,used=todayEvents.reduce((sum,event)=>sum+spent(event),0),estimate=itemSeconds(data.events);
+  const budget=DAILY_REVIEW_MINUTES*60,used=todayEvents.reduce((sum,event)=>sum+spent(event),0),estimate=itemSeconds(data.events);
   return {budget,used,estimate,dayItems:Math.floor(budget/estimate),remainingItems:Math.floor(Math.max(0,budget-used)/estimate),todayEvents};
 }
 export function loadReviews(raw){

@@ -8,3 +8,5 @@ dist/
 _handoff/
 knowledge-review-claude-handoff-*.zip
 knowledge-review-claude-handoff-*.zip.sha256
+# Local-only credentials (e.g. the test service administrator)
+*.local.json

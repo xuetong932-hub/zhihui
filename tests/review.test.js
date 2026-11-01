@@ -18,9 +18,11 @@ test('wrong answers recur today, guessed answers tomorrow, and recent mistakes p
   const data=emptyReviews();const event=recordReview(data,'a',{answer:'x',correct:false,explanation:'not yet',rating:'mastered'},now);
   assert.equal(event.rating,'wrong');assert.equal(loadReviews(JSON.stringify(data)).events.length,1);
 });
-test('backlog obeys daily plan and extra review is available; Sunday includes this week but no new-today material',()=>{
+test('backlog is batched at the fixed daily size (an old minutes setting is ignored); extra review is available; Sunday includes this week but no new-today material',()=>{
   const data=emptyReviews(),now=new Date(2026,10,1,12),cards=Array.from({length:10},(_,i)=>card(String(i)));
-  assert.equal(reviewQueue(cards,data,profile,now).length,3);assert.equal(reviewQueue(cards,data,profile,now,{extra:true}).length,10);
+  assert.equal(reviewQueue(cards,data,profile,now).length,6,'about 10 minutes at 1.5 minutes per item, even though this profile once chose 5 minutes');
+  assert.equal(reviewQueue(cards,data,{...profile,dailyMinutes:20},now).length,6);
+  assert.equal(reviewQueue(cards,data,profile,now,{extra:true}).length,10);
   recordReview(data,'0',{answer:'ok',correct:true,explanation:'ok',rating:'mastered'},new Date(2026,9,31,12));
   assert.ok(reviewQueue(cards,data,profile,now,{extra:true}).some(item=>item.id==='0'));
   assert.ok(!reviewQueue([card('today','2026-11-01T08:00:00')],data,profile,now).length);

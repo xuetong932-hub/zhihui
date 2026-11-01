@@ -1,6 +1,6 @@
 // Learning modules: four built-in presets plus user-defined custom modules stored in the profile.
-// Built-in modules can be disabled but not deleted. A custom module with records is archived (hidden, records kept,
-// restorable) instead of deleted. Shared by the browser and the local server.
+// Deleting a module archives it (hidden, records kept, restorable); built-in modules always keep their entry,
+// and a custom module without records is removed outright. Shared by the browser and the local server.
 export const PRESET_MODULES = ['coding', 'english', 'work', 'life'];
 export const LEVELS = ['beginner', 'some', 'advanced'];
 export const MAX_CUSTOM_MODULES = 8;
@@ -33,7 +33,7 @@ export function validModules(modules) {
   const names = new Set();
   return PRESET_MODULES.every(id => modules[id])
     && entries.every(([id, item]) => isModuleId(id) && item && typeof item.enabled === 'boolean' && LEVELS.includes(item.level)
-      && (isPresetModule(id) ? item.archived === undefined || item.archived === false : (item.archived === undefined || typeof item.archived === 'boolean') && validModuleName(item.name)))
+      && (item.archived === undefined || typeof item.archived === 'boolean') && (isPresetModule(id) || validModuleName(item.name)))
     // Up to 8 visible custom modules, plus room for archived ones that still hold records.
     && custom.filter(([, item]) => !item.archived).length <= MAX_CUSTOM_MODULES && custom.length <= MAX_CUSTOM_MODULES * 3
     && custom.filter(([, item]) => !item.archived).every(([, item]) => { const key = item.name.toLowerCase(); if (names.has(key)) return false; names.add(key); return true; })

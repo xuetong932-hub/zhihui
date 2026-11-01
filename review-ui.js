@@ -15,8 +15,8 @@ export function createReviewUI({locale,profile,cards,markWeak,call,refresh,adapt
   let startedAt=0;
   async function begin(){current=queue()[0]||null;question=null;grade=null;answer='';error='';if(current&&mode==='choice'){question=await request('question');}startedAt=Date.now();refresh();}
   function planText(){
-    const plan=dailyPlan(data,profile()),used=Math.round(plan.used/60),per=Math.round(plan.estimate/6)/10;
-    return tr(`今天已复习约 ${used} 分钟，计划 ${profile().dailyMinutes} 分钟。题量按你最近的答题用时估算（约每题 ${per} 分钟，暂无记录时按 1.5 分钟）；当天答错的题不受计划限制。计划只是建议，可以跳过或继续。`,`About ${used} of ${profile().dailyMinutes} planned minutes reviewed today. Item count uses your recent answer time (about ${per} min per item; 1.5 min until measured). Same-day retries are always offered. The plan is a suggestion; skip or continue anytime.`);
+    const plan=dailyPlan(data,profile()),used=Math.round(plan.used/60);
+    return tr(`今天已复习约 ${used} 分钟。每天分批安排约 ${plan.dayItems} 道题（按你最近的答题用时估算），积压内容会分几天补上；当天答错的题不受限制。可以跳过，也可以用“自主加练”继续。`,`About ${used} minutes reviewed today. Review is batched at about ${plan.dayItems} items a day (estimated from your recent answer time), so backlogs spread over several days; same-day retries are not limited. Skip anytime, or continue with Extra practice.`);
   }
   function view(){
     const count=queue().length;

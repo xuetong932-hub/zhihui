@@ -53,7 +53,7 @@
 
 | localStorage key | 内容 |
 |---|---|
-| knowledge-review.profile.v1 | 语言、dailyMinutes（1–120）、modules（预设与自定义：enabled/level，自定义另有 name、archived）、成年记录；不存生日 |
+| knowledge-review.profile.v1 | 语言、modules（预设与自定义：enabled/level/archived，自定义另有 name）、成年记录；dailyMinutes 仅为兼容保留、不再使用；不存生日 |
 | knowledge-review.model.v1 | 服务商、model、workspace、search；不含 Key |
 | knowledge-review.chats.v1 | version/modules/threads/messages，时间、状态、模型与来源 |
 | knowledge-review.knowledge.v1 | cards 与 ignored，origins 保留问题、回答、原模块、消息和日期 |

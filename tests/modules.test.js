@@ -24,8 +24,11 @@ test('custom modules: names, limits, uniqueness and built-in modules that cannot
   const many = Object.fromEntries(Array.from({ length: MAX_CUSTOM_MODULES + 1 }, (_, i) => [`c-module${String(i).padStart(2, '0')}`.slice(0, 10), custom(`模块${i}`)]));
   assert.equal(validModules({ ...presets(), ...many }), false, `at most ${MAX_CUSTOM_MODULES} visible custom modules`);
   const { coding, ...withoutCoding } = presets();
-  assert.equal(validModules(withoutCoding), false, 'built-in modules cannot be deleted');
-  assert.equal(validModules({ ...presets(), coding: { ...coding, archived: true } }), false);
+  assert.equal(validModules(withoutCoding), false, 'a built-in module keeps its entry (and records) even when deleted');
+  const deletedBuiltIn = { ...presets(), coding: { ...coding, enabled: false, archived: true }, english: { enabled: true, level: 'beginner' } };
+  assert.equal(validModules(deletedBuiltIn), true, 'built-in modules can be deleted (archived)');
+  assert.deepEqual(activeModuleIds(profile(deletedBuiltIn)), ['english']);
+  assert.equal(moduleLabel(profile(deletedBuiltIn), 'coding', 'zh'), '编程', 'a deleted built-in module keeps its name for its records');
   assert.equal(validModules({ ...presets(), evil: custom('x') }), false, 'unknown ids are rejected');
   assert.equal(validModules({ ...presets(), coding: { enabled: false, level: 'beginner' }, 'c-history1': custom('历史') }), true, 'a custom module alone may be the enabled one');
   assert.equal(validModules({ ...presets(), coding: { enabled: false, level: 'beginner' }, 'c-history1': custom('历史', { archived: true, enabled: false }) }), false, 'at least one active module');
