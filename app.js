@@ -1,5 +1,6 @@
 import { createChatUI } from './chat-ui.js';
 import { moduleStyles } from './memory-viz.js';
+import { moduleIcon, iconSvg, CUSTOM_ICONS } from './module-icons.js';
 import { localDay } from './knowledge-store.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
@@ -218,8 +219,9 @@ function boot() {
   function moduleCard(id, index) {
     const item = draft.modules[id], custom = isCustomModule(id);
     return `<div class="module-option ${item.enabled ? 'selected' : ''} ${picked.has(id) ? 'picked' : ''}">
-      <div class="module-label"><input type="checkbox" class="module-pick" data-pick="${id}" ${picked.has(id) ? 'checked' : ''} aria-label="${t('select')} ${esc(draftName(id))}"><span class="module-number">${String(index + 1).padStart(2, '0')}</span><strong data-module-title="${id}">${esc(draftName(id))}</strong><label class="enable-toggle"><input type="checkbox" data-module="${id}" ${item.enabled ? 'checked' : ''}>${t('enable')}</label></div>
-      ${custom ? `<label class="level-label" for="name-${id}">${t('moduleName')} · ${t('customHint')}</label><input id="name-${id}" class="module-name-input" type="text" maxlength="20" data-module-name="${id}" value="${esc(item.name)}">` : `<p class="module-description">${t(`${id}Hint`)}</p>`}
+      <div class="module-label"><input type="checkbox" class="module-pick" data-pick="${id}" ${picked.has(id) ? 'checked' : ''} aria-label="${t('select')} ${esc(draftName(id))}"><span class="module-number">${String(index + 1).padStart(2, '0')}</span><span class="module-badge small" data-module-badge="${id}">${moduleIcon(draft, id, 16)}</span><strong data-module-title="${id}">${esc(draftName(id))}</strong><label class="enable-toggle"><input type="checkbox" data-module="${id}" ${item.enabled ? 'checked' : ''}>${t('enable')}</label></div>
+      ${custom ? `<label class="level-label" for="name-${id}">${t('moduleName')} · ${t('customHint')}</label><input id="name-${id}" class="module-name-input" type="text" maxlength="20" data-module-name="${id}" value="${esc(item.name)}">
+        <span class="level-label">${locale === 'zh' ? '图标' : 'Icon'}</span><div class="icon-picker" role="group" aria-label="${locale === 'zh' ? '选择图标' : 'Choose an icon'}">${CUSTOM_ICONS.map(name => `<button type="button" class="icon-choice ${(item.icon || 'bookmark') === name ? 'active' : ''}" data-module-icon="${id}" data-icon="${name}" aria-pressed="${(item.icon || 'bookmark') === name}">${iconSvg(name, 18)}</button>`).join('')}</div>` :`<p class="module-description">${t(`${id}Hint`)}</p>`}
       <label class="level-label" for="level-${id}">${t('level')}</label>
       <select id="level-${id}" data-level="${id}" ${item.enabled ? '' : 'disabled'}>${levels.map(level => `<option value="${level}" ${item.level === level ? 'selected' : ''}>${t(level)}</option>`).join('')}</select>
       <button type="button" class="text-button module-delete" data-delete-module="${id}">${t('deleteModule')}</button>
@@ -258,7 +260,7 @@ function boot() {
       return zh ? `上次复习：${when}` : `Last reviewed ${when}`;
     };
     const rows = shown.map(({ card, last, kind }) => `<li class="preview-item"><div class="preview-main"><span class="preview-title">${esc(card.title)}</span><span class="preview-kind kind-${kind}">${kinds[kind]}</span></div>
-      <div class="preview-meta"><span class="preview-module"><i style="background:${styles.get(card.module)?.color || 'var(--muted)'}"></i>${esc(moduleLabel(profile, card.module, locale))}</span><span>${ago(last)}</span></div></li>`).join('');
+      <div class="preview-meta"><span class="preview-module">${moduleIcon(profile, card.module, 14, styles.get(card.module)?.color)}${esc(moduleLabel(profile, card.module, locale))}</span><span>${ago(last)}</span></div></li>`).join('');
     const more = items.length > shown.length ? `<p class="preview-more">${zh ? `还有 ${items.length - shown.length} 条` : `${items.length - shown.length} more`}</p>` : '';
     return `<ol class="review-preview">${rows}</ol>${more}<div class="preview-actions">${button}</div>`;
   }
@@ -270,7 +272,7 @@ function boot() {
       <div class="dashboard"><section class="panel review-panel"><div class="section-heading"><h2>${t('today')}</h2><span class="pill">${chat.reviewCount()} ${t('zero')}</span></div>
         ${reviewPreview()}</section>
         <aside class="panel plan-panel"><span class="eyebrow">${t('reviewPlan')}</span><p>${t('batchHint')}</p><hr><h3>${t('weekly')}</h3><p>${t('weekHint')}</p><h3>${t('notifications')}</h3><p>${t('notificationHint')}</p></aside></div>
-      <section class="modules-section"><div class="section-heading"><h2>${t('modulesTitle')}</h2><span class="muted">${t('local')}</span></div><div class="module-grid">${activeModuleIds(profile).map(id => `<article class="panel home-module"><span class="eyebrow">${t(profile.modules[id].level)}${isCustomModule(id) ? ` · ${t('customHint')}` : ''}</span><h3>${esc(moduleLabel(profile, id, locale))}</h3><p>${t('isolated')}</p><div class="module-count">${chat.messageCount(id)} <span>${chat.homeText('records')}</span></div><button class="secondary-button module-open" data-open-module="${id}">${chat.homeText('open')} →</button></article>`).join('')}</div></section>
+      <section class="modules-section"><div class="section-heading"><h2>${t('modulesTitle')}</h2><span class="muted">${t('local')}</span></div><div class="module-grid">${activeModuleIds(profile).map(id => `<article class="panel home-module"><span class="module-badge">${moduleIcon(profile, id, 22)}</span><span class="eyebrow">${t(profile.modules[id].level)}${isCustomModule(id) ? ` · ${t('customHint')}` : ''}</span><h3>${esc(moduleLabel(profile, id, locale))}</h3><p>${t('isolated')}</p><div class="module-count">${chat.messageCount(id)} <span>${chat.homeText('records')}</span></div><button class="secondary-button module-open" data-open-module="${id}">${chat.homeText('open')} →</button></article>`).join('')}</div></section>
       <p class="development-note">${t('next')}</p>`;
   }
 
@@ -320,6 +322,11 @@ function boot() {
     document.querySelectorAll('[data-module-name]').forEach(input => { input.oninput = () => {
       const id = input.dataset.moduleName; draft.modules[id].name = input.value;
       document.querySelector(`[data-module-title="${id}"]`).textContent = input.value;
+    }; });
+    document.querySelectorAll('[data-module-icon]').forEach(button => { button.onclick = () => {
+      const id = button.dataset.moduleIcon; draft.modules[id].icon = button.dataset.icon;
+      document.querySelectorAll(`[data-module-icon="${id}"]`).forEach(other => { const on = other === button; other.classList.toggle('active', on); other.setAttribute('aria-pressed', on); });
+      document.querySelector(`[data-module-badge="${id}"]`).innerHTML = moduleIcon(draft, id, 16);
     }; });
     const newName = document.querySelector('#new-module-name');
     if (newName) { newName.oninput = () => { newModuleName = newName.value; }; newName.onkeydown = event => { if (event.key === 'Enter') { event.preventDefault(); document.querySelector('#add-module').click(); } }; }

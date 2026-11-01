@@ -86,3 +86,16 @@ test('merging adds custom modules from the other side; beyond the limit they arr
   const roomy = mergeSnapshots({ ...keep, profile: profile(presets()) }, other).snapshot;
   assert.deepEqual(roomy.profile.modules['c-other001'], custom('摄影'));
 });
+
+test('module icons: custom modules may pick a listed icon, built-ins keep theirs, old profiles default to bookmark', async () => {
+  const { moduleIconName } = await import('../module-icons.js');
+  const base = { coding: { enabled: true, level: 'beginner' }, english: { enabled: true, level: 'beginner' }, work: { enabled: true, level: 'beginner' }, life: { enabled: true, level: 'beginner' } };
+  assert.ok(validModules({ ...base, 'c-history1': { enabled: true, level: 'beginner', name: '历史', icon: 'globe' } }));
+  assert.ok(validModules({ ...base, 'c-history1': { enabled: true, level: 'beginner', name: '历史' } }), 'icon is optional');
+  assert.equal(validModules({ ...base, 'c-history1': { enabled: true, level: 'beginner', name: '历史', icon: '<svg>' } }), false);
+  assert.equal(validModules({ ...base, coding: { enabled: true, level: 'beginner', icon: 'globe' } }), false, 'built-in icons are fixed');
+  const profile = { modules: { ...base, 'c-a1b2c3d4': { enabled: true, level: 'beginner', name: 'X' } } };
+  assert.equal(moduleIconName(profile, 'c-a1b2c3d4'), 'bookmark');
+  assert.equal(moduleIconName(profile, 'life'), 'house');
+  assert.equal(moduleIconName(profile, 'coding'), 'code');
+});
