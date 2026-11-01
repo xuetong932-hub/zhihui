@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "qa-fixture",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["tests/browser-fixture.mjs"],
+      "port": 4175
+    },
+    {
+      "name": "app",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.mjs"],
+      "port": 4174
+    }
+  ]
+}

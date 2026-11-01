@@ -25,6 +25,35 @@ test('backlog obeys daily plan and extra review is available; Sunday includes th
   assert.ok(reviewQueue(cards,data,profile,now,{extra:true}).some(item=>item.id==='0'));
   assert.ok(!reviewQueue([card('today','2026-11-01T08:00:00')],data,profile,now).length);
 });
+const plan10={...profile,dailyMinutes:10};
+function session(cards,data,start,count){
+  const order=[];for(let i=0;i<count;i++){const now=new Date(start.getTime()+i*60000),next=reviewQueue(cards,data,plan10,now)[0];if(!next)break;order.push(next.id);recordReview(data,next.id,{answer:'ok',correct:true,explanation:'ok',rating:'understood'},now);}
+  return order;
+}
+function oldCards(data,n){
+  return Array.from({length:n},(_,i)=>{const item=card(`old${i}`,'2026-10-20T09:00:00');data.events.push({id:`e${i}`,cardId:item.id,at:new Date(2026,9,21,9).toISOString(),answer:'ok',correct:true,explanation:'ok',rating:'understood',interval:3,due:new Date(2026,9,24).toISOString()});return item;});
+}
+test('the last study day comes first, but half of the daily plan stays with older due cards',()=>{
+  const data=emptyReviews(),recent=Array.from({length:9},(_,i)=>card(`new${i}`,`2026-11-02T0${i}:00:00`)),cards=[...oldCards(data,9),...recent];
+  const order=session(cards,data,new Date(2026,10,3,12),10);
+  assert.equal(order.length,6,'the 10-minute plan suggests six items');
+  assert.deepEqual(order.slice(0,3),['new0','new1','new2'],'yesterday’s content starts the session in learning order');
+  assert.deepEqual(order.slice(3),['old0','old1','old2'],'older overdue cards still get their share');
+});
+test('one group fills unused slots of the other, and skipped days still start with the last study day',()=>{
+  const onlyOld=emptyReviews();assert.equal(session(oldCards(onlyOld,9),onlyOld,new Date(2026,10,3,12),10).length,6);
+  const onlyNew=emptyReviews(),fresh=Array.from({length:9},(_,i)=>card(`new${i}`,'2026-11-02T09:00:00'));
+  assert.equal(session(fresh,onlyNew,new Date(2026,10,3,12),10).length,6);
+  const gap=emptyReviews(),lastStudy=card('last','2026-10-28T09:00:00'),earlier=card('earlier','2026-10-27T09:00:00');
+  assert.equal(reviewQueue([earlier,lastStudy],gap,plan10,new Date(2026,10,3,12))[0].id,'last','after days away, the most recent study day is still first');
+});
+test('same-day retries return first after ten minutes and extra practice keeps the order',()=>{
+  const data=emptyReviews(),cards=[...oldCards(data,2),card('new0','2026-11-02T09:00:00'),card('new1','2026-11-02T10:00:00')],start=new Date(2026,10,3,12);
+  recordReview(data,'new0',{answer:'?',correct:false,explanation:'not yet',rating:'wrong'},start);
+  assert.equal(reviewQueue(cards,data,plan10,new Date(start.getTime()+5*60000))[0].id,'new1','a wrong answer waits about ten minutes');
+  assert.equal(reviewQueue(cards,data,plan10,new Date(start.getTime()+11*60000))[0].id,'new0');
+  assert.deepEqual(reviewQueue(cards,data,plan10,new Date(start.getTime()+11*60000),{extra:true}).map(item=>item.id),['new0','new1','old0','old1']);
+});
 test('grading keeps semantic boolean and rejects malformed multiple-choice questions',async()=>{
   const input={config:defaultConfig(),apiKey:'test-only-not-real',consent:true,module:'coding',level:'beginner',locale:'zh',task:'grade',card:{title:'闭包',summary:'核心解释',example:'背包'},answer:'我的理解'};
   const fetchImpl=async(url,options)=>{assert.equal(JSON.parse(options.body).parameters.enable_search,false);return Response.json({output:{choices:[{message:{content:JSON.stringify({correct:true,explanation:'核心理解正确'})},finish_reason:'stop'}]}});};

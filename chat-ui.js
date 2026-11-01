@@ -1,5 +1,5 @@
 import { providers, defaultConfig, validConfig } from './providers.js';
-import { CHAT_KEY, CONFIG_KEY, loadChats, buildContext, escapeHtml as esc, renderAnswer } from './chat-store.js';
+import { CHAT_KEY, CONFIG_KEY, loadChats, buildContext, escapeHtml as esc, renderAnswer, appendDraft, newTranscript } from './chat-store.js';
 import { createKnowledgeUI } from './knowledge-ui.js';
 import { createReviewUI } from './review-ui.js';
 import {createDeviceUI} from './device-ui.js';
@@ -69,10 +69,10 @@ const copy = {
   },
 };
 
-export function createChatUI({ getProfile, getLocale, refresh,validateProfile,adaptLevel }) {
+export function createChatUI({ getProfile, getLocale, refresh,validateProfile,adaptLevel,reloadProfile }) {
   let chatSnapshot = null;
   const loaded = loadChats({ getItem: key => { chatSnapshot = localStorage.getItem(key); return chatSnapshot; } });
-  const chats = loaded.chats;
+  let chats = loaded.chats;
   let corrupt = loaded.issue;
   let config = defaultConfig();
   try { const stored = JSON.parse(localStorage.getItem(CONFIG_KEY)); if (validConfig(stored)) config = { version: 1, provider: stored.provider, model: stored.model, workspace: stored.workspace, search: stored.search }; } catch { /* Defaults are usable. */ }
@@ -105,8 +105,21 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     if(!ready())return Promise.reject(new Error('key'));
     return request('/api/review-task',{config:{...config},apiKey,consent,module:card.module,level:getProfile().modules[card.module].level,locale:getLocale(),task,card:{title:card.title,summary:card.summary,example:card.example},answer});
   }});
-  const device=createDeviceUI({locale:getLocale,refresh,due:()=>getProfile()?review.count():0,openReview:()=>{page='review';refresh();}});
-  const cloud=createCloudUI({locale:getLocale,profile:getProfile,validateProfile,refresh,getModelKey:()=>({config:{...config},apiKey}),acceptModelKey:value=>{if(validConfig(value?.config)&&typeof value.apiKey==='string'&&/^[\x21-\x7e]{8,512}$/.test(value.apiKey)){config={version:1,provider:value.config.provider,model:value.config.model,workspace:value.config.workspace,search:value.config.search};apiKey=value.apiKey;consent=false;localStorage.setItem(CONFIG_KEY,JSON.stringify(config));}}});
+  const device=createDeviceUI({locale:getLocale,refresh,validateProfile,reloadLocal,due:()=>getProfile()?review.count():0,openReview:()=>{page='review';refresh();}});
+  const cloud=createCloudUI({locale:getLocale,profile:getProfile,validateProfile,refresh,reloadLocal,getModelKey:()=>({config:{...config},apiKey}),acceptModelKey:value=>{
+    if(!validConfig(value?.config)||typeof value.apiKey!=='string'||!/^[\x21-\x7e]{8,512}$/.test(value.apiKey))return false;
+    config={version:1,provider:value.config.provider,model:value.config.model,workspace:value.config.workspace,search:value.config.search};apiKey=value.apiKey;consent=false;
+    try{localStorage.setItem(CONFIG_KEY,JSON.stringify(config));}catch{/* The key still works in this page after the notice is confirmed. */}
+    return true;
+  }});
+  // Re-reads every learning store after a cloud restore or undo, so no page reload (which clears keys and sessions) is needed.
+  function reloadLocal(){
+    const next=loadChats({ getItem: key => { chatSnapshot = localStorage.getItem(key); return chatSnapshot; } });
+    chats=next.chats;corrupt=next.issue;notice='';
+    for(const id of Object.keys(selected))delete selected[id];
+    reloadProfile();library.reload();review.reload();ensureModule();
+  }
+  function ensureModule(){const profile=getProfile();if(profile&&!profile.modules[activeModule]?.enabled)activeModule=Object.keys(profile.modules).find(id=>profile.modules[id].enabled);}
   let recognition=null;
   function thread() { return chats.modules[activeModule].find(item => item.id === selected[activeModule]); }
   function newThread() {
@@ -246,41 +259,44 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
       if(recognition){recognition.stop();return;}
       const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
       if(!Speech){notice=getLocale()==='zh'?'浏览器未提供语音识别，请用系统键盘语音输入。':'Speech recognition is unavailable. Use keyboard dictation.';refresh();return;}
-      const module=activeModule,base=inputs[module]||'';recognition=new Speech();recognition.lang=getLocale()==='zh'?'zh-CN':'en-US';recognition.interimResults=false;
-      recognition.onresult=event=>{const transcript=Array.from(event.results).map(result=>result[0].transcript).join(' ');inputs[module]=(base+(base?' ':'')+transcript).slice(0,8000);if(page==='chat'&&activeModule===module){document.querySelector('#question').value=inputs[module];}};
+      const module=activeModule;recognition=new Speech();recognition.lang=getLocale()==='zh'?'zh-CN':'en-US';recognition.interimResults=false;
+      // Append to the draft as it is now, so text typed while dictating is kept.
+      recognition.onresult=event=>{const transcript=newTranscript(event.results,event.resultIndex);if(!transcript)return;inputs[module]=appendDraft(inputs[module],transcript,' ');const field=document.querySelector('#question');if(page==='chat'&&activeModule===module&&field)field.value=inputs[module];};
       recognition.onerror=()=>{notice=getLocale()==='zh'?'语音识别未完成，请检查权限或使用文字输入。':'Speech recognition incomplete. Check permissions or type instead.';};
       recognition.onend=()=>{recognition=null;refresh();};try{recognition.start();voice.textContent=getLocale()==='zh'?'停止语音':'Stop dictation';}catch{recognition=null;notice=getLocale()==='zh'?'无法启动语音识别。':'Could not start dictation.';refresh();}
     };
     document.querySelectorAll('[data-switch-module]').forEach(button => { button.onclick = () => openModule(button.dataset.switchModule); });
-    document.querySelector('#thread-select').onchange = event => { selected[activeModule] = event.target.value; inputs[activeModule] = ''; notice = ''; refresh(); };
-    document.querySelector('#new-thread').onclick = () => { if (busy) return; newThread(); inputs[activeModule] = ''; notice = ''; saveChats(); refresh(); };
+    // The module's draft stays in the box when switching or starting conversations.
+    document.querySelector('#thread-select').onchange = event => { selected[activeModule] = event.target.value; notice = ''; refresh(); };
+    document.querySelector('#new-thread').onclick = () => { if (busy) return; newThread(); notice = ''; saveChats(); refresh(); };
     document.querySelector('#question').oninput = event => { inputs[activeModule] = event.target.value; };
     document.querySelector('#question-form').onsubmit = event => { event.preventDefault(); void send(inputs[activeModule] || ''); };
     const stop = document.querySelector('#stop-request');
     if (stop) stop.onclick = () => controller?.abort();
-    document.querySelectorAll('[data-followup]').forEach(button => { button.onclick = () => { inputs[activeModule] = t(`${button.dataset.followup}Prompt`); refresh(); document.querySelector('#question').focus(); }; });
+    document.querySelectorAll('[data-followup]').forEach(button => { button.onclick = () => { inputs[activeModule] = appendDraft(inputs[activeModule], t(`${button.dataset.followup}Prompt`)); refresh(); document.querySelector('#question').focus(); }; });
     document.querySelectorAll('[data-retry]').forEach(button => { button.onclick = () => {
       const item = thread()?.messages.find(message => message.id === button.dataset.retry);
       if (!item) return;
       if (item === thread().messages.at(-1)) void send(item.content, item.id);
-      else { inputs[activeModule] = item.content; refresh(); document.querySelector('#question').focus(); }
+      else { inputs[activeModule] = appendDraft(inputs[activeModule], item.content); refresh(); document.querySelector('#question').focus(); }
     }; });
   }
   async function send(text, retryId) {
     if (busy || library.busy) return;
     const content = text.trim();
     if (!content || content.length > 8000) { notice = t('length'); refresh(); return; }
-    if (!ready()) { inputs[activeModule] = text; openModel(); return; }
+    if (!ready()) { if (!retryId) inputs[activeModule] = text; openModel(); return; }
     const current = thread() || newThread();
     const messages = buildContext(current, content);
     const user = retryId ? current.messages.find(item => item.id === retryId) : { id: crypto.randomUUID(), role: 'user', content, createdAt: new Date().toISOString() };
     if (!retryId) current.messages.push(user);
     if (!current.title) current.title = content.slice(0, 60);
     user.status = 'pending'; delete user.error; notice = '';
-    if (!saveChats()) { user.status = 'failed'; inputs[activeModule] = text; refresh(); return; }
+    if (!saveChats()) { user.status = 'failed'; if (!retryId) inputs[activeModule] = text; refresh(); return; }
     const sentModule = activeModule;
     const requestBody = { config: { ...config }, apiKey, consent, module: sentModule, level: getProfile().modules[sentModule].level, locale: getLocale(), messages };
-    controller = new AbortController(); busy = true; inputs[sentModule] = ''; refresh();
+    // A retry resends a stored question; the box may hold a different draft that must stay.
+    controller = new AbortController(); busy = true; if (!retryId) inputs[sentModule] = ''; refresh();
     try {
       const result = await request('/api/chat', requestBody, controller.signal);
       if (controller.signal.aborted) throw Object.assign(new Error('Cancelled'), { code: 'cancelled' });
@@ -305,6 +321,6 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     reviewCount:()=>review.count(),
     knowledgeCount: id => library.count(id),
     homeText: key => t(key), messageCount: id => chats.modules[id].reduce((sum, item) => sum + item.messages.filter(message => message.status === 'done').length, 0),
-    ensureModule() { if (!getProfile()?.modules[activeModule]?.enabled) activeModule = Object.keys(getProfile().modules).find(id => getProfile().modules[id].enabled); },
+    ensureModule,
   };
 }

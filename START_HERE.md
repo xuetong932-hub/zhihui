@@ -12,6 +12,7 @@
 4. `docs/ARCHITECTURE.md`：代码地图、接口、数据结构和本地存储。
 5. `docs/ACCEPTANCE.md`：从本地启动到逐功能验收的步骤。
 6. `cloud-setup.md` 和 `cloud-schema.sql`：真实云项目配置入口。
+7. `docs/ACCOUNT_DESIGN.md`：服务端年龄准入、登录方式绑定与账号合并的设计稿（未实现）。
 
 历史版本的 `docs/DEVELOPMENT_HISTORY.md` 仅供参考，包含过时的阶段说明；不要把其中“尚未实现”“等待确认”当作当前状态。当前状态以本入口及上述文档、实际代码为准。
 

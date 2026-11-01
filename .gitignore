@@ -4,3 +4,7 @@ node_modules/
 .env.*
 !.env.example
 dist/
+# Handoff archive and its unpacked duplicate; the baseline commit records the original contents.
+_handoff/
+knowledge-review-claude-handoff-*.zip
+knowledge-review-claude-handoff-*.zip.sha256

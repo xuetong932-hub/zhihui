@@ -1,6 +1,6 @@
 import { createChatUI } from './chat-ui.js';
+import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 
-const STORAGE_KEY = 'knowledge-review.profile.v1';
 const moduleIds = ['coding', 'english', 'work', 'life'];
 const levels = ['beginner', 'some', 'advanced'];
 const words = {
@@ -73,15 +73,45 @@ export function validProfile(value) {
     && moduleIds.some(id => value.modules[id].enabled));
 }
 
+function readProfile() {
+  try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); if (validProfile(saved)) return saved; } catch { /* Show setup when local data is unavailable or invalid. */ }
+  return undefined;
+}
+
+// Fields are found again by id, or by name inside a form identified by a data attribute.
+export function focusSelector(element) {
+  if (!element || element === document.body) return '';
+  if (element.id) return `#${CSS.escape(element.id)}`;
+  const form = element.closest?.('form[data-card-edit]');
+  return form && element.name ? `form[data-card-edit="${CSS.escape(form.dataset.cardEdit)}"] [name="${CSS.escape(element.name)}"]` : '';
+}
+
+function captureFocus() {
+  const element = document.activeElement, selector = focusSelector(element);
+  if (!selector || !document.querySelector('#app')?.contains(element)) return null;
+  let range = null;
+  try { if (typeof element.selectionStart === 'number') range = [element.selectionStart, element.selectionEnd, element.selectionDirection]; } catch { /* Not a text field. */ }
+  return { selector, range, scrollTop: element.scrollTop };
+}
+
+function restoreFocus(focus) {
+  if (!focus) return;
+  const element = document.querySelector(focus.selector);
+  if (!element || element.disabled) return;
+  element.focus({ preventScroll: true });
+  if (focus.range) try { element.setSelectionRange(...focus.range); } catch { /* Field type has no selection. */ }
+  element.scrollTop = focus.scrollTop;
+}
+
 function boot() {
-  let profile;
-  try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); if (validProfile(saved)) profile = saved; } catch { /* Show setup when local data is unavailable or invalid. */ }
+  let profile = readProfile();
   let locale = profile?.locale || (navigator.language.startsWith('zh') ? 'zh' : 'en');
-  let editing = !profile;
-  let draft = profile ? structuredClone(profile) : {
+  const blankDraft = () => ({
     version: 1, locale, dailyMinutes: 10,
     modules: Object.fromEntries(moduleIds.map(id => [id, { enabled: true, level: 'beginner' }])),
-  };
+  });
+  let editing = !profile;
+  let draft = profile ? structuredClone(profile) : blankDraft();
   let birthInput = '';
   let errorKey = '';
   const app = document.querySelector('#app');
@@ -89,6 +119,11 @@ function boot() {
   const chat = createChatUI({ getProfile: () => profile, getLocale: () => locale, refresh: () => render(),validateProfile:validProfile,adaptLevel:(id,level,at)=>{
     const next=structuredClone(profile);next.modules[id].level=level;next.modules[id].adaptedAt=at;
     try{localStorage.setItem(STORAGE_KEY,JSON.stringify(next));profile=next;}catch{/* Keep prior level if saving fails. */}
+  },reloadProfile:()=>{
+    // Called after cloud restore or undo replaced local data.
+    profile = readProfile(); birthInput = ''; errorKey = '';
+    if (profile) { locale = profile.locale; draft = structuredClone(profile); editing = false; }
+    else { draft = blankDraft(); editing = true; }
   }});
   if (profile) chat.ensureModule();
   const todayString = () => {
@@ -97,6 +132,13 @@ function boot() {
   };
 
   function render() {
+    // Background callbacks (dictation, extraction, sign-in) redraw the page; keep the user's focus and caret.
+    const focus = captureFocus();
+    renderPage();
+    restoreFocus(focus);
+  }
+
+  function renderPage() {
     document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
     document.title = t('brand');
     app.innerHTML = `

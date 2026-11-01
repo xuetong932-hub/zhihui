@@ -3,18 +3,33 @@ export const CHAT_KEY = 'knowledge-review.chats.v1';
 export const CONFIG_KEY = 'knowledge-review.model.v1';
 export const moduleIds = ['coding', 'english', 'work', 'life'];
 export const emptyChats = () => ({ version: 1, modules: Object.fromEntries(moduleIds.map(id => [id, []])) });
+// Limits follow what the app writes: questions ≤8,000 characters, model answers ≤60,000, titles are the first 60 characters.
+export const CHAT_LIMITS = { threads: 5000, messages: 5000, id: 100, title: 200, user: 8000, assistant: 60000, label: 100, sources: 30, sourceTitle: 300, url: 2048 };
+const text = (value, max) => typeof value === 'string' && value.length <= max;
+const optionalText = (value, max) => value === undefined || text(value, max);
+function validMessage(message) {
+  const L = CHAT_LIMITS;
+  return Boolean(['user', 'assistant'].includes(message?.role) && text(message.id, L.id) && text(message.content, message.role === 'user' ? L.user : L.assistant)
+    && typeof message.createdAt === 'string' && Number.isFinite(Date.parse(message.createdAt)) && ['done', 'pending', 'failed', 'cancelled'].includes(message.status)
+    && optionalText(message.model, L.label) && optionalText(message.provider, L.label) && optionalText(message.error, L.label)
+    && [undefined, 'off', 'sources-returned', 'no-sources'].includes(message.searchStatus) && [undefined, true, false].includes(message.truncated));
+}
 export function loadChats(storage) {
+  const L = CHAT_LIMITS;
   try {
     const data = JSON.parse(storage.getItem(CHAT_KEY));
     if (data?.version !== 1 || !moduleIds.every(id => Array.isArray(data.modules?.[id]))) return { chats: emptyChats(), issue: Boolean(data) };
     for (const threads of Object.values(data.modules)) {
-      if (!Array.isArray(threads)) return { chats: emptyChats(), issue: true };
+      if (!Array.isArray(threads) || threads.length > L.threads) return { chats: emptyChats(), issue: true };
       for (const thread of threads) {
-        if (typeof thread?.id !== 'string' || !Array.isArray(thread.messages) || typeof thread.title !== 'string') return { chats: emptyChats(), issue: true };
+        if (!text(thread?.id, L.id) || !Array.isArray(thread.messages) || thread.messages.length > L.messages || !text(thread.title, L.title)) return { chats: emptyChats(), issue: true };
         for (const message of thread.messages) {
-          if (!['user', 'assistant'].includes(message?.role) || typeof message.id !== 'string' || typeof message.content !== 'string' || !Number.isFinite(Date.parse(message.createdAt)) || !['done', 'pending', 'failed', 'cancelled'].includes(message.status)) return { chats: emptyChats(), issue: true };
+          if (!validMessage(message)) return { chats: emptyChats(), issue: true };
           if (message.status === 'pending') message.status = 'failed';
-          if (message.role === 'assistant') message.sources = Array.isArray(message.sources) ? message.sources.filter(source => typeof source?.url === 'string' && safeSourceUrl(source.url)).map(source => ({ url: safeSourceUrl(source.url), title: String(source.title || source.url) })) : [];
+          if (message.role === 'assistant') message.sources = (Array.isArray(message.sources) ? message.sources : []).flatMap(source => {
+            const url = text(source?.url, L.url) ? safeSourceUrl(source.url) : null;
+            return url ? [{ url, title: String(source.title || url).slice(0, L.sourceTitle) }] : [];
+          }).slice(0, L.sources);
         }
       }
     }
@@ -38,6 +53,17 @@ export function buildContext(thread, question) {
     chosen.unshift(...pair); size += pairSize;
   }
   return [...chosen, { role: 'user', content: question }];
+}
+// Inserted text (follow-up prompts, restored questions, dictation) is appended so a typed draft is never replaced.
+export function appendDraft(current, addition, separator = '\n') {
+  const base = current || '', text = addition || '', max = CHAT_LIMITS.user;
+  if (!text || base.trim() === text.trim()) return base.slice(0, max);
+  if (!base.trim()) return text.slice(0, max);
+  return `${base}${/\s$/.test(base) ? '' : separator}${text}`.slice(0, max);
+}
+// Only results from resultIndex onward are new; earlier ones were already delivered.
+export function newTranscript(results, resultIndex = 0) {
+  return Array.from(results).slice(resultIndex).filter(result => result.isFinal !== false).map(result => result[0].transcript).join(' ').trim();
 }
 export function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
