@@ -1,4 +1,6 @@
 import { createChatUI } from './chat-ui.js';
+import { moduleStyles } from './memory-viz.js';
+import { localDay } from './knowledge-store.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
 import { createAuthGate } from './auth-ui.js';
@@ -241,12 +243,32 @@ function boot() {
       </form>`;
   }
 
+  // Today's queue as a short read-only list; review itself still starts from the button.
+  function reviewPreview() {
+    const zh = locale === 'zh', items = chat.reviewPreview(), shown = items.slice(0, 5);
+    const button = `<button class="primary-button" data-review>${zh ? '进入复习' : 'Open review'} →</button>`;
+    if (!items.length) return `<div class="empty-state"><div class="empty-icon" aria-hidden="true">✧</div><h3>${t('emptyTitle')}</h3><p>${t('emptyHint')}</p>${button}</div>`;
+    const styles = moduleStyles([...new Set([...activeModuleIds(profile), ...items.map(item => item.card.module)])]);
+    const kinds = { new: zh ? '新学' : 'New', due: zh ? '到期' : 'Due', weak: zh ? '薄弱' : 'Weak' };
+    const ago = at => {
+      if (!at) return zh ? '还没复习过' : 'Not reviewed yet';
+      const [y, m, d] = localDay(at).split('-').map(Number), now = new Date();
+      const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(y, m - 1, d)) / 86400000);
+      const when = days <= 0 ? (zh ? '今天' : 'today') : days === 1 ? (zh ? '昨天' : 'yesterday') : zh ? `${days} 天前` : `${days} days ago`;
+      return zh ? `上次复习：${when}` : `Last reviewed ${when}`;
+    };
+    const rows = shown.map(({ card, last, kind }) => `<li class="preview-item"><div class="preview-main"><span class="preview-title">${esc(card.title)}</span><span class="preview-kind kind-${kind}">${kinds[kind]}</span></div>
+      <div class="preview-meta"><span class="preview-module"><i style="background:${styles.get(card.module)?.color || 'var(--muted)'}"></i>${esc(moduleLabel(profile, card.module, locale))}</span><span>${ago(last)}</span></div></li>`).join('');
+    const more = items.length > shown.length ? `<p class="preview-more">${zh ? `还有 ${items.length - shown.length} 条` : `${items.length - shown.length} more`}</p>` : '';
+    return `<ol class="review-preview">${rows}</ol>${more}<div class="preview-actions">${button}</div>`;
+  }
+
   function homeView() {
     const date = new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en', { dateStyle: 'full' }).format(new Date());
     return `<section class="intro home-intro"><div><span class="eyebrow">${date}</span><h1>${t('hello')}</h1><p>${t('homeHint')}</p></div><button class="secondary-button" id="settings">${t('settings')}</button></section>
       ${new Date().getDay() === 0 ? `<div class="sunday-note">${t('sunday')}</div>` : ''}
       <div class="dashboard"><section class="panel review-panel"><div class="section-heading"><h2>${t('today')}</h2><span class="pill">${chat.reviewCount()} ${t('zero')}</span></div>
-        <div class="empty-state"><div class="empty-icon" aria-hidden="true">✧</div><h3>${chat.reviewCount()?(locale==='zh'?'今天的复习已准备好':'Your review is ready'):t('emptyTitle')}</h3><p>${t('emptyHint')}</p><button class="primary-button" data-review>${locale==='zh'?'进入复习':'Open review'} →</button></div></section>
+        ${reviewPreview()}</section>
         <aside class="panel plan-panel"><span class="eyebrow">${t('reviewPlan')}</span><p>${t('batchHint')}</p><hr><h3>${t('weekly')}</h3><p>${t('weekHint')}</p><h3>${t('notifications')}</h3><p>${t('notificationHint')}</p></aside></div>
       <section class="modules-section"><div class="section-heading"><h2>${t('modulesTitle')}</h2><span class="muted">${t('local')}</span></div><div class="module-grid">${activeModuleIds(profile).map(id => `<article class="panel home-module"><span class="eyebrow">${t(profile.modules[id].level)}${isCustomModule(id) ? ` · ${t('customHint')}` : ''}</span><h3>${esc(moduleLabel(profile, id, locale))}</h3><p>${t('isolated')}</p><div class="module-count">${chat.messageCount(id)} <span>${chat.homeText('records')}</span></div><button class="secondary-button module-open" data-open-module="${id}">${chat.homeText('open')} →</button></article>`).join('')}</div></section>
       <p class="development-note">${t('next')}</p>`;

@@ -338,6 +338,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     get locked() { return busy || testing || library.busy || review.busy || cloud.busy || admin.busy; },
     openingPopup:()=>device.openingPopup(),
     reviewCount:()=>review.count(),
+    reviewPreview:()=>review.preview(),
     knowledgeCount: id => library.count(id),
     homeText: key => t(key), messageCount: id => (chats.modules[id] || []).reduce((sum, item) => sum + item.messages.filter(message => message.status === 'done').length, 0),
     ensureModule,

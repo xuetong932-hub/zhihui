@@ -1,4 +1,4 @@
-import {REVIEW_KEY,emptyReviews,loadReviews,reviewQueue,recordReview,suggestedLevel,dailyPlan,streakDays,sessionStars} from './review-store.js';
+import {REVIEW_KEY,emptyReviews,loadReviews,reviewQueue,recordReview,suggestedLevel,dailyPlan,streakDays,sessionStars,latestReview} from './review-store.js';
 import {localDay} from './knowledge-store.js';
 const CELEBRATED_KEY='knowledge-review.celebrated-day';
 import {escapeHtml as e,renderAnswer} from './chat-store.js';
@@ -86,5 +86,7 @@ export function createReviewUI({locale,profile,cards,markWeak,call,refresh,adapt
     });
   }
   // For the library's memory view: all review events and today's planned cards.
-  return {view,bind,reload:load,count:()=>queue().length,events:()=>data,dueIds:()=>new Set(reviewQueue(cards(),data,profile(),new Date()).map(card=>card.id)),get busy(){return busy;}};
+  // Home-page preview of today's queue, in the order review will ask it.
+  const preview=()=>queue().map(card=>{const last=latestReview(data,card.id);return {card,last:last?.at||'',kind:!last?'new':['wrong','unclear','guessed'].includes(last.rating)?'weak':'due'};});
+  return {view,bind,reload:load,count:()=>queue().length,preview,events:()=>data,dueIds:()=>new Set(reviewQueue(cards(),data,profile(),new Date()).map(card=>card.id)),get busy(){return busy;}};
 }

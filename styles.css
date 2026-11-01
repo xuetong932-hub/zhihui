@@ -114,3 +114,21 @@ footer{color:var(--stone);border-top:1px solid var(--hairline-soft);margin-top:4
 [data-theme="dark"] .viz-legend{color:var(--slate)}
 [data-theme="dark"] .mindmap-wrap{background:var(--surface-soft);border-color:var(--hairline)}
 [data-theme="dark"] .graph-light{background:radial-gradient(circle at 30% 20%,#1c2026 0,#16191d 60%,#121417 100%);border-color:var(--hairline);--graph-text:#e3e6e8;--graph-hub-fill:#1b1e22}
+
+/* Home: today's review preview list */
+.review-preview{list-style:none;margin:8px 0 0;padding:0;counter-reset:rv}
+.preview-item{counter-increment:rv;position:relative;padding:12px 0 12px 32px;border-top:1px solid var(--line)}
+.preview-item:first-child{border-top:0}
+.preview-item::before{content:counter(rv);position:absolute;left:0;top:13px;width:22px;height:22px;border-radius:50%;background:var(--line);color:var(--ink);font-size:12px;line-height:22px;text-align:center}
+.preview-main{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.preview-title{font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.preview-kind{flex:none;font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.preview-kind.kind-new{color:#30694f;border-color:#30694f55}
+.preview-kind.kind-weak{color:#b4532a;border-color:#b4532a55}
+.preview-meta{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:4px;font-size:12.5px;color:var(--muted)}
+.preview-module{display:inline-flex;align-items:center;gap:6px}
+.preview-module i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.preview-more{margin:4px 0 0 32px;font-size:13px;color:var(--muted)}
+.preview-actions{margin-top:16px;display:flex;justify-content:flex-end}
+[data-theme="dark"] .preview-kind.kind-new{color:#7cc4a0;border-color:#7cc4a055}
+[data-theme="dark"] .preview-kind.kind-weak{color:#e8956d;border-color:#e8956d55}
