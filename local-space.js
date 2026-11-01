@@ -102,15 +102,22 @@ export function readLocalSnapshot(storage){
   const read=key=>{const raw=storage.getItem(key);if(!raw)return null;try{return JSON.parse(raw);}catch{throw fail('local');}};
   return {version:1,profile:read(PROFILE_KEY),chats:read(CHAT_KEY),knowledge:read(KNOWLEDGE_KEY),reviews:read(REVIEW_KEY)};
 }
+// Moves every local learning record into a backup owned by its current owner, leaving an empty space
+// for the signed-in account. Used when the device's records belong to someone else.
+export function setAsideLocalData(storage,account,now=new Date()){replaceLearningData(storage,{},account,now);}
 export function snapshotValues(snapshot){return {[PROFILE_KEY]:snapshot.profile,[CHAT_KEY]:snapshot.chats,[KNOWLEDGE_KEY]:snapshot.knowledge,[REVIEW_KEY]:snapshot.reviews};}
 export function summarizeSnapshot(snapshot){
   const threads=Object.values(snapshot.chats?.modules||{}).flat();
   return {threads:threads.length,messages:threads.reduce((sum,thread)=>sum+thread.messages.filter(message=>message.status==='done').length,0),
     cards:(snapshot.knowledge?.cards||[]).filter(card=>['active','paused'].includes(card.status)).length,reviews:snapshot.reviews?.events?.length||0};
 }
+// With sign-in required, a backup can only be swapped back by the account it belongs to.
+// Backups without an owner (from before accounts) cannot be swapped in by anyone.
+export function canUndo(storage,account){const [latest]=readBackups(storage);return Boolean(latest&&(!account||sameOwner(latest.owner,account)));}
 // Undo swaps the newest backup with current data, so undoing again returns to the restored copy.
-export function undoLastRestore(storage,now=new Date()){
+export function undoLastRestore(storage,now=new Date(),account){
   const [latest,...rest]=readBackups(storage);if(!latest)throw fail('no-backup');
+  if(account&&!sameOwner(latest.owner,account))throw fail('other-owner');
   swap(storage,latest.values,latest.owner,[{savedAt:now.toISOString(),owner:readOwner(storage),values:capture(storage)},...rest]);
   return latest;
 }

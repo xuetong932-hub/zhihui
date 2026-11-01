@@ -1,5 +1,7 @@
 # 第 8 项设计：服务端年龄准入、登录方式绑定与重复账号合并
 
+更新（2026-11-01 晚）：用户决定必须登录后，年龄判断并入注册函数 `complete_registration`，`account_status` 改为 `my_account`。以 `cloud-schema.sql` 为准，下文 §3.4 的 SQL 只作设计说明。
+
 状态：设计稿（2026-11-01）。本文的 SQL 和接口均**未在真实 Supabase 项目执行或验证**，不能据此声称功能已可用。实现前需要用户提供或创建云项目。
 
 依据：Supabase 官方文档（2026-11-01 查阅）——[身份关联](https://supabase.com/docs/guides/auth/auth-identity-linking)、[注册前钩子](https://supabase.com/docs/guides/auth/auth-hooks/before-user-created-hook)、[访问令牌钩子](https://supabase.com/docs/guides/auth/auth-hooks/custom-access-token-hook)。

@@ -8,7 +8,7 @@ import { reviewTask } from './review-service.mjs';
 
 const files = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
-  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
+  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
   ['/manifest.webmanifest',['manifest.webmanifest','application/manifest+json']],['/icon.svg',['icon.svg','image/svg+xml']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
 ]);
@@ -32,7 +32,12 @@ async function readJson(request) {
   }
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new ServiceError('request'); }
 }
-export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask } = {}) {
+// Account service settings come from the operator's environment; only the public (publishable) key is exposed.
+export function publicConfigFromEnv(env = process.env) {
+  const url = (env.SUPABASE_URL || '').trim().replace(/\/$/, ''), publicKey = (env.SUPABASE_PUBLISHABLE_KEY || '').trim();
+  return /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url) && publicKey.length > 10 && !publicKey.startsWith('sb_secret_') ? { url, publicKey } : {};
+}
+export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask, publicConfig = () => publicConfigFromEnv(), extraRoute } = {}) {
   let activeRequests = 0;
   return http.createServer(async (request, response) => {
     // Prototype is loopback-only. Reject foreign origins and DNS-rebinding hosts.
@@ -40,6 +45,9 @@ export function createApp({ modelCaller = callModel, knowledgeCaller = extractKn
     if (!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)) { json(response, 403, { error: 'origin' }); return; }
     if (request.headers.origin && request.headers.origin !== `http://${host}`) { json(response, 403, { error: 'origin' }); return; }
     const path = new URL(request.url, `http://${host}`).pathname;
+    if (path === '/api/public-config') { if (request.method !== 'GET') { json(response, 405, { error: 'method' }); return; } json(response, 200, publicConfig(host)); return; }
+    // Test servers mount extra routes (the fake account service); production passes none.
+    if (extraRoute && await extraRoute(request, response, path)) return;
     if (path === '/api/chat' || path === '/api/test' || path === '/api/extract'||path==='/api/review-task') {
       if (request.method !== 'POST') { json(response, 405, { error: 'method' }); return; }
       if (activeRequests >= 2) { json(response, 429, { error: 'busy' }); return; }

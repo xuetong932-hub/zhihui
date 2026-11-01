@@ -23,6 +23,9 @@
 | review-ui.js | 一题一题会话、作答、反馈、继续练习 |
 | device-ui.js | 打开弹窗、页面运行时通知检查、设置、JSON 导出与导入（预览、确认、撤销） |
 | cloud-ui.js | Supabase REST OTP/PKCE、AES-GCM 快照、版本冲突与恢复 |
+| auth.js | 账号会话（本设备保存并自动刷新）、服务配置、验证码登录、注册与管理员调用；注册表单校验 |
+| auth-ui.js | 登录关卡：登录、注册、完善注册、被拒、本机记录归属处理 |
+| admin-ui.js | 管理员用户表（服务端脱敏、权限检查） |
 | snapshot-merge.js | 两份学习快照按 ID 合并（导入合并、将来的账号合并），疑似重复卡片计数 |
 | local-space.js | 本机数据账号归属、上传前检查、恢复前备份（最多 3 份）、回滚与撤销；纯逻辑便于测试 |
 | cloud-schema.sql | RLS 快照表、成年准入表与函数（快照仅对已准入账号开放）、自身账号删除 RPC；未部署 |
@@ -35,6 +38,7 @@
 
 | 路由 | 用途 |
 |---|---|
+| GET /api/public-config | 账号服务的项目 URL 与公开 Key（来自环境变量，未配置时为空） |
 | POST /api/chat | 模型问答 |
 | POST /api/test | 强制一个简短测试消息，关闭搜索，不把测试写入聊天 |
 | POST /api/extract | 提炼知识；只带单条问答及原模块有限候选标题 |
@@ -55,13 +59,14 @@
 | knowledge-review.reviews.v1 | events：作答、correct、explanation、rating、interval、due，可选 seconds（答题用时，≤600） |
 | knowledge-review.device.v1 | 提醒设置 |
 | knowledge-review.cloud.v1 | Supabase URL 与公开 Key（不是服务端 secret） |
+| knowledge-review.session.v1 | 登录会话（access/refresh token、过期时间、用户 ID 与邮箱/手机号）；退出时清除 |
 | knowledge-review.last-login.v1 | 本设备上次使用的登录方式名（email/phone/google/apple），不含账号 |
 | knowledge-review.model-help-seen.v1 | 首次模型说明提示已读 |
 | knowledge-review.local-owner.v1 | 本机学习数据所属云账号（项目 URL、用户 ID、脱敏标签、关联时间） |
 | knowledge-review.before-cloud-restore | 云恢复前本机备份：`{version:2,entries:[{savedAt,owner,values}]}`，最多 3 份；兼容旧版单份格式 |
 | knowledge-review.last-notification | 已提醒日期 |
 
-sessionStorage 使用 `knowledge-review.popup-day` 和 `knowledge-review.pkce`。API Key、云登录 session、同步口令默认仅在页面内存。后续更改键或 schema 必须迁移并保留恢复路径。
+sessionStorage 使用 `knowledge-review.popup-day` 和 `knowledge-review.pkce`。API Key 和同步口令只在页面内存；登录会话保存在 `knowledge-review.session.v1`，因为 App 必须登录才能使用。后续更改键或 schema 必须迁移并保留恢复路径。
 
 **同一电脑不同浏览器、不同端口、localhost 与 127.0.0.1 的数据都可能彼此独立。不要为了重启预览随意换端口或清理用户存储。**
 

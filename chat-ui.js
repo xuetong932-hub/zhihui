@@ -5,6 +5,7 @@ import { createReviewUI } from './review-ui.js';
 import {createDeviceUI} from './device-ui.js';
 import {createCloudUI} from './cloud-ui.js';
 import {attachModelHelp} from './model-help.js';
+import {createAdminUI} from './admin-ui.js';
 
 const copy = {
   zh: {
@@ -69,7 +70,7 @@ const copy = {
   },
 };
 
-export function createChatUI({ getProfile, getLocale, refresh,validateProfile,adaptLevel,reloadProfile }) {
+export function createChatUI({ getProfile, getLocale, refresh,validateProfile,adaptLevel,reloadProfile,auth,getAccount,signOut }) {
   let chatSnapshot = null;
   const loaded = loadChats({ getItem: key => { chatSnapshot = localStorage.getItem(key); return chatSnapshot; } });
   let chats = loaded.chats;
@@ -105,8 +106,11 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     if(!ready())return Promise.reject(new Error('key'));
     return request('/api/review-task',{config:{...config},apiKey,consent,module:card.module,level:getProfile().modules[card.module].level,locale:getLocale(),task,card:{title:card.title,summary:card.summary,example:card.example},answer});
   }});
-  const device=createDeviceUI({locale:getLocale,refresh,validateProfile,reloadLocal,due:()=>getProfile()?review.count():0,openReview:()=>{page='review';refresh();}});
-  const cloud=createCloudUI({locale:getLocale,profile:getProfile,validateProfile,refresh,reloadLocal,getModelKey:()=>({config:{...config},apiKey}),acceptModelKey:value=>{
+  // The signed-in account as the local-data owner; backups of other accounts cannot be swapped in.
+  const owner=()=>auth?.user&&auth.config?{url:auth.config.url,userId:auth.user.id,label:getAccount?.()?.username||''}:null;
+  const admin=createAdminUI({locale:getLocale,refresh,auth});
+  const device=createDeviceUI({locale:getLocale,refresh,validateProfile,reloadLocal,owner,due:()=>getProfile()?review.count():0,openReview:()=>{page='review';refresh();}});
+  const cloud=createCloudUI({locale:getLocale,validateProfile,refresh,reloadLocal,auth,getAccount,owner,signOut,getModelKey:()=>({config:{...config},apiKey}),acceptModelKey:value=>{
     if(!validConfig(value?.config)||typeof value.apiKey!=='string'||!/^[\x21-\x7e]{8,512}$/.test(value.apiKey))return false;
     config={version:1,provider:value.config.provider,model:value.config.model,workspace:value.config.workspace,search:value.config.search};apiKey=value.apiKey;consent=false;
     try{localStorage.setItem(CONFIG_KEY,JSON.stringify(config));}catch{/* The key still works in this page after the notice is confirmed. */}
@@ -141,9 +145,9 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     modelError = ''; testMessage = ''; page = 'model'; refresh();
   }
   function nav() {
-    return `<nav class="app-nav" aria-label="${t('home')}"><button class="text-button" data-chat-home>${t('home')}</button><button class="text-button" data-review>${getLocale()==='zh'?'复习':'Review'}</button><button class="text-button" data-library>${getLocale()==='zh'?'知识库':'Knowledge'}</button><button class="text-button" data-device>${getLocale()==='zh'?'设备':'Device'}</button><button class="text-button" data-cloud>${getLocale()==='zh'?'账号':'Account'}</button><button class="text-button" data-model-settings>${t('modelSettings')} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span></button></nav>`;
+    return `<nav class="app-nav" aria-label="${t('home')}"><button class="text-button" data-chat-home>${t('home')}</button><button class="text-button" data-review>${getLocale()==='zh'?'复习':'Review'}</button><button class="text-button" data-library>${getLocale()==='zh'?'知识库':'Knowledge'}</button><button class="text-button" data-device>${getLocale()==='zh'?'设备':'Device'}</button><button class="text-button" data-cloud>${getLocale()==='zh'?'账号':'Account'}</button>${getAccount?.()?.is_admin?`<button class="text-button" data-admin>${getLocale()==='zh'?'管理':'Admin'}</button>`:''}<button class="text-button" data-model-settings>${t('modelSettings')} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span></button></nav>`;
   }
-  function view() { return page==='cloud'?cloud.view():page==='device'?device.view():page === 'review' ? review.view() : page === 'library' ? library.view() : page === 'model' ? modelView() : chatView(); }
+  function view() { return page==='admin'?admin.view():page==='cloud'?cloud.view():page==='device'?device.view():page === 'review' ? review.view() : page === 'library' ? library.view() : page === 'model' ? modelView() : chatView(); }
   function modelView() {
     const p = providers[modelDraft.provider];
     return `<section class="intro model-intro"><div><span class="eyebrow">${t('modelSettings')}</span><h1>${t('modelTitle')}</h1><p>${t('modelHint')}</p></div><a class="inline-link model-help-link" id="model-help-link" href="#model-config-guide" aria-haspopup="dialog">${getLocale()==='zh'?'配置说明':'Setup guide'} ↗</a></section>
@@ -184,9 +188,10 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   }
   function errorText(code) { return t(`error-${code}`); }
   function bind() {
-    const locked=()=>busy||testing||review.busy||library.busy||cloud.busy;
+    const locked=()=>busy||testing||review.busy||library.busy||cloud.busy||admin.busy;
     document.querySelectorAll('[data-device]').forEach(button=>button.onclick=()=>{if(!locked()){page='device';refresh();}});
     document.querySelectorAll('[data-cloud]').forEach(button=>button.onclick=()=>{if(!locked()){page='cloud';refresh();}});
+    document.querySelectorAll('[data-admin]').forEach(button=>button.onclick=()=>{if(!locked()){page='admin';admin.open();refresh();}});
     document.querySelectorAll('.app-nav button').forEach(button=>{button.disabled=locked();});
     document.querySelectorAll('[data-review]').forEach(button=>button.onclick=()=>{if(!busy&&!testing&&!review.busy&&!library.busy){page='review';refresh();}});
     document.querySelectorAll('[data-library]').forEach(button=>{button.onclick=()=>{if(!busy&&!testing&&!review.busy&&!library.busy){page='library';refresh();}};});
@@ -199,6 +204,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     if (page === 'review') review.bind();
     if(page==='device')device.bind();
     if(page==='cloud')cloud.bind();
+    if(page==='admin')admin.bind();
   }
   function draftError() {
     if (!validConfig(modelDraft)) return t('config');
@@ -316,7 +322,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     } finally { busy = false; controller = null; requestBody.apiKey = ''; refresh(); }
   }
   return { nav, view, bind, openModule, openModel, get isHome() { return page === 'home'; },
-    get locked() { return busy || testing || library.busy || review.busy || cloud.busy; },
+    get locked() { return busy || testing || library.busy || review.busy || cloud.busy || admin.busy; },
     openingPopup:()=>device.openingPopup(),
     reviewCount:()=>review.count(),
     knowledgeCount: id => library.count(id),

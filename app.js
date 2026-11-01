@@ -1,16 +1,16 @@
 import { createChatUI } from './chat-ui.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
+import { createAuth } from './auth.js';
+import { createAuthGate } from './auth-ui.js';
 
 const moduleIds = ['coding', 'english', 'work', 'life'];
 const levels = ['beginner', 'some', 'advanced'];
 const words = {
   zh: {
     brand: '知回', subtitle: '把好问题，变成记得住的知识。', language: 'English',
-    preview: '本地体验版 · 设置与问答仅保存在当前浏览器', setup: '建立你的学习空间',
-    setupHint: '先选感兴趣的领域，随时可以回来调整。', age: '成年确认',
-    ageHint: '仅供年满 18 岁的用户使用。生日只用于本次判断，不保存完整生日。', birthday: '出生日期',
-    ageFail: '此应用仅供年满 18 岁的用户使用。', ageInvalid: '请输入有效的出生日期。',
-    ageDone: '已完成成年确认', areas: '学习模块', areasHint: '至少启用一个模块；各模块分别记录学习水平和复习进度。',
+    preview: '体验版 · 学习记录保存在当前浏览器，可在账号页加密同步', setup: '建立你的学习空间',
+    setupHint: '随时可以回来调整。', skipHint: '选择感兴趣的领域和每日复习时长。也可以先跳过，使用默认设置（全部模块、入门、每天 10 分钟），之后在“学习设置”中修改。',
+    skip: '跳过，使用默认设置', areas: '学习模块', areasHint: '至少启用一个模块；各模块分别记录学习水平和复习进度。',
     coding: '编程', english: '英语', work: '工作知识', life: '生活常识',
     codingHint: '理解代码背后的逻辑', englishHint: '在真实情境中理解与表达', workHint: '把方法用到日常工作', lifeHint: '弄懂身边的为什么',
     beginner: '入门', some: '了解一些', advanced: '较熟悉', level: '当前基础',
@@ -28,11 +28,9 @@ const words = {
   },
   en: {
     brand: 'Knowledge Review', subtitle: 'Turn good questions into lasting knowledge.', language: '中文',
-    preview: 'Local preview · Settings and chats stay in this browser', setup: 'Make room for learning',
-    setupHint: 'Choose your interests. You can adjust them anytime.', age: 'Age confirmation',
-    ageHint: 'For adults aged 18 and over. Your birth date is checked here and is not stored.', birthday: 'Date of birth',
-    ageFail: 'This app is only available to adults aged 18 and over.', ageInvalid: 'Enter a valid date of birth.',
-    ageDone: 'Adult eligibility confirmed', areas: 'Learning modules', areasHint: 'Enable at least one. Each module has its own level and review progress.',
+    preview: 'Preview · Learning records stay in this browser; encrypted sync is on the Account page', setup: 'Make room for learning',
+    setupHint: 'You can adjust these anytime.', skipHint: 'Choose your interests and daily review time. You can also skip and use the defaults (all modules, beginner, 10 minutes a day) and change them later in Learning settings.',
+    skip: 'Skip and use defaults', areas: 'Learning modules', areasHint: 'Enable at least one. Each module has its own level and review progress.',
     coding: 'Coding', english: 'English', work: 'Work knowledge', life: 'Everyday knowledge',
     codingHint: 'Understand the logic behind code', englishHint: 'Understand and express ideas in context', workHint: 'Put useful methods into practice', lifeHint: 'Explore the reasons behind everyday things',
     beginner: 'Beginner', some: 'Some experience', advanced: 'Confident', level: 'Your starting level',
@@ -65,7 +63,8 @@ export function isAdult(dateString, today = new Date()) {
 export function validProfile(value) {
   return Boolean(value && value.version === 1 && ['zh', 'en'].includes(value.locale)
     && value.adultVerification?.isAdult === true
-    && value.adultVerification?.method === 'self-declared-birthdate'
+    // server-birthdate: decided by the account service at registration; self-declared: profiles from before accounts.
+    && ['server-birthdate', 'self-declared-birthdate'].includes(value.adultVerification?.method)
     && Number.isFinite(Date.parse(value.adultVerification?.verifiedAt))
     && [5, 10, 20].includes(value.dailyMinutes)
     && moduleIds.every(id => value.modules?.[id]
@@ -110,26 +109,33 @@ function boot() {
     version: 1, locale, dailyMinutes: 10,
     modules: Object.fromEntries(moduleIds.map(id => [id, { enabled: true, level: 'beginner' }])),
   });
-  let editing = !profile;
+  let editing = false;
   let draft = profile ? structuredClone(profile) : blankDraft();
-  let birthInput = '';
   let errorKey = '';
   const app = document.querySelector('#app');
   const t = key => words[locale][key];
-  const chat = createChatUI({ getProfile: () => profile, getLocale: () => locale, refresh: () => render(),validateProfile:validProfile,adaptLevel:(id,level,at)=>{
-    const next=structuredClone(profile);next.modules[id].level=level;next.modules[id].adaptedAt=at;
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(next));profile=next;}catch{/* Keep prior level if saving fails. */}
-  },reloadProfile:()=>{
-    // Called after cloud restore or undo replaced local data.
-    profile = readProfile(); birthInput = ''; errorKey = '';
-    if (profile) { locale = profile.locale; draft = structuredClone(profile); editing = false; }
-    else { draft = blankDraft(); editing = true; }
-  }});
-  if (profile) chat.ensureModule();
-  const todayString = () => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  };
+  // Sign-in is required: the gate runs first; the learning app is created only after it passes.
+  const auth = createAuth();
+  let chat = null, account = null;
+  const gate = createAuthGate({ auth, locale: () => locale, refresh: () => render(), onReady: acct => {
+    account = acct;
+    profile = readProfile();
+    if (profile) locale = profile.locale; else { draft = blankDraft(); editing = true; }
+    chat = createChatUI({ getProfile: () => profile, getLocale: () => locale, refresh: () => render(), validateProfile: validProfile, auth, getAccount: () => account,
+      signOut: async () => { await auth.signOut(); location.reload(); },
+      adaptLevel: (id, level, at) => {
+        const next = structuredClone(profile); next.modules[id].level = level; next.modules[id].adaptedAt = at;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); profile = next; } catch { /* Keep prior level if saving fails. */ }
+      }, reloadProfile: () => {
+        // Called after cloud restore, import or undo replaced local data.
+        profile = readProfile(); errorKey = '';
+        if (profile) { locale = profile.locale; draft = structuredClone(profile); editing = false; }
+        else { draft = blankDraft(); editing = true; }
+      } });
+    if (profile) chat.ensureModule();
+    render();
+    if (profile) chat.openingPopup();
+  } });
 
   function render() {
     // Background callbacks (dictation, extraction, sign-in) redraw the page; keep the user's focus and caret.
@@ -141,49 +147,49 @@ function boot() {
   function renderPage() {
     document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
     document.title = t('brand');
+    const inApp = Boolean(chat), locked = inApp ? chat.locked : gate.busy;
     app.innerHTML = `
       <header class="header"><a class="brand" href="/" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
-        <div class="header-actions">${profile && !editing ? chat.nav() : ''}<button class="text-button" id="language" ${chat.locked ? 'disabled' : ''}>${t('language')}</button></div></header>
-      <main>${editing ? setupView() : chat.isHome ? homeView() : chat.view()}</main>
+        <div class="header-actions">${inApp && profile && !editing ? chat.nav() : ''}<button class="text-button" id="language" ${locked ? 'disabled' : ''}>${t('language')}</button></div></header>
+      <main>${!inApp ? gate.view() : editing ? setupView() : chat.isHome ? homeView() : chat.view()}</main>
       <footer>${t('preview')}</footer>`;
     document.querySelector('#language').onclick = () => {
       const next = locale === 'zh' ? 'en' : 'zh';
-      if (profile && !editing) {
+      if (inApp && profile && !editing) {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...profile, locale: next })); }
         catch { errorKey = 'storageError'; editing = true; draft = structuredClone(profile); render(); return; }
         profile.locale = next;
       }
       locale = next; draft.locale = locale; render();
     };
+    if (!inApp) { gate.bind(); return; }
     if (editing) bindSetup();
     else {
       const settings = document.querySelector('#settings');
       if (settings) settings.onclick = () => {
         if (chat.locked) return;
-        draft = structuredClone(profile); birthInput = ''; errorKey = ''; editing = true; render(); window.scrollTo(0, 0);
+        draft = structuredClone(profile); errorKey = ''; editing = true; render(); window.scrollTo(0, 0);
       };
       chat.bind();
     }
   }
 
+  // Learning modules and review plan. After registration this step is optional; skipping saves the defaults.
   function setupView() {
-    return `<section class="intro"><span class="eyebrow">${t('brand')}</span><h1>${t('setup')}</h1><p>${t('setupHint')}</p></section>
+    return `<section class="intro"><span class="eyebrow">${t('brand')}</span><h1>${t(profile ? 'settings' : 'setup')}</h1><p>${t(profile ? 'setupHint' : 'skipHint')}</p></section>
       <form id="setup" novalidate>
-        <section class="panel"><h2><span class="step">01</span>${t('age')}</h2>
-          ${profile ? `<p class="verified">✓ ${t('ageDone')}</p>` : `<p>${t('ageHint')}</p><label class="date-label" for="birthday">${t('birthday')}</label><input id="birthday" name="birthday" type="date" min="1900-01-01" max="${todayString()}" required aria-describedby="form-error">`}
-        </section>
-        <section class="panel"><h2><span class="step">02</span>${t('areas')}</h2><p>${t('areasHint')}</p>
+        <section class="panel"><h2><span class="step">01</span>${t('areas')}</h2><p>${t('areasHint')}</p>
           <div class="module-grid">${moduleIds.map((id, i) => `<div class="module-option ${draft.modules[id].enabled ? 'selected' : ''}">
             <label class="module-label"><span class="module-number">0${i + 1}</span><strong>${t(id)}</strong><input type="checkbox" data-module="${id}" ${draft.modules[id].enabled ? 'checked' : ''}></label>
             <p class="module-description">${t(`${id}Hint`)}</p><label class="level-label" for="level-${id}">${t('level')}</label>
             <select id="level-${id}" data-level="${id}" ${draft.modules[id].enabled ? '' : 'disabled'}>${levels.map(level => `<option value="${level}" ${draft.modules[id].level === level ? 'selected' : ''}>${t(level)}</option>`).join('')}</select>
           </div>`).join('')}</div>
         </section>
-        <section class="panel"><h2><span class="step">03</span>${t('plan')}</h2><p>${t('planHint')}</p>
+        <section class="panel"><h2><span class="step">02</span>${t('plan')}</h2><p>${t('planHint')}</p>
           <div class="duration-options">${[5, 10, 20].map(minutes => `<label class="duration"><input type="radio" name="duration" value="${minutes}" ${draft.dailyMinutes === minutes ? 'checked' : ''}><span><strong>${minutes}</strong> ${t('minutes')}</span></label>`).join('')}</div>
         </section>
         <p id="form-error" class="error" role="alert" tabindex="-1">${errorKey ? t(errorKey) : ''}</p>
-        <div class="actions">${profile ? `<button type="button" class="secondary-button" id="cancel">${t('cancel')}</button>` : ''}<button class="primary-button" type="submit">${t(profile ? 'save' : 'start')} <span aria-hidden="true">→</span></button></div>
+        <div class="actions">${profile ? `<button type="button" class="secondary-button" id="cancel">${t('cancel')}</button>` : `<button type="button" class="secondary-button" id="skip-setup">${t('skip')}</button>`}<button class="primary-button" type="submit">${t(profile ? 'save' : 'start')} <span aria-hidden="true">→</span></button></div>
       </form>`;
   }
 
@@ -198,9 +204,15 @@ function boot() {
       <p class="development-note">${t('next')}</p>`;
   }
 
+  function saveProfile(candidate) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate)); }
+    catch { errorKey = 'storageError'; render(); document.querySelector('#form-error').focus(); return; }
+    profile = candidate; chat.ensureModule(); editing = false; render(); window.scrollTo(0, 0);
+  }
+  // The account service confirmed the user is an adult before the app opened.
+  const adultRecord = () => profile?.adultVerification || { isAdult: true, verifiedAt: new Date().toISOString(), method: 'server-birthdate' };
+
   function bindSetup() {
-    const birthday = document.querySelector('#birthday');
-    if (birthday) { birthday.value = birthInput; birthday.oninput = event => { birthInput = event.target.value; }; }
     document.querySelectorAll('[data-module]').forEach(input => {
       input.onchange = () => { draft.modules[input.dataset.module].enabled = input.checked; input.closest('.module-option').classList.toggle('selected', input.checked); document.querySelector(`#level-${input.dataset.module}`).disabled = !input.checked; };
     });
@@ -208,23 +220,19 @@ function boot() {
     document.querySelectorAll('[name="duration"]').forEach(input => { input.onchange = () => { draft.dailyMinutes = Number(input.value); }; });
     const cancel = document.querySelector('#cancel');
     if (cancel) cancel.onclick = () => { locale = profile.locale; editing = false; errorKey = ''; render(); };
+    const skip = document.querySelector('#skip-setup');
+    if (skip) skip.onclick = () => { errorKey = ''; saveProfile({ ...blankDraft(), locale, adultVerification: adultRecord() }); };
     document.querySelector('#setup').onsubmit = event => {
       event.preventDefault(); errorKey = '';
-      if (!profile) {
-        const eligible = isAdult(birthInput);
-        if (eligible !== true) errorKey = eligible === false ? 'ageFail' : 'ageInvalid';
-      }
-      if (!errorKey && !moduleIds.some(id => draft.modules[id].enabled)) errorKey = 'chooseModule';
+      if (!moduleIds.some(id => draft.modules[id].enabled)) errorKey = 'chooseModule';
       if (errorKey) { render(); document.querySelector('#form-error').focus(); return; }
-      const candidate = { ...draft, locale, adultVerification: profile?.adultVerification || { isAdult: true, verifiedAt: new Date().toISOString(), method: 'self-declared-birthdate' } };
+      const candidate = { ...draft, locale, adultVerification: adultRecord() };
       if(profile)for(const id of moduleIds)if(profile.modules[id].level!==candidate.modules[id].level)candidate.modules[id].adaptedAt=new Date().toISOString();
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate)); }
-      catch { errorKey = 'storageError'; render(); document.querySelector('#form-error').focus(); return; }
-      profile = candidate; chat.ensureModule(); editing = false; birthInput = ''; render(); window.scrollTo(0, 0);
+      saveProfile(candidate);
     };
   }
   render();
-  if(profile)chat.openingPopup();
+  void gate.start();
   if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 
