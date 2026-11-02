@@ -151,3 +151,4 @@
 [data-layout="mobile"] #question.photo-text{height:132px;border-radius:16px}
 [data-layout="mobile"] #question-form:has(#question.photo-text){flex-wrap:wrap}[data-layout="mobile"] #question.photo-text{flex:1 1 100%}[data-layout="mobile"] #question-form:has(#question.photo-text) .composer-footer{flex:1 1 100%;justify-content:flex-end}[data-layout="mobile"] #question-form .photo-status{position:static;order:-1;flex:1 1 100%;margin:0}
 .tab{flex-direction:column;gap:3px}.tab-label{font-size:11px;line-height:1;font-weight:500;letter-spacing:.01em;white-space:nowrap}.tab.active .tab-label{font-weight:700}
+.task-share{display:block;width:100%;margin-top:10px;min-height:42px;border:1px solid #ffffff99;border-radius:14px;background:transparent;color:#fff;font-size:15px;font-weight:600;cursor:pointer}

@@ -94,7 +94,7 @@ const copy = {
   },
 };
 
-export function createChatUI({ getProfile, getLocale, refresh,validateProfile,adaptLevel,reloadProfile,auth,getAccount,signOut }) {
+export function createChatUI({ getProfile, getLocale, refresh,validateProfile,adaptLevel,reloadProfile,auth,getAccount,signOut,shareCheckIn=()=>{} }) {
   let chatSnapshot = null;
   const loaded = loadChats({ getItem: key => { chatSnapshot = localStorage.getItem(key); return chatSnapshot; } });
   let chats = loaded.chats;
@@ -164,7 +164,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   }
   // The completion popup lets the user pick a module to ask in next.
   const review=createReviewUI({locale:getLocale,profile:getProfile,cards:library.cards,markWeak:library.markWeak,refresh,adaptLevel,
-    modules:()=>activeModuleIds(getProfile()).map(id=>({id,name:moduleName(id)})),openModule:id=>openModule(id),goHome:()=>{page='home';refresh();},canUseModel:()=>canGrade(),call:(task,card,answer)=>{
+    modules:()=>activeModuleIds(getProfile()).map(id=>({id,name:moduleName(id)})),openModule:id=>openModule(id),goHome:()=>{page='home';refresh();},canUseModel:()=>canGrade(),onShare:()=>shareCheckIn(),call:(task,card,answer)=>{
     if(!ready())return Promise.reject(new Error('key'));
     return request('/api/review-task',{config:{...config},apiKey,consent,...moduleInfo(card.module),level:getProfile().modules[card.module].level,locale:getLocale(),task,card:{title:card.title,summary:card.summary,example:card.example},answer});
   }});
@@ -455,6 +455,8 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     get page() { return page; },
     go(next) { if (busy || testing || library.busy || review.busy || cloud.busy || admin.busy) return; page = next; notice = ''; refresh(); window.scrollTo(0, 0); },
     reviewEvents: () => review.events().events,
+    // Cards reviewed today, for the check-in image (modules and, if the user chooses, titles).
+    reviewedToday: () => { const today = new Date().toDateString(), ids = new Set(review.events().events.filter(event => new Date(event.at).toDateString() === today).map(event => event.cardId)); return library.cards().filter(card => ids.has(card.id)); },
     // Home page: the starter pack while the library is empty, or the "practise now" step right after adding.
     // Shown until every pack is added or the user picks "以后再说".
     starterHome: () => (starterAdded || (starterModules().length && !starterDismissed())) ? starterPanel(true) : '',

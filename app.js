@@ -4,6 +4,7 @@ import { moduleIcon, iconSvg, CUSTOM_ICONS } from './module-icons.js';
 import { initBackground, openBackgroundDialog } from './background.js';
 import { localDay } from './knowledge-store.js';
 import { streakDays } from './review-store.js';
+import { DAILY_GOALS, DEFAULT_GOAL, goalOf, doneToday, goalStreak, openShareDialog } from './habit.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
 import { createAuthGate } from './auth-ui.js';
@@ -90,6 +91,8 @@ export function validProfile(value) {
     && ['server-birthdate', 'operator-admin', 'self-declared-birthdate'].includes(value.adultVerification?.method)
     && Number.isFinite(Date.parse(value.adultVerification?.verifiedAt))
     && validDailyMinutes(value.dailyMinutes)
+    // Daily review goal in cards (optional; profiles saved before it existed use the default).
+    && (value.dailyGoal === undefined || DAILY_GOALS.includes(value.dailyGoal))
     && validModules(value.modules));
 }
 
@@ -127,7 +130,7 @@ function boot() {
   let profile = readProfile();
   let locale = profile?.locale || (navigator.language.startsWith('zh') ? 'zh' : 'en');
   const blankDraft = () => ({
-    version: 1, locale, dailyMinutes: 10,
+    version: 1, locale, dailyMinutes: 10, dailyGoal: DEFAULT_GOAL,
     modules: Object.fromEntries(moduleIds.map(id => [id, { enabled: true, level: 'beginner' }])),
   });
   let editing = false;
@@ -152,6 +155,7 @@ function boot() {
     }
     if (profile) locale = profile.locale; else { openDraft(blankDraft()); editing = true; }
     chat = createChatUI({ getProfile: () => profile, getLocale: () => locale, refresh: () => render(), validateProfile: validProfile, auth, getAccount: () => account,
+      shareCheckIn: () => openShareDialog({ locale, data: shareData() }),
       signOut: async () => { await auth.signOut(); location.reload(); },
       adaptLevel: (id, level, at) => {
         const next = structuredClone(profile); next.modules[id].level = level; next.modules[id].adaptedAt = at;
@@ -200,22 +204,39 @@ function boot() {
     const row = (attrs, icon, label, value = '') => `<button class="me-row" ${attrs}><span class="me-icon">${icon}</span><span class="me-label">${label}</span>${value ? `<span class="me-value">${value}</span>` : ''}<span class="me-chevron" aria-hidden="true">›</span></button>`;
     const name = account?.local ? (zh ? '本地模式' : 'Local mode') : account?.username || (account?.is_admin ? (zh ? '管理员' : 'Administrator') : (zh ? '已登录' : 'Signed in'));
     return `<section class="me-head"><span class="me-avatar">${iconSvg('user', 28)}</span><div><h1>${esc(name)}</h1><p>${account?.local ? (zh ? '记录只保存在这台设备' : 'Records stay on this device') : (zh ? '学习记录保存在本机，可在账号中加密同步' : 'Records are kept here; encrypted sync is in Account')}</p></div></section>
-      <div class="me-group"><h2>${zh ? '学习' : 'Learning'}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'))}${row('id="background-open"', iconSvg('palette'), zh ? '背景' : 'Background')}${row('id="theme-toggle"', iconSvg('bulb'), zh ? '外观' : 'Appearance', dark ? (zh ? '黑夜' : 'Night') : (zh ? '白天' : 'Day'))}${row('id="language"', iconSvg('globe'), zh ? '语言' : 'Language', zh ? '中文' : 'English')}</div>
+      <div class="me-group"><h2>${zh ? '学习' : 'Learning'}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), zh ? `目标 ${goalOf(profile)} 张` : `Goal ${goalOf(profile)}`)}${row('id="background-open"', iconSvg('palette'), zh ? '背景' : 'Background')}${row('id="theme-toggle"', iconSvg('bulb'), zh ? '外观' : 'Appearance', dark ? (zh ? '黑夜' : 'Night') : (zh ? '白天' : 'Day'))}${row('id="language"', iconSvg('globe'), zh ? '语言' : 'Language', zh ? '中文' : 'English')}</div>
       <div class="me-group"><h2>${zh ? '账号与设备' : 'Account & device'}</h2>${account?.local ? row('data-signin', iconSvg('user'), zh ? '登录 / 注册' : 'Sign in / Register') : row('data-cloud', iconSvg('user'), zh ? '账号与同步' : 'Account & sync')}${row('data-device', iconSvg('camera'), zh ? '设备与提醒' : 'Device & reminders')}${account?.is_admin ? row('data-admin', iconSvg('chart'), zh ? '管理' : 'Admin') : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}</div>
       <p class="development-note">${t('preview')}</p>`;
+  }
+  // Daily goal: cards reviewed today against the goal, days in a row it was met, and the check-in image once reached.
+  function goalState() {
+    const events = chat.reviewEvents(), goal = goalOf(profile);
+    return { goal, done: doneToday(events), streak: streakDays(events), goalStreak: goalStreak(events, goal) };
+  }
+  function shareData() {
+    const state = goalState(), date = new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
+    const today = chat.reviewedToday();
+    return { ...state, date, modules: [...new Set(today.map(card => moduleLabel(profile, card.module, locale)))], titles: today.map(card => card.title) };
+  }
+  const shareButton = className => `<button class="${className}" data-share-card>${locale === 'zh' ? '生成打卡图' : 'Make check-in image'}</button>`;
+  function goalBar() {
+    const { goal, done, goalStreak: met } = goalState(), zh = locale === 'zh', reached = done >= goal;
+    return `<div class="goal-bar ${reached ? 'reached' : ''}"><div class="goal-text"><strong>${zh ? `今日目标 ${Math.min(done, goal)} / ${goal} 张` : `Today’s goal ${Math.min(done, goal)} / ${goal}`}</strong><span>${reached ? (zh ? '已完成 ✓' : 'Done ✓') : ''}${met ? (zh ? ` · 连续达成 ${met} 天` : ` · met ${met} days in a row`) : ''}</span></div>
+      <progress max="${goal}" value="${Math.min(done, goal)}" aria-label="${zh ? '今日目标进度' : 'Today’s goal progress'}"></progress>${reached ? shareButton('text-button goal-share') : ''}</div>`;
   }
   // Phone home, in the style of study apps: one task card with progress, today's list, then modules to ask in.
   function homePhoneView() {
     const zh = locale === 'zh', due = chat.reviewCount(), events = chat.reviewEvents(), today = localDay(new Date());
     const done = new Set(events.filter(event => localDay(event.at) === today).map(event => event.cardId)).size, total = done + due, streak = streakDays(events);
-    const length = 2 * Math.PI * 42, progress = total ? done / total : 0;
+    const goal = goalOf(profile), reached = done >= goal, met = goalStreak(events, goal);
+    const length = 2 * Math.PI * 42, progress = Math.min(1, done / goal);
     const ring = `<svg class="task-ring-svg" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="8"/><circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(length * progress).toFixed(1)} ${length.toFixed(1)}" transform="rotate(-90 50 50)"/></svg>`;
     const date = new Intl.DateTimeFormat(zh ? 'zh-CN' : 'en', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
     return `<section class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1></section>
-      <section class="task-card"><div class="task-top"><div class="task-ring">${ring}<div class="task-ring-text"><strong>${done}</strong><span>/ ${total}</span></div></div>
-        <div class="task-info"><h2>${zh ? '今日任务' : 'Today'}</h2><p>${due ? (zh ? `还有 ${due} 个知识点待复习` : `${due} ideas left to review`) : total ? (zh ? '今天的复习完成了' : 'Review done for today') : (zh ? '还没有要复习的知识' : 'Nothing to review yet')}</p>
-        <div class="task-stats"><span><b>${streak}</b>${zh ? ' 天连续' : ' day streak'}</span><span><b>${done}</b>${zh ? ' 已复习' : ' reviewed'}</span></div></div></div>
-        ${total ? `<button class="task-start" data-review>${due ? (zh ? '开始复习' : 'Start review') : (zh ? '再练一会' : 'Practise more')} →</button>` : `<button class="task-start" data-open-module="${activeModuleIds(profile)[0]}">${zh ? '去提问' : 'Ask a question'} →</button>`}</section>
+      <section class="task-card"><div class="task-top"><div class="task-ring">${ring}<div class="task-ring-text"><strong>${done}</strong><span>/ ${goal}</span></div></div>
+        <div class="task-info"><h2>${reached ? (zh ? '今日目标完成 ✓' : 'Goal reached ✓') : (zh ? `今日目标 ${goal} 张` : `Today’s goal: ${goal}`)}</h2><p>${due ? (zh ? `还有 ${due} 个知识点待复习` : `${due} ideas left to review`) : total ? (zh ? '今天的复习完成了' : 'Review done for today') : (zh ? '还没有要复习的知识' : 'Nothing to review yet')}</p>
+        <div class="task-stats"><span><b>${streak}</b>${zh ? ' 天连续' : ' day streak'}</span><span><b>${met}</b>${zh ? ' 天达成' : ' days met'}</span></div></div></div>
+        ${total ? `<button class="task-start" data-review>${due ? (zh ? '开始复习' : 'Start review') : (zh ? '再练一会' : 'Practise more')} →</button>` : `<button class="task-start" data-open-module="${activeModuleIds(profile)[0]}">${zh ? '去提问' : 'Ask a question'} →</button>`}${reached ? shareButton('task-share') : ''}</section>
       ${chat.starterHome() ? `<div class="m-section">${chat.starterHome()}</div>` : ''}
       <section class="m-section"><div class="section-heading"><h2>${zh ? '今日清单' : 'Today’s list'}</h2><span class="pill">${due} ${t('zero')}</span></div>${reviewPreview()}</section>
       <section class="m-section"><div class="section-heading"><h2>${zh ? '继续提问' : 'Keep asking'}</h2></div><div class="module-strip">${activeModuleIds(profile).map(id => `<button class="strip-card" data-open-module="${id}"><span class="module-badge">${moduleIcon(profile, id, 22)}</span><strong>${esc(moduleLabel(profile, id, locale))}</strong><span class="muted">${chat.messageCount(id)} ${chat.homeText('records')}</span></button>`).join('')}</div></section>`;
@@ -232,6 +253,7 @@ function boot() {
       ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
     document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => chat.go(button.dataset.tab); });
+    document.querySelectorAll('[data-share-card]').forEach(button => { button.onclick = () => openShareDialog({ locale, data: shareData() }); });
     // Day / night switch (theme.js applies it before paint and remembers it per device).
     on('#theme-toggle', () => { window.knowledgeReviewTheme?.toggle(); render(); });
     on('#background-open', () => openBackgroundDialog(locale));
@@ -284,6 +306,8 @@ function boot() {
           <div class="add-module"><label class="field-label" for="new-module-name">${t('addModule')}</label><div class="add-module-row"><input id="new-module-name" type="text" maxlength="20" placeholder="${t('newModulePlaceholder')}" value="${esc(newModuleName)}" ${customCount >= MAX_CUSTOM_MODULES ? 'disabled' : ''}><button type="button" class="secondary-button" id="add-module" ${customCount >= MAX_CUSTOM_MODULES ? 'disabled' : ''}>＋ ${t('addModule')}</button></div><p class="field-hint">${t('addHint')}</p></div>
           ${archived.length ? `<div class="archived-modules"><h3>${t('archived')}</h3>${archived.map(id => `<div class="archived-row"><span>${esc(draftName(id))}</span><button type="button" class="text-button" data-restore-module="${id}">${t('restore')}</button></div>`).join('')}</div>` : ''}
         </section>
+        <section class="panel goal-settings"><h2>${locale === 'zh' ? '每日目标' : 'Daily goal'}</h2><p>${locale === 'zh' ? '每天想复习多少张卡片？只用于激励和打卡，不改变复习安排；超过目标也可以继续练。' : 'How many cards do you want to review each day? It is for motivation and check-ins only; review scheduling does not change, and you can keep going past it.'}</p>
+          <div class="segmented goal-options" role="group" aria-label="${locale === 'zh' ? '每日目标' : 'Daily goal'}">${DAILY_GOALS.map(goal => `<button type="button" class="${goalOf(draft) === goal ? 'active' : ''}" data-goal="${goal}" aria-pressed="${goalOf(draft) === goal}">${locale === 'zh' ? `${goal} 张` : `${goal} cards`}</button>`).join('')}</div></section>
         ${profile ? `<p class="field-hint">${t('pendingChanges')}</p>` : ''}
         <p id="form-error" class="error" role="alert" tabindex="-1">${errorKey ? t(errorKey) : ''}</p>
         <div class="actions">${profile ? `<button type="button" class="secondary-button" id="cancel">${t('cancel')}</button>` : `<button type="button" class="secondary-button" id="skip-setup">${t('skip')}</button>`}<button class="primary-button" type="submit">${t(profile ? 'save' : 'start')} <span aria-hidden="true">→</span></button></div>
@@ -316,7 +340,7 @@ function boot() {
     return `<section class="intro home-intro"><div><span class="eyebrow">${date}</span><h1>${t('hello')}</h1><p>${t('homeHint')}</p></div><button class="secondary-button" id="settings">${t('settings')}</button></section>
       ${new Date().getDay() === 0 ? `<div class="sunday-note">${t('sunday')}</div>` : ''}${chat.starterHome()}
       <div class="dashboard"><section class="panel review-panel"><div class="section-heading"><h2>${t('today')}</h2><span class="pill">${chat.reviewCount()} ${t('zero')}</span></div>
-        ${reviewPreview()}</section>
+        ${goalBar()}${reviewPreview()}</section>
         <aside class="panel plan-panel"><span class="eyebrow">${t('reviewPlan')}</span><p>${t('batchHint')}</p><hr><h3>${t('weekly')}</h3><p>${t('weekHint')}</p><h3>${t('notifications')}</h3><p>${t('notificationHint')}</p></aside></div>
       <section class="modules-section"><div class="section-heading"><h2>${t('modulesTitle')}</h2><span class="muted">${t('local')}</span></div><div class="module-grid">${activeModuleIds(profile).map(id => `<article class="panel home-module"><span class="module-badge">${moduleIcon(profile, id, 22)}</span><span class="eyebrow">${t(profile.modules[id].level)}${isCustomModule(id) ? ` · ${t('customHint')}` : ''}</span><h3>${esc(moduleLabel(profile, id, locale))}</h3><p>${t('isolated')}</p><div class="module-count">${chat.messageCount(id)} <span>${chat.homeText('records')}</span></div><button class="secondary-button module-open" data-open-module="${id}">${chat.homeText('open')} →</button></article>`).join('')}</div></section>
       <p class="development-note">${t('next')}</p>`;
@@ -368,6 +392,10 @@ function boot() {
     document.querySelectorAll('[data-module-name]').forEach(input => { input.oninput = () => {
       const id = input.dataset.moduleName; draft.modules[id].name = input.value;
       document.querySelector(`[data-module-title="${id}"]`).textContent = input.value;
+    }; });
+    document.querySelectorAll('[data-goal]').forEach(button => { button.onclick = () => {
+      draft.dailyGoal = Number(button.dataset.goal);
+      document.querySelectorAll('[data-goal]').forEach(other => { const on = other === button; other.classList.toggle('active', on); other.setAttribute('aria-pressed', on); });
     }; });
     document.querySelectorAll('[data-module-icon]').forEach(button => { button.onclick = () => {
       const id = button.dataset.moduleIcon; draft.modules[id].icon = button.dataset.icon;

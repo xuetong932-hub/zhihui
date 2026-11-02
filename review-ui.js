@@ -5,7 +5,7 @@ import {escapeHtml as e,renderAnswer} from './chat-store.js';
 // Answer modes: 'flip' (quick flashcard: recall, show the card, rate yourself; no model call), 'text' (explain in your
 // own words, graded by the model) and 'choice' (model-written multiple choice). Until the user picks one, flip is used
 // whenever no model is available (no key, or the free allowance is used up), otherwise text.
-export function createReviewUI({locale,profile,cards,markWeak,call,refresh,adaptLevel,modules=()=>[],openModule=()=>{},goHome=()=>{},canUseModel=()=>true}){
+export function createReviewUI({locale,profile,cards,markWeak,call,refresh,adaptLevel,modules=()=>[],openModule=()=>{},goHome=()=>{},canUseModel=()=>true,onShare=null}){
   // This visit's results, used by the completion popup.
   const session={reviewed:0,correct:0,unclear:0,guessed:0};
   const tr=(zh,en)=>locale()==='zh'?zh:en;
@@ -54,11 +54,13 @@ export function createReviewUI({locale,profile,cards,markWeak,call,refresh,adapt
       ${pending?`<p class="celebrate-note">${tr(`还有 ${pending} 题约 10 分钟后再练一次。`,`${pending} missed ideas come back in about 10 minutes.`)}</p>`:''}
       <h3>${tr('接下来，想问点什么？','What would you like to ask next?')}</h3>
       <div class="celebrate-modules">${modules().map(item=>`<button class="secondary-button" data-celebrate-module="${e(item.id)}">${e(item.name)} →</button>`).join('')}</div>
+      ${onShare?`<button class="primary-button celebrate-share" data-celebrate="share">${tr('生成打卡图','Make check-in image')}</button>`:''}
       <div class="celebrate-actions"><button class="text-button" data-celebrate="extra">${tr('再练一会儿','Practise a bit more')}</button><button class="text-button" data-celebrate="home">${tr('回首页','Back to home')}</button></div>`;
     const close=()=>{dialog.close();dialog.remove();};
     dialog.querySelectorAll('[data-celebrate-module]').forEach(button=>button.onclick=()=>{close();openModule(button.dataset.celebrateModule);});
     dialog.querySelector('[data-celebrate="extra"]').onclick=()=>{close();extra=true;visited.clear();skipped.clear();refresh();};
     dialog.querySelector('[data-celebrate="home"]').onclick=()=>{close();goHome();};
+    const share=dialog.querySelector('[data-celebrate="share"]');if(share)share.onclick=()=>{close();onShare();};
     dialog.addEventListener('cancel',()=>dialog.remove());
     document.body.append(dialog);dialog.showModal();
   }
