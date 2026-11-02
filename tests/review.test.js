@@ -11,10 +11,14 @@ test('new cards start tomorrow; paused, pending and disabled modules do not ente
   assert.equal(reviewQueue([card('new','2026-11-02T08:00:00')],data,profile,now).length,0);
   assert.equal(reviewQueue([card('yesterday','2026-11-01T08:00:00'),{...card('paused'),status:'paused'},{...card('pending'),extraction:'pending'},{...card('english'),module:'english'}],data,profile,now).length,1);
 });
-test('wrong answers recur today, guessed answers tomorrow, and recent mistakes prevent long interval jumps',()=>{
-  const now=new Date(2026,10,2,12);const wrong=scheduleReview(null,'wrong',now);
-  assert.equal(new Date(wrong.due)-now,600000);assert.equal(scheduleReview(null,'guessed',now).interval,1);
-  assert.equal(scheduleReview({interval:20,rating:'wrong'},'mastered',now).interval,1);
+test('FSRS scheduling: misses recur in 10 minutes, first grades follow FSRS defaults, a recent miss keeps the next gap short',()=>{
+  const now=new Date(2026,10,2,12);const wrong=scheduleReview([],'wrong',now);
+  assert.equal(new Date(wrong.due)-now,600000);assert.equal(wrong.interval,0);
+  assert.deepEqual(['guessed','understood','mastered'].map(rating=>scheduleReview([],rating,now).interval),[1,3,16],'first-review stabilities round to 1, 3 and 16 days');
+  const settled=[{at:new Date(2026,9,1,9).toISOString(),rating:'understood'},{at:new Date(2026,9,5,9).toISOString(),rating:'understood'}];
+  const missed=[...settled,{at:new Date(2026,10,1,9).toISOString(),rating:'wrong'}];
+  assert.ok(scheduleReview(missed,'mastered',now).interval<scheduleReview(settled,'mastered',now).interval,'forgetting shortens the next gap');
+  assert.ok(scheduleReview(settled,'mastered',now).interval>scheduleReview(settled,'guessed',now).interval);
   const data=emptyReviews();const event=recordReview(data,'a',{answer:'x',correct:false,explanation:'not yet',rating:'mastered'},now);
   assert.equal(event.rating,'wrong');assert.equal(loadReviews(JSON.stringify(data)).events.length,1);
 });

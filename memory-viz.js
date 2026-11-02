@@ -1,27 +1,25 @@
 import { latestReview, dueInfo } from './review-store.js';
+import { memoryState, retrievability } from './fsrs.js';
 import { normalizeQuestion, localDay } from './knowledge-store.js';
 // Memory view for the knowledge library: a dated forgetting curve per module and a knowledge graph, as inline SVG.
-// Retention uses a common approximation R = 0.9^(t / S): S (stability, days) is the card's review interval, so
-// retention is about 90% when a card falls due. It is an estimate, not a model calibrated on learning data.
+// Retention uses the same FSRS-5 memory model as review scheduling (fsrs.js): stability is rebuilt from the card's
+// reviews, so retention is about 90% when a card falls due. FSRS default parameters, not fitted to this user.
 // Colour + shape identify the module; a filled marker means "in today's review", hollow means "later".
 const DAY = 86400000, PAST = 14, AHEAD = 7;
 const PALETTE = ['#2f6fb0', '#c0392b', '#2e7d4f', '#d68910', '#7b4fa6', '#16808a', '#b0487c', '#6b7c2e', '#a0522d', '#3949ab', '#00897b', '#8d6e63'];
 const SHAPES = ['circle', 'square', 'triangle', 'diamond'];
 export const esc = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-export function stability(last) {
-  if (!last) return 1;
-  if (['wrong', 'unclear'].includes(last.rating)) return 0.5;
-  return Math.max(1, last.interval || 1);
-}
-export const retention = (days, s) => Math.round(Math.pow(0.9, Math.max(0, days) / s) * 100);
+// Stability (days) of a card from its reviews in time order; a card never reviewed counts as 1 day.
+export const stability = history => memoryState(history)?.s ?? 1;
+export const retention = (days, s) => Math.round(retrievability(days, s) * 100);
 // Each module gets its own colour (12, the app's maximum) and one of four shapes, so colour-blind users still see a difference.
 export const moduleStyles = ids => new Map(ids.map((id, i) => [id, { color: PALETTE[i % PALETTE.length], shape: SHAPES[i % SHAPES.length] }]));
 const dayStart = value => { const d = new Date(value); d.setHours(0, 0, 0, 0); return d; };
 // Retention of one card at a moment, using the latest review at or before it.
 function retentionAt(card, events, at) {
   if (at < new Date(card.createdAt)) return null;
-  const last = events.filter(event => new Date(event.at) <= at).at(-1);
-  return retention((at - new Date(last ? last.at : card.createdAt)) / DAY, stability(last));
+  const history = events.filter(event => new Date(event.at) <= at), last = history.at(-1);
+  return retention((at - new Date(last ? last.at : card.createdAt)) / DAY, stability(history));
 }
 // One point per active card: in today's batch (filled, on today), or later (hollow, on its review date within the window).
 export function memoryPoints(cards, reviews, dueIds, now = new Date()) {
@@ -33,7 +31,7 @@ export function memoryPoints(cards, reviews, dueIds, now = new Date()) {
     if (!inToday && offset > AHEAD) return [];
     const at = inToday ? now : dueDate, base = last ? new Date(last.at) : new Date(card.createdAt);
     return [{ id: card.id, title: card.title, module: card.module, category: card.category, today: inToday, offset: inToday ? 0 : Math.max(offset, dueDate <= now ? 1 : 0),
-      retention: retention((Math.max(at, base) - base) / DAY, stability(last)), lastAt: last?.at || null, lastRating: last?.rating || null, nextDue: inToday ? localDay(now) : localDay(dueDate), asked: card.origins.length }];
+      retention: retention((Math.max(at, base) - base) / DAY, stability(reviews.events.filter(event => event.cardId === card.id && new Date(event.at) <= now).sort((a, b) => a.at.localeCompare(b.at)))), lastAt: last?.at || null, lastRating: last?.rating || null, nextDue: inToday ? localDay(now) : localDay(dueDate), asked: card.origins.length }];
   });
 }
 // Average retention per module for each day from PAST days ago to AHEAD days ahead (cards existing on that day only).

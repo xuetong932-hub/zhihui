@@ -1,5 +1,6 @@
 import { localDay } from './knowledge-store.js';
 import { isActiveModule } from './modules.js';
+import { memoryState, nextInterval, MAX_INTERVAL } from './fsrs.js';
 export const REVIEW_KEY='knowledge-review.reviews.v1';
 export const emptyReviews=()=>({version:1,events:[]});
 // Limits follow what the app writes: answers ≤4,000 characters, model explanations ≤6,000.
@@ -9,7 +10,7 @@ export const DEFAULT_ITEM_SECONDS=90;
 const text=(value,max)=>typeof value==='string'&&value.length<=max;
 export function validReviewEvent(event){
   return Boolean(event&&typeof event==='object'&&text(event.id,REVIEW_LIMITS.id)&&event.id&&text(event.cardId,REVIEW_LIMITS.id)&&event.cardId
-    &&Number.isFinite(Date.parse(event.at))&&Number.isFinite(Date.parse(event.due))&&Number.isInteger(event.interval)&&event.interval>=0&&event.interval<=180
+    &&Number.isFinite(Date.parse(event.at))&&Number.isFinite(Date.parse(event.due))&&Number.isInteger(event.interval)&&event.interval>=0&&event.interval<=MAX_INTERVAL
     &&['wrong','unclear','guessed','understood','mastered'].includes(event.rating)&&text(event.answer,REVIEW_LIMITS.answer)
     &&typeof event.correct==='boolean'&&text(event.explanation,REVIEW_LIMITS.explanation)
     &&(event.seconds===undefined||(Number.isInteger(event.seconds)&&event.seconds>=0&&event.seconds<=REVIEW_LIMITS.seconds)));
@@ -47,13 +48,16 @@ export function loadReviews(raw){
 }
 export function tomorrow(value){const date=new Date(value);date.setDate(date.getDate()+1);date.setHours(0,0,0,0);return date;}
 export function latestReview(data,id){return data.events.filter(event=>event.cardId===id).sort((a,b)=>b.at.localeCompare(a.at)).at(0);}
-export function scheduleReview(previous,rating,now=new Date()){
-  const date=new Date(now);let interval=0;
+// Scheduling uses FSRS-5 (fsrs.js) on the card's whole review history. Missed and still-unclear items come back in
+// about 10 minutes the same day; later days follow FSRS at 90% desired retention, up to 365 days.
+export function scheduleReview(history,rating,now=new Date()){
+  const date=new Date(now);
   if(rating==='wrong'||rating==='unclear')return {interval:0,due:new Date(date.getTime()+10*60000).toISOString()};
-  if(rating==='guessed')return {interval:1,due:tomorrow(date).toISOString()};
-  interval=rating==='mastered'?Math.max(3,Math.round((previous?.interval||1)*2.4)):Math.max(1,Math.round((previous?.interval||0)*1.8));
-  interval=previous&&['wrong','unclear'].includes(previous.rating)?1:Math.min(interval,180);date.setDate(date.getDate()+interval);date.setHours(0,0,0,0);return {interval,due:date.toISOString()};
+  const state=memoryState([...(history||[]),{at:date.toISOString(),rating}]),interval=nextInterval(state.s);
+  date.setDate(date.getDate()+interval);date.setHours(0,0,0,0);return {interval,due:date.toISOString()};
 }
+// One card's reviews in time order (the input FSRS replays).
+export const cardHistory=(data,id)=>data.events.filter(event=>event.cardId===id).sort((a,b)=>a.at.localeCompare(b.at));
 // Queue order: today's retries, then cards from the last study day before today ("yesterday's content"),
 // then older due and weak cards. Retries are always offered: a missed idea belongs to today's review even
 // after the plan is used. Recent cards may use at most half of the day's plan, counted against reviews
@@ -86,7 +90,7 @@ export function recordReview(data,cardId,{answer,correct,explanation,rating,seco
   // Self-reported mastery never upgrades a model-judged incorrect answer.
   const effective=correct===false&&!['wrong','unclear'].includes(rating)?'wrong':rating;
   if(!['wrong','unclear','guessed','understood','mastered'].includes(effective))throw new Error('rating');
-  const event={id:crypto.randomUUID(),cardId,at:now.toISOString(),answer,correct,explanation,rating:effective,...scheduleReview(latestReview(data,cardId),effective,now)};
+  const event={id:crypto.randomUUID(),cardId,at:now.toISOString(),answer,correct,explanation,rating:effective,...scheduleReview(cardHistory(data,cardId),effective,now)};
   // Time on the item, capped so a question left open while away does not count as study time.
   if(Number.isFinite(seconds))event.seconds=Math.min(REVIEW_LIMITS.seconds,Math.max(0,Math.round(seconds)));
   data.events.push(event);return event;

@@ -11,7 +11,8 @@ const name = id => ({ coding: '编程', english: '英语' })[id];
 
 test('points: today’s batch is filled on today; later reviews are hollow on their date; module curves average retention', () => {
   const data = emptyReviews(), now = new Date('2026-11-01T12:00:00');
-  recordReview(data, 'later', { answer: 'a', correct: true, explanation: 'e', rating: 'mastered' }, new Date('2026-10-31T12:00:00'));
+  // "understood" first gets about 3 days under FSRS, so the card falls inside the 7-day window.
+  recordReview(data, 'later', { answer: 'a', correct: true, explanation: 'e', rating: 'understood' }, new Date('2026-10-31T12:00:00'));
   const points = memoryPoints([card('due'), card('later'), card('paused', { status: 'paused' })], data, new Set(['due']), now);
   const byId = Object.fromEntries(points.map(p => [p.id, p]));
   assert.deepEqual(Object.keys(byId).sort(), ['due', 'later'], 'paused cards are left out');
@@ -21,7 +22,7 @@ test('points: today’s batch is filled on today; later reviews are hollow on th
   assert.ok(curve.length > 20 && curve.every(p => p.retention >= 0 && p.retention <= 100));
   assert.ok(curve.find(p => p.offset === -1).retention > curve.find(p => p.offset === -1.5).retention, 'the curve rises at yesterday’s review');
   assert.equal(retention(3, 3), 90, 'about 90% when a card falls due'); assert.ok(retention(10, 1) < retention(10, 7));
-  assert.equal(stability(null), 1); assert.equal(stability({ rating: 'wrong', interval: 0 }), 0.5);
+  assert.equal(stability([]), 1); assert.ok(stability([{ at: '2026-11-01T09:00:00Z', rating: 'wrong' }]) < stability([{ at: '2026-11-01T09:00:00Z', rating: 'mastered' }]));
 });
 
 test('colour and shape identify the module; filled means today; details are escaped data for the hover card', () => {

@@ -22,10 +22,10 @@ test('daylight-saving changes do not move day-based due dates',()=>{
   zone('America/New_York'); // DST ends 2026-11-01 02:00; spring forward 2026-03-08
   assert.equal(addDays('2026-10-31',1),'2026-11-01');assert.equal(addDays('2026-11-01',1),'2026-11-02');assert.equal(addDays('2026-03-07',1),'2026-03-08');assert.equal(addDays('2026-02-28',1),'2026-03-01');
   const data=emptyReviews(),item=card('a','2026-10-29T16:00:00Z');
-  answer(data,'a','2026-10-31T16:00:00Z'); // Sat noon, interval 1
+  answer(data,'a','2026-10-31T16:00:00Z','guessed'); // Sat noon; a first "guessed" gets a 1-day interval under FSRS
   assert.deepEqual(ids([item],data,'2026-11-01T03:59:00Z'),[],'23:59 Saturday is not yet due');
   assert.deepEqual(ids([item],data,'2026-11-01T04:30:00Z'),['a'],'00:30 Sunday local is due, across the 25-hour day');
-  const spring=emptyReviews();answer(spring,'a','2026-03-07T17:00:00Z');
+  const spring=emptyReviews();answer(spring,'a','2026-03-07T17:00:00Z','guessed');
   assert.deepEqual(ids([item],spring,'2026-03-08T05:30:00Z'),['a'],'00:30 on the 23-hour day is due');
   zone('UTC');
 });
