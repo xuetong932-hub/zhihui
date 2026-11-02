@@ -13,6 +13,8 @@ const files = new Map([
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   // Built-in background photos (see docs/BACKGROUNDS.md), each with a small thumbnail for the picker.
   ...['lake','forest','sea','anime-day','anime-night','neon-street','neon-city','silhouette'].flatMap(id => [`/backgrounds/${id}.jpg`, `/backgrounds/${id}-thumb.jpg`]).map(path => [path, [path.slice(1), 'image/jpeg']]),
+  // Phone layout: same app, its own entry page and styles (mobile/).
+  ['/m', ['mobile/index.html', 'text/html; charset=utf-8']], ['/m/', ['mobile/index.html', 'text/html; charset=utf-8']], ['/m/mobile.css', ['mobile/mobile.css', 'text/css; charset=utf-8']],
   ['/oauth-callback.html', ['oauth-callback.html', 'text/html; charset=utf-8']],
 ]);
 const headers = {

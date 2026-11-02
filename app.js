@@ -3,6 +3,7 @@ import { moduleStyles } from './memory-viz.js';
 import { moduleIcon, iconSvg, CUSTOM_ICONS } from './module-icons.js';
 import { initBackground, openBackgroundDialog } from './background.js';
 import { localDay } from './knowledge-store.js';
+import { streakDays } from './review-store.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
 import { createAuthGate } from './auth-ui.js';
@@ -180,19 +181,60 @@ function boot() {
     return `<button class="text-button theme-toggle" id="theme-toggle" title="${label}" aria-label="${label}"><span aria-hidden="true">${mode === 'dark' ? '☾' : '☀'}</span><span class="theme-name">${name(mode)}</span></button>`;
   }
 
+  // Phone layout (/m/): pages are switched from an icon tab bar at the bottom; appearance, language, account,
+  // device and model settings move to the 我的 tab. The web layout is unchanged.
+  const phone = document.documentElement.dataset.layout === 'mobile';
+  const TABS = [
+    ['home', 'house', ['home', 'chat'], '首页', 'Home'], ['review', 'repeat', ['review'], '复习', 'Review'], ['library', 'book', ['library'], '知识库', 'Knowledge'],
+    ['discover', 'compass', ['discover', 'recommend', 'square'], '发现', 'Discover'], ['me', 'user', ['me', 'device', 'cloud', 'admin', 'model'], '我的', 'Me'],
+  ];
+  // Icons only; each tab keeps its name for screen readers and as a tooltip.
+  function tabBar(locked) {
+    return `<nav class="tabbar" aria-label="${locale === 'zh' ? '主导航' : 'Main'}">${TABS.map(([id, icon, pages, zh, en]) => {
+      const on = pages.includes(chat.page), label = locale === 'zh' ? zh : en;
+      return `<button class="tab ${on ? 'active' : ''}" data-tab="${id}" aria-label="${label}" title="${label}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}>${iconSvg(icon, 26)}</button>`;
+    }).join('')}</nav>`;
+  }
+  function meView() {
+    const zh = locale === 'zh', dark = window.knowledgeReviewTheme?.theme === 'dark';
+    const row = (attrs, icon, label, value = '') => `<button class="me-row" ${attrs}><span class="me-icon">${icon}</span><span class="me-label">${label}</span>${value ? `<span class="me-value">${value}</span>` : ''}<span class="me-chevron" aria-hidden="true">›</span></button>`;
+    const name = account?.local ? (zh ? '本地模式' : 'Local mode') : account?.username || (account?.is_admin ? (zh ? '管理员' : 'Administrator') : (zh ? '已登录' : 'Signed in'));
+    return `<section class="me-head"><span class="me-avatar">${iconSvg('user', 28)}</span><div><h1>${esc(name)}</h1><p>${account?.local ? (zh ? '记录只保存在这台设备' : 'Records stay on this device') : (zh ? '学习记录保存在本机，可在账号中加密同步' : 'Records are kept here; encrypted sync is in Account')}</p></div></section>
+      <div class="me-group"><h2>${zh ? '学习' : 'Learning'}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'))}${row('id="background-open"', iconSvg('palette'), zh ? '背景' : 'Background')}${row('id="theme-toggle"', iconSvg('bulb'), zh ? '外观' : 'Appearance', dark ? (zh ? '黑夜' : 'Night') : (zh ? '白天' : 'Day'))}${row('id="language"', iconSvg('globe'), zh ? '语言' : 'Language', zh ? '中文' : 'English')}</div>
+      <div class="me-group"><h2>${zh ? '账号与设备' : 'Account & device'}</h2>${account?.local ? row('data-signin', iconSvg('user'), zh ? '登录 / 注册' : 'Sign in / Register') : row('data-cloud', iconSvg('user'), zh ? '账号与同步' : 'Account & sync')}${row('data-device', iconSvg('camera'), zh ? '设备与提醒' : 'Device & reminders')}${account?.is_admin ? row('data-admin', iconSvg('chart'), zh ? '管理' : 'Admin') : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}</div>
+      <p class="development-note">${t('preview')}</p>`;
+  }
+  // Phone home, in the style of study apps: one task card with progress, today's list, then modules to ask in.
+  function homePhoneView() {
+    const zh = locale === 'zh', due = chat.reviewCount(), events = chat.reviewEvents(), today = localDay(new Date());
+    const done = new Set(events.filter(event => localDay(event.at) === today).map(event => event.cardId)).size, total = done + due, streak = streakDays(events);
+    const length = 2 * Math.PI * 42, progress = total ? done / total : 0;
+    const ring = `<svg class="task-ring-svg" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="8"/><circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(length * progress).toFixed(1)} ${length.toFixed(1)}" transform="rotate(-90 50 50)"/></svg>`;
+    const date = new Intl.DateTimeFormat(zh ? 'zh-CN' : 'en', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
+    return `<section class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1></section>
+      <section class="task-card"><div class="task-top"><div class="task-ring">${ring}<div class="task-ring-text"><strong>${done}</strong><span>/ ${total}</span></div></div>
+        <div class="task-info"><h2>${zh ? '今日任务' : 'Today'}</h2><p>${due ? (zh ? `还有 ${due} 个知识点待复习` : `${due} ideas left to review`) : (zh ? '今天的复习完成了' : 'Review done for today')}</p>
+        <div class="task-stats"><span><b>${streak}</b>${zh ? ' 天连续' : ' day streak'}</span><span><b>${done}</b>${zh ? ' 已复习' : ' reviewed'}</span></div></div></div>
+        <button class="task-start" data-review>${due ? (zh ? '开始复习' : 'Start review') : (zh ? '再练一会' : 'Practise more')} →</button></section>
+      <section class="m-section"><div class="section-heading"><h2>${zh ? '今日清单' : 'Today’s list'}</h2><span class="pill">${due} ${t('zero')}</span></div>${reviewPreview()}</section>
+      <section class="m-section"><div class="section-heading"><h2>${zh ? '继续提问' : 'Keep asking'}</h2></div><div class="module-strip">${activeModuleIds(profile).map(id => `<button class="strip-card" data-open-module="${id}"><span class="module-badge">${moduleIcon(profile, id, 22)}</span><strong>${esc(moduleLabel(profile, id, locale))}</strong><span class="muted">${chat.messageCount(id)} ${chat.homeText('records')}</span></button>`).join('')}</div></section>`;
+  }
+
   function renderPage() {
     document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
     document.title = t('brand');
-    const inApp = Boolean(chat), locked = inApp ? chat.locked : gate.busy;
+    const inApp = Boolean(chat), locked = inApp ? chat.locked : gate.busy, tabs = phone && inApp && profile && !editing;
     app.innerHTML = `
-      <header class="header"><a class="brand" href="/" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
-        <div class="header-actions">${inApp && profile && !editing ? chat.nav() : ''}${themeButton()}<button class="text-button theme-toggle" id="background-open" aria-label="${locale === 'zh' ? '背景' : 'Background'}"><span aria-hidden="true">▧</span><span class="theme-name">${locale === 'zh' ? '背景' : 'Background'}</span></button><button class="text-button" id="language" ${locked ? 'disabled' : ''}>${t('language')}</button></div></header>
-      <main>${!inApp ? gate.view() : editing ? setupView() : chat.isHome ? homeView() : chat.view()}</main>
-      <footer>${t('preview')}</footer>`;
+      <header class="header"><a class="brand" href="${phone ? '/m/' : '/'}" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
+        ${tabs ? '' : `<div class="header-actions">${inApp && profile && !editing ? chat.nav() : ''}${themeButton()}<button class="text-button theme-toggle" id="background-open" aria-label="${locale === 'zh' ? '背景' : 'Background'}"><span aria-hidden="true">▧</span><span class="theme-name">${locale === 'zh' ? '背景' : 'Background'}</span></button><button class="text-button" id="language" ${locked ? 'disabled' : ''}>${t('language')}</button></div>`}</header>
+      <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? meView() : chat.isHome ? homeView() : chat.view()}</main>
+      ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
+    const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
+    document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => chat.go(button.dataset.tab); });
     // Day / night switch (theme.js applies it before paint and remembers it per device).
-    document.querySelector('#theme-toggle').onclick = () => { window.knowledgeReviewTheme?.toggle(); render(); };
-    document.querySelector('#background-open').onclick = () => openBackgroundDialog(locale);
-    document.querySelector('#language').onclick = () => {
+    on('#theme-toggle', () => { window.knowledgeReviewTheme?.toggle(); render(); });
+    on('#background-open', () => openBackgroundDialog(locale));
+    on('#language', () => {
       const next = locale === 'zh' ? 'en' : 'zh';
       if (inApp && profile && !editing) {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...profile, locale: next })); }
@@ -200,7 +242,7 @@ function boot() {
         profile.locale = next;
       }
       locale = next; draft.locale = locale; render();
-    };
+    });
     if (!inApp) { gate.bind(); return; }
     if (editing) bindSetup();
     else {

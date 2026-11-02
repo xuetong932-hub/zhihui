@@ -168,7 +168,10 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     return `<nav class="app-nav" aria-label="${t('home')}">${item('data-chat-home',t('home'),['home','chat'])}${item('data-review',zh?'复习':'Review',['review'])}${item('data-library',zh?'知识库':'Knowledge',['library'])}${item('data-recommend',zh?'推荐':'For you',['recommend'])}${item('data-square',zh?'广场':'Square',['square'])}
       <details class="nav-more"><summary class="text-button ${inMore?'active':''}">${zh?'更多':'More'} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span><span aria-hidden="true">▾</span></summary><div class="nav-menu">${item('data-device',zh?'设备':'Device',['device'])}${getAccount?.()?.local?`<button class="text-button" data-signin>${zh?'登录 / 注册':'Sign in / Register'}</button>`:item('data-cloud',zh?'账号':'Account',['cloud'])}${getAccount?.()?.is_admin?item('data-admin',zh?'管理':'Admin',['admin']):''}${item('data-model-settings',`${t('modelSettings')} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span>`,['model'])}</div></details></nav>`;
   }
-  function view() { return page==='recommend'?discover.recommendView():page==='square'?discover.squareView():page==='admin'?admin.view():page==='cloud'?cloud.view():page==='device'?device.view():page === 'review' ? review.view() : page === 'library' ? library.view() : page === 'model' ? modelView() : chatView(); }
+  // Phone layout: 推荐 and 广场 share one 发现 tab with a switch at the top.
+  let discoverTab='recommend';
+  function discoverView(){const zh=getLocale()==='zh';return `<div class="segmented discover-switch" role="group" aria-label="${zh?'发现':'Discover'}">${[['recommend',zh?'推荐':'For you'],['square',zh?'广场':'Square']].map(([id,label])=>`<button type="button" class="${discoverTab===id?'active':''}" data-discover-tab="${id}" aria-pressed="${discoverTab===id}">${label}</button>`).join('')}</div>${discoverTab==='square'?discover.squareView():discover.recommendView()}`;}
+  function view() { return page==='discover'?discoverView():page==='recommend'?discover.recommendView():page==='square'?discover.squareView():page==='admin'?admin.view():page==='cloud'?cloud.view():page==='device'?device.view():page === 'review' ? review.view() : page === 'library' ? library.view() : page === 'model' ? modelView() : chatView(); }
   function modelView() {
     const p = providers[modelDraft.provider];
     return `<section class="intro model-intro"><div><span class="eyebrow">${t('modelSettings')}</span><h1>${t('modelTitle')}</h1><p>${t('modelHint')}</p></div><a class="inline-link model-help-link" id="model-help-link" href="#model-config-guide" aria-haspopup="dialog">${getLocale()==='zh'?'配置说明':'Setup guide'} ↗</a></section>
@@ -222,7 +225,8 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     document.querySelectorAll('[data-square]').forEach(button=>button.onclick=()=>{if(!locked()){page='square';refresh();}});
     // The "更多" menu closes when clicking elsewhere (it is a <details>, so it needs no script to open).
     const more=document.querySelector('.nav-more');if(more)more.ontoggle=()=>{if(more.open)setTimeout(()=>document.addEventListener('click',event=>{if(!more.contains(event.target))more.open=false;},{once:true}));};
-    discover.bind(page);
+    document.querySelectorAll('[data-discover-tab]').forEach(button=>button.onclick=()=>{discoverTab=button.dataset.discoverTab;refresh();});
+    discover.bind(page==='discover'?discoverTab:page);
     document.querySelectorAll('[data-chat-home]').forEach(button => { button.onclick = () => { if (!busy && !testing&&!review.busy&&!library.busy) { page = 'home'; refresh(); } }; });
     document.querySelectorAll('[data-model-settings]').forEach(button => { button.onclick = openModel; });
     document.querySelectorAll('[data-open-module]').forEach(button => { button.onclick = () => openModule(button.dataset.openModule); });
@@ -350,6 +354,10 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     } finally { busy = false; controller = null; requestBody.apiKey = ''; refresh(); }
   }
   return { nav, view, bind, openModule, openModel, get isHome() { return page === 'home'; },
+    // Used by the phone tab bar: the current page, and switching pages (ignored while something is running).
+    get page() { return page; },
+    go(next) { if (busy || testing || library.busy || review.busy || cloud.busy || admin.busy) return; page = next; notice = ''; refresh(); window.scrollTo(0, 0); },
+    reviewEvents: () => review.events().events,
     get locked() { return busy || testing || library.busy || review.busy || cloud.busy || admin.busy; },
     openingPopup:()=>device.openingPopup(),
     reviewCount:()=>review.count(),

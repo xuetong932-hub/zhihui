@@ -1,0 +1,73 @@
+/* 知回 phone layout (/m/). Loaded after styles.css; only applies under html[data-layout="mobile"].
+   Study-app feel: single column, rounded cards, a task card on top, thumb-reachable actions and an icon tab bar. */
+[data-layout="mobile"]{--tabbar-h:64px;--accent:#30694f}
+[data-layout="mobile"] body{background:#f6f7f6}
+[data-layout="mobile"] .header{padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top))}
+[data-layout="mobile"] main{max-width:640px;margin:0 auto;padding:12px 16px calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 24px)}
+[data-layout="mobile"] .intro h1,[data-layout="mobile"] h1{font-size:26px;line-height:1.25}
+[data-layout="mobile"] .panel{border-radius:18px;padding:18px}
+[data-layout="mobile"] .dashboard,[data-layout="mobile"] .module-grid,[data-layout="mobile"] .discover-grid{grid-template-columns:1fr}
+
+/* Bottom tab bar: icons only, the active tab in the accent colour with a small bar above it */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:space-around;align-items:center;height:calc(var(--tabbar-h) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:#ffffffeb;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line)}
+.tab{position:relative;flex:1;height:var(--tabbar-h);display:flex;align-items:center;justify-content:center;border:0;background:none;color:#9aa19d;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tab .mod-icon{transition:transform .15s ease}
+.tab.active{color:var(--accent)}
+.tab.active .mod-icon{transform:translateY(-1px) scale(1.06);stroke-width:2.1}
+.tab.active::before{content:"";position:absolute;top:-1px;width:22px;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
+.tab:disabled{opacity:.45}
+
+/* Home: greeting, task card, today's list, module strip */
+.m-hello{margin:4px 2px 14px}
+.m-hello h1{margin:4px 0 0}
+.task-card{border-radius:22px;padding:20px;color:#fff;background:linear-gradient(135deg,#2f6a50 0%,#3f8a68 60%,#5aa883 100%);box-shadow:0 12px 28px #30694f40}
+.task-top{display:flex;gap:18px;align-items:center}
+.task-ring{position:relative;width:92px;height:92px;flex:none;color:#fff}
+.task-ring-svg{width:100%;height:100%}
+.task-ring-text{position:absolute;inset:0;display:flex;align-items:baseline;justify-content:center;padding-top:30px;gap:2px}
+.task-ring-text strong{font-size:26px}
+.task-ring-text span{font-size:13px;opacity:.85}
+.task-info h2{margin:0;font-size:20px;color:#fff}
+.task-info p{margin:4px 0 10px;color:#ffffffe6;font-size:14px}
+.task-stats{display:flex;gap:14px;font-size:13px;opacity:.95}
+.task-stats b{font-size:17px}
+.task-start{display:block;width:100%;margin-top:18px;min-height:50px;border:0;border-radius:14px;background:#fff;color:#2f6a50;font-size:17px;font-weight:700;cursor:pointer}
+.m-section{margin-top:22px}
+.m-section>.section-heading h2{font-size:18px}
+.m-section .review-preview{background:var(--surface,#fff);border:1px solid var(--line);border-radius:18px;padding:4px 16px}
+.m-section .preview-actions,.m-section .empty-state .primary-button{display:none}
+.m-section .empty-state{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px}
+.module-strip{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 8px;margin:0 -16px;padding-left:16px;padding-right:16px}
+.strip-card{flex:0 0 136px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:16px;border-radius:18px;border:1px solid var(--line);background:#fff;text-align:left;cursor:pointer;color:var(--ink)}
+.strip-card .module-badge{display:flex;margin-bottom:6px}
+.strip-card strong{font-size:16px}
+.strip-card .muted{font-size:12px}
+
+/* 发现: switch between 推荐 and 广场 */
+.discover-switch{display:flex;width:100%;margin-bottom:14px}
+.discover-switch button{flex:1;min-height:40px}
+
+/* 我的: profile header and grouped settings rows */
+.me-head{display:flex;align-items:center;gap:14px;margin:6px 2px 18px}
+.me-head h1{margin:0;font-size:22px}
+.me-head p{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.me-avatar{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#30694f1a;color:var(--accent)}
+.me-group{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:16px}
+.me-group h2{margin:0;padding:12px 16px 4px;font-size:12px;font-weight:600;color:var(--muted)}
+.me-row{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:0 16px;border:0;border-top:1px solid var(--line);background:none;color:var(--ink);font-size:16px;text-align:left;cursor:pointer}
+.me-group h2+.me-row{border-top:0}
+.me-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:#30694f14;color:var(--accent);flex:none}
+.me-label{flex:1}
+.me-value{color:var(--muted);font-size:14px}
+.me-chevron{color:#b5bbb8;font-size:22px}
+
+/* Night mode */
+[data-layout="mobile"][data-theme="dark"] body{background:#0f1113}
+[data-theme="dark"] .tabbar{background:#16191deb}
+[data-theme="dark"] .tab{color:#6f7772}
+[data-theme="dark"] .tab.active{color:#7cc4a0}
+[data-theme="dark"] .tab.active::before{background:#7cc4a0}
+[data-theme="dark"] .task-card{background:linear-gradient(135deg,#1f4a37 0%,#2b6249 60%,#3a7a5c 100%);box-shadow:none}
+[data-theme="dark"] .task-start{background:#e9f3ee;color:#1f4a37}
+[data-theme="dark"] .strip-card,[data-theme="dark"] .me-group,[data-theme="dark"] .m-section .review-preview,[data-theme="dark"] .m-section .empty-state{background:#1a1d21}
+[data-theme="dark"] .me-icon,[data-theme="dark"] .me-avatar{color:#7cc4a0;background:#7cc4a01f}
