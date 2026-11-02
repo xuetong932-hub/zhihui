@@ -9,6 +9,8 @@ let admin = null;
 try { const value = JSON.parse(readFileSync(new URL('./qa-admin.local.json', import.meta.url), 'utf8')); if (typeof value.username === 'string' && typeof value.password === 'string') admin = { username: value.username, email: 'admin@admin.test', password: value.password }; } catch { console.log('No tests/qa-admin.local.json: no administrator account in the test service.'); }
 const fake = createFakeSupabase({ adminEmails: [], seedAdmin: admin && { email: admin.email, password: admin.password } });
 const app = createApp({publicConfig: host => ({ url: `http://${host}${FAKE_PREFIX}`, publicKey: 'sb_publishable_fake_test_only', ...(admin ? { adminLogin: { username: admin.username, email: admin.email } } : {}) }), extraRoute: fake.route,
+  // The free allowance runs against the fake account service's free_quota and the test model below; no real key.
+  freeModelKey: 'test-free-allowance-not-real',
   // Test responses for the user-triggered model features; clearly not real model output.
   relationCaller: async input => ({ relations: input.cards.slice(1).map((card, i) => ({ a: input.cards[i].id, b: card.id, label: '测试关系' })) }),
   mindmapCaller: async () => ({ prerequisites: ['测试：前置知识'], subconcepts: ['测试：子概念一', '测试：子概念二'], misconceptions: ['测试：常见误区'], applications: ['测试：延伸应用'] }),

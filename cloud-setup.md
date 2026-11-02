@@ -23,3 +23,17 @@
 当前限制：需实际云项目才能验证四种登录、RLS、邮件短信送达及跨设备恢复。登录会话保存在本设备并自动刷新，退出登录时清除；尚无自动后台同步、账号绑定合并或中国大陆部署适配。成年准入由服务端判断并记录，但生日仍是用户自行填写，不是身份验证；该部分 SQL 尚未在真实项目上执行验证。发布前必须补齐这些能力，不能把当前版本作为公开多用户成品。
 
 参考：[邮箱验证码](https://supabase.com/docs/guides/auth/auth-email-passwordless)、[短信登录](https://supabase.com/docs/guides/auth/phone-login)、[行级安全](https://supabase.com/docs/guides/database/postgres/row-level-security)。
+
+## 10. 知回免费额度（智谱 GLM-4-Flash）
+
+The free allowance lets users ask questions and get review grading without their own key. The operator does these steps; nothing here is automatic.
+
+1. Register at [智谱开放平台](https://open.bigmodel.cn) and create an API key. Then confirm two things in the console: that `glm-4-flash-250414` is still free, and what its rate limit is.
+2. Set the key only in the server environment: `ZHIPU_API_KEY=...`. Never commit it, never put it in the client, and never log it. If it is unset, the free option is hidden.
+3. Run the `free_usage` table and `free_quota()` function from `cloud-schema.sql` in the Supabase project.
+4. Limits:
+   - Signed-in users: 20 questions and 30 review gradings per day, China time. The limits are enforced in SQL; change them there.
+   - Local mode (no account): 3 questions and 5 gradings per day, counted per IP in server memory.
+   - Every free call: at most 40 per IP in 10 minutes.
+5. Not included in the free allowance: semantic relations and mind map expansion (the user's own key is needed).
+6. Before a public launch in China, check the requirements for generative AI services: registration and filing, and labelling AI-generated content.

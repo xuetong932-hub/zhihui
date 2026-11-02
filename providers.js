@@ -1,5 +1,7 @@
 // Credential-free registry. Only the server constructs upstream endpoints.
+// free: 知回's free allowance; the server supplies the key, so the user enters none (offered only when configured).
 export const providers = Object.freeze({
+  'zhipu-free': { name: '知回免费额度 · 智谱 GLM-4-Flash', model: 'glm-4-flash-250414', search: false, free: true, docs: 'https://docs.bigmodel.cn/cn/guide/models/free/glm-4-flash-250414' },
   'qwen-cn': { name: '千问 · 中国 / Qwen China', model: 'qwen-plus', search: true, region: 'cn-beijing', workspaceRequired: false, docs: 'https://help.aliyun.com/zh/model-studio/get-api-key' },
   'qwen-intl': { name: 'Qwen · Singapore', model: 'qwen-plus', search: true, region: 'ap-southeast-1', workspaceRequired: true, docs: 'https://help.aliyun.com/en/model-studio/get-api-key' },
   deepseek: { name: 'DeepSeek', model: 'deepseek-flash', search: false, docs: 'https://api-docs.deepseek.com/' },

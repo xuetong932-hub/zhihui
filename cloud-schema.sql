@@ -137,3 +137,41 @@ end;
 $$;
 revoke all on function public.delete_own_account() from public, anon;
 grant execute on function public.delete_own_account() to authenticated;
+
+-- 知回 free allowance (server key, env ZHIPU_API_KEY): use per account per day, China time.
+-- The limits live here so a client cannot change them; the table is reachable only through free_quota().
+create table if not exists public.free_usage (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  day date not null,
+  ask_used int not null default 0 check (ask_used >= 0),
+  grade_used int not null default 0 check (grade_used >= 0),
+  primary key (user_id, day)
+);
+alter table public.free_usage enable row level security;
+revoke all on public.free_usage from public, anon, authenticated;
+
+-- action: 'status' | 'consume' | 'refund'; kind: 'ask' (questions, 20 a day) | 'grade' (review grading, 30 a day).
+create or replace function public.free_quota(action text, kind text default 'ask') returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid := auth.uid();
+  today date := (now() at time zone 'Asia/Shanghai')::date;
+  ask_limit constant int := 20;
+  grade_limit constant int := 30;
+  used public.free_usage;
+  ok boolean := true;
+begin
+  if uid is null or not public.is_adult() then raise exception 'not eligible' using errcode = '42501'; end if;
+  if action not in ('status', 'consume', 'refund') or kind not in ('ask', 'grade') then raise exception 'invalid request' using errcode = '22023'; end if;
+  insert into public.free_usage(user_id, day) values (uid, today) on conflict do nothing;
+  select * into used from public.free_usage where user_id = uid and day = today for update;
+  if action = 'consume' then
+    ok := case kind when 'ask' then used.ask_used < ask_limit else used.grade_used < grade_limit end;
+    if ok then update public.free_usage set ask_used = ask_used + (kind = 'ask')::int, grade_used = grade_used + (kind = 'grade')::int where user_id = uid and day = today returning * into used; end if;
+  elsif action = 'refund' then
+    update public.free_usage set ask_used = greatest(0, ask_used - (kind = 'ask')::int), grade_used = greatest(0, grade_used - (kind = 'grade')::int) where user_id = uid and day = today returning * into used;
+  end if;
+  return jsonb_build_object('allowed', ok, 'ask_used', used.ask_used, 'ask_limit', ask_limit, 'grade_used', used.grade_used, 'grade_limit', grade_limit);
+end $$;
+revoke all on function public.free_quota(text, text) from public, anon;
+grant execute on function public.free_quota(text, text) to authenticated;

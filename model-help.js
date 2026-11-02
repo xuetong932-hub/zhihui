@@ -1,7 +1,8 @@
 const SEEN_KEY = 'knowledge-review.model-help-seen.v1';
 let seenThisPage = false;
 
-export function attachModelHelp(locale) {
+// welcome: show the first-visit pop-up about getting a key (skipped on the free allowance, which needs no key).
+export function attachModelHelp(locale, { welcome: showWelcome = true } = {}) {
   const zh = locale === 'zh';
   const link = document.querySelector('#model-help-link');
   if (!link) return;
@@ -41,7 +42,7 @@ export function attachModelHelp(locale) {
   link.onclick = event => { event.preventDefault(); guide(); };
   let seen = seenThisPage;
   try { seen ||= localStorage.getItem(SEEN_KEY) === 'true'; } catch { /* Fall back to this page only. */ }
-  if (seen || document.querySelector('#model-help-welcome')) return;
+  if (!showWelcome || seen || document.querySelector('#model-help-welcome')) return;
   const welcome = document.createElement('dialog');
   welcome.id = 'model-help-welcome';
   welcome.className = 'model-help-dialog model-help-welcome';

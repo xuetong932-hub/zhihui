@@ -40,6 +40,12 @@ const copy = {
     'error-timeout': '等待模型超时。问题已保留，重试可能再次计费。', 'error-filtered': '服务商未能提供此问题的回答，请调整问题。',
     'error-empty': '模型没有返回有效答案，请调整设置后重试。', 'error-upstream': '模型服务返回异常，请稍后重试。',
     'error-busy': '当前请求较多，请稍后重试。', 'error-generic': '请求未完成，请检查本机服务和模型设置后重试。',
+    'error-free-limit': '今天的免费次数已用完，明天会恢复。复习可以先用“快速翻卡”；也可以在“模型设置”中填写自己的 Key。', 'error-free-limit-local': '本地模式今天的体验次数已用完。登录后每天可提问 20 次、复习判分 30 次。',
+    'error-free-unavailable': '免费额度暂时不可用，请稍后再试；复习可以先用“快速翻卡”。', 'error-signin': '登录已过期，请重新登录后继续使用免费额度。',
+    'error-free-unsupported': '这个功能不包含在免费额度内，请在“模型设置”中填写自己的 Key。',
+    freeName: '知回免费额度', freeLeft: (a, g) => `今天还可提问 ${a} 次、复习判分 ${g} 次`, freeLocal: '本地模式每天提问 3 次、判分 5 次；登录后每天提问 20 次、判分 30 次。',
+    freeConsent: '使用免费额度时，你的问题和近期对话会发送给智谱 AI（GLM-4-Flash）处理。', freeAgree: '同意并开始使用',
+    freeHint: '由知回提供，不需要填写 Key。知识图谱的“语义关系”和思维导图的“用模型展开”不包含在免费额度内。',
     records: '条问答消息', open: '进入提问', back: '返回首页', networkLabel: '联网搜索', privacy: '问答只保存在当前浏览器。',
   },
   en: {
@@ -70,6 +76,12 @@ const copy = {
     'error-timeout': 'The model timed out. Your question is kept; retrying may incur another charge.', 'error-filtered': 'The provider could not answer this question. Try rephrasing.',
     'error-empty': 'The model returned no usable answer. Check settings and retry.', 'error-upstream': 'The model service returned an error. Try again later.',
     'error-busy': 'Too many active requests. Try again shortly.', 'error-generic': 'Request incomplete. Check the local service and model settings.',
+    'error-free-limit': 'Today’s free allowance is used up; it resets tomorrow. Review with quick flashcards, or add your own key in Model settings.', 'error-free-limit-local': 'Local mode’s trial uses for today are used up. Sign in for 20 questions and 30 gradings a day.',
+    'error-free-unavailable': 'The free allowance is unavailable right now. Try later; quick flashcards still work.', 'error-signin': 'Your sign-in has expired. Sign in again to use the free allowance.',
+    'error-free-unsupported': 'This feature is not part of the free allowance. Add your own key in Model settings.',
+    freeName: 'Free allowance', freeLeft: (a, g) => `${a} questions and ${g} gradings left today`, freeLocal: 'Local mode: 3 questions and 5 gradings a day; signed in: 20 questions and 30 gradings.',
+    freeConsent: 'With the free allowance, your question and recent conversation are sent to Zhipu AI (GLM-4-Flash).', freeAgree: 'Agree and start',
+    freeHint: 'Provided by Knowledge Review; no key needed. Semantic relations and mind map expansion are not included.',
     records: 'messages', open: 'Ask a question', back: 'Back to home', networkLabel: 'Web search', privacy: 'Conversations stay in this browser.',
   },
 };
@@ -80,9 +92,23 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   let chats = loaded.chats;
   let corrupt = loaded.issue;
   let config = defaultConfig();
-  try { const stored = JSON.parse(localStorage.getItem(CONFIG_KEY)); if (validConfig(stored)) config = { version: 1, provider: stored.provider, model: stored.model, workspace: stored.workspace, search: stored.search }; } catch { /* Defaults are usable. */ }
+  let storedConfig = false;
+  try { const stored = JSON.parse(localStorage.getItem(CONFIG_KEY)); if (validConfig(stored)) { config = { version: 1, provider: stored.provider, model: stored.model, workspace: stored.workspace, search: stored.search }; storedConfig = true; } } catch { /* Defaults are usable. */ }
+  // 知回 free allowance: the default when the server offers it and the user has not chosen a model; no key is entered.
+  // Agreeing to send questions to the free model's provider is remembered on this device (it is not a credential).
+  const FREE_CONSENT_KEY = 'knowledge-review.free-consent.v1', freeConfig = () => ({ version: 1, provider: 'zhipu-free', model: providers['zhipu-free'].model, workspace: '', search: false });
+  if (auth?.freeModel && !storedConfig) config = freeConfig();
+  const isFree = (value = config) => Boolean(providers[value.provider]?.free);
   let page = 'home', returnPage = 'home', activeModule = 'coding';
   let apiKey = '', consent = false, busy = false, controller, notice = '';
+  try { if (isFree() && localStorage.getItem(FREE_CONSENT_KEY) === '1') consent = true; } catch { /* Asks again. */ }
+  // Today's free allowance as reported by the server: {signedIn, ask:{used,limit}, grade:{used,limit}}.
+  let freeState = null;
+  const freeLeft = kind => freeState ? Math.max(0, freeState[kind].limit - freeState[kind].used) : null;
+  async function loadFreeState() {
+    if (!auth?.freeModel || !isFree()) return;
+    try { const token = await auth.accessToken(); const response = await fetch('/api/free-quota', { headers: token ? { Authorization: `Bearer ${token}` } : {} }); if (response.ok) { freeState = await response.json(); refresh(); } } catch { /* Shown as unknown. */ }
+  }
   let modelDraft, keyDraft = '', consentDraft = false, modelError = '', testMessage = '', testing = false;
   const selected = {}, inputs = {};
   const t = key => copy[getLocale()][key] || copy[getLocale()]['error-generic'];
@@ -92,7 +118,9 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   // The server gets each module's name so custom modules can be explained and classified.
   const moduleInfo = id => ({ module: id, ...(isCustomModule(id) ? { moduleName: moduleName(id) } : {}) });
   const enabledModules = () => activeModuleIds(getProfile()).map(id => ({ id, name: moduleName(id) }));
-  const ready = () => Boolean(apiKey && consent);
+  const ready = () => Boolean(consent && (isFree() ? auth?.freeModel : apiKey));
+  // Model-graded review is offered while a model is ready and, on the free allowance, gradings are left today.
+  const canGrade = () => ready() && !(isFree() && freeLeft('grade') === 0);
   const allOrigins = () => Object.entries(chats.modules).flatMap(([sourceModule,threads])=>threads.flatMap(thread=>thread.messages.flatMap((message,index)=> {
     const question=thread.messages[index-1];
     return message.role==='assistant'&&message.status==='done'&&question?.role==='user'&&question.status==='done'?[{id:message.id,threadId:thread.id,sourceModule,question:question.content,answer:message.content,createdAt:question.createdAt,sources:message.sources||[]}]:[];
@@ -118,7 +146,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   }
   // The completion popup lets the user pick a module to ask in next.
   const review=createReviewUI({locale:getLocale,profile:getProfile,cards:library.cards,markWeak:library.markWeak,refresh,adaptLevel,
-    modules:()=>activeModuleIds(getProfile()).map(id=>({id,name:moduleName(id)})),openModule:id=>openModule(id),goHome:()=>{page='home';refresh();},canUseModel:()=>ready(),call:(task,card,answer)=>{
+    modules:()=>activeModuleIds(getProfile()).map(id=>({id,name:moduleName(id)})),openModule:id=>openModule(id),goHome:()=>{page='home';refresh();},canUseModel:()=>canGrade(),call:(task,card,answer)=>{
     if(!ready())return Promise.reject(new Error('key'));
     return request('/api/review-task',{config:{...config},apiKey,consent,...moduleInfo(card.module),level:getProfile().modules[card.module].level,locale:getLocale(),task,card:{title:card.title,summary:card.summary,example:card.example},answer});
   }});
@@ -174,16 +202,18 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   function view() { return page==='discover'?discoverView():page==='recommend'?discover.recommendView():page==='square'?discover.squareView():page==='admin'?admin.view():page==='cloud'?cloud.view():page==='device'?device.view():page === 'review' ? review.view() : page === 'library' ? library.view() : page === 'model' ? modelView() : chatView(); }
   function modelView() {
     const p = providers[modelDraft.provider];
-    return `<section class="intro model-intro"><div><span class="eyebrow">${t('modelSettings')}</span><h1>${t('modelTitle')}</h1><p>${t('modelHint')}</p></div><a class="inline-link model-help-link" id="model-help-link" href="#model-config-guide" aria-haspopup="dialog">${getLocale()==='zh'?'配置说明':'Setup guide'} ↗</a></section>
+    return `<section class="intro model-intro"><div><span class="eyebrow">${t('modelSettings')}</span><h1>${t('modelTitle')}</h1><p>${isFree(modelDraft) ? (getLocale() === 'zh' ? '默认使用知回免费额度，不需要填写 Key；也可以改选服务商，使用自己的 Key。' : 'The free allowance is used by default with no key; you can switch to a provider with your own key.') : t('modelHint')}</p></div><a class="inline-link model-help-link" id="model-help-link" href="#model-config-guide" aria-haspopup="dialog">${getLocale()==='zh'?'配置说明':'Setup guide'} ↗</a></section>
       <form id="model-form" class="panel model-form" novalidate><div class="form-grid">
-        <label>${t('provider')}<select id="provider" ${testing ? 'disabled' : ''}>${Object.entries(providers).map(([id, value]) => `<option value="${id}" ${id === modelDraft.provider ? 'selected' : ''}>${value.name}</option>`).join('')}</select></label>
-        <label>${t('model')}<input id="model-name" type="text" maxlength="100" value="${esc(modelDraft.model)}" required ${testing ? 'disabled' : ''}></label>
+        <label>${t('provider')}<select id="provider" ${testing ? 'disabled' : ''}>${Object.entries(providers).filter(([, value]) => !value.free || auth?.freeModel).map(([id, value]) => `<option value="${id}" ${id === modelDraft.provider ? 'selected' : ''}>${value.name}</option>`).join('')}</select></label>
+        ${isFree(modelDraft) ? '' : `<label>${t('model')}<input id="model-name" type="text" maxlength="100" value="${esc(modelDraft.model)}" required ${testing ? 'disabled' : ''}></label>`}
       </div>
+      ${isFree(modelDraft) ? `<div class="free-settings"><p>${copy[getLocale()].freeHint}</p>${freeState ? `<p><strong>${copy[getLocale()].freeLeft(freeLeft('ask'), freeLeft('grade'))}</strong></p>` : ''}${freeState?.signedIn ? '' : `<p class="field-hint">${copy[getLocale()].freeLocal}</p>`}</div>
+      <div class="sharing-notice"><label class="check-row consent-row"><input id="model-consent" type="checkbox" ${consentDraft ? 'checked' : ''} ${testing ? 'disabled' : ''}><span>${copy[getLocale()].freeConsent}</span></label></div>` : `
       ${modelDraft.provider !== 'deepseek' ? `<label class="field-label" for="workspace">${t('workspace')}${p.workspaceRequired ? ' *' : ''}</label><input id="workspace" type="text" maxlength="63" value="${esc(modelDraft.workspace)}" ${testing ? 'disabled' : ''}><p class="field-hint">${t('workspaceHint')}</p>` : ''}
       <label class="field-label" for="api-key">${t('key')}</label><input id="api-key" type="password" autocomplete="off" spellcheck="false" maxlength="512" required aria-describedby="key-hint" ${testing ? 'disabled' : ''}><p id="key-hint" class="field-hint">${t('keyHint')}</p>
       <a class="inline-link" href="${p.docs}" target="_blank" rel="noopener noreferrer">${t('docs')} ↗</a>
       <div class="model-search"><label class="check-row"><input id="web-search" type="checkbox" ${modelDraft.search ? 'checked' : ''} ${!p.search || testing ? 'disabled' : ''}>${t('search')}</label>${!p.search ? `<p class="field-hint">${t('searchUnavailable')}</p>` : ''}</div>
-      <div class="sharing-notice"><p>${t('cost')}</p><p>${getLocale()==='zh'?'回答后会额外调用一次模型整理知识：发送本条问答及当前模块最多 40 个已有知识标题，不额外联网。':'After each answer, an extra model call organizes knowledge using this Q&A and up to 40 titles in the original module, without additional search.'}</p><label class="check-row consent-row"><input id="model-consent" type="checkbox" ${consentDraft ? 'checked' : ''} ${testing ? 'disabled' : ''}><span>${t('consent')} <strong>${esc(p.name)}</strong></span></label></div>
+      <div class="sharing-notice"><p>${t('cost')}</p><p>${getLocale()==='zh'?'回答后会额外调用一次模型整理知识：发送本条问答及当前模块最多 40 个已有知识标题，不额外联网。':'After each answer, an extra model call organizes knowledge using this Q&A and up to 40 titles in the original module, without additional search.'}</p><label class="check-row consent-row"><input id="model-consent" type="checkbox" ${consentDraft ? 'checked' : ''} ${testing ? 'disabled' : ''}><span>${t('consent')} <strong>${esc(p.name)}</strong></span></label></div>`}
       <p class="error" id="model-error" role="alert">${esc(modelError)}</p><p class="verified" id="connection-status" role="status">${esc(testMessage)}</p>
       <div class="test-row"><button type="button" class="secondary-button" id="test-connection" ${testing ? 'disabled' : ''}>${t(testing ? 'testing' : 'test')}</button><p class="field-hint">${t('testHint')}</p></div>
       <div class="actions model-actions"><button type="button" class="text-button" id="forget-key" ${testing ? 'disabled' : ''}>${t('forget')}</button><button type="button" class="secondary-button" id="model-back" ${testing ? 'disabled' : ''}>${t('cancel')}</button><button type="submit" class="primary-button" ${testing ? 'disabled' : ''}>${t('save')}</button></div></form>`;
@@ -197,12 +227,20 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     return `<section class="intro"><span class="eyebrow">${esc(moduleName(activeModule))}</span><h1>${t('chatTitle')}</h1><p>${t('chatHint')}</p></section>
       <div class="module-tabs" role="group" aria-label="${getLocale() === 'zh' ? '学习模块' : 'Learning modules'}">${activeModuleIds(profile).map(id => `<button class="module-tab ${id === activeModule ? 'active' : ''}" data-switch-module="${id}" aria-pressed="${id === activeModule}" ${busy ? 'disabled' : ''}>${moduleIcon(profile, id, 16)}${esc(moduleName(id))}</button>`).join('')}</div>
       <section class="panel conversation-panel"><div class="chat-toolbar"><label class="thread-label" for="thread-select">${t('history')}</label><select id="thread-select" ${busy || !threads.length ? 'disabled' : ''}>${threads.length ? [...threads].reverse().map(item => `<option value="${esc(item.id)}" ${item.id === current?.id ? 'selected' : ''}>${esc(item.title || t('unnamed'))}</option>`).join('') : `<option>${t('unnamed')}</option>`}</select><button class="secondary-button" id="new-thread" ${busy ? 'disabled' : ''}>＋ ${t('fresh')}</button></div>
-      <div class="connection-bar"><span class="status-dot ${ready() ? 'ready' : ''}"></span><span>${t(ready() ? 'configured' : 'needsKey')} · ${esc(providers[config.provider].name)} · ${esc(config.model)}</span><button class="text-button" data-model-settings ${busy ? 'disabled' : ''}>${t('modelSettings')}</button></div>
+      ${isFree() ? freeBar() : `<div class="connection-bar"><span class="status-dot ${ready() ? 'ready' : ''}"></span><span>${t(ready() ? 'configured' : 'needsKey')} · ${esc(providers[config.provider].name)} · ${esc(config.model)}</span><button class="text-button" data-model-settings ${busy ? 'disabled' : ''}>${t('modelSettings')}</button></div>`}
       <div class="messages" aria-label="${t('history')}" aria-busy="${busy}">${messages.length ? messages.map((message, index) => messageView(message, index === messages.length - 1)).join('') : `<div class="empty-state"><div class="empty-icon" aria-hidden="true">?</div><h3>${t('empty')}</h3><p>${t('emptyHint')}</p></div>`}</div>
       ${busy ? `<p class="pending-indicator" role="status">${t('sending')}</p>` : ''}
       <p class="error chat-notice" role="alert">${esc(notice || (corrupt ? t('corrupt') : ''))}</p>
       <form id="question-form"><label class="field-label" for="question">${t('ask')}</label><textarea id="question" rows="4" maxlength="8000" placeholder="${t('placeholder')}" ${busy ? 'disabled' : ''}>${esc(input)}</textarea><div class="composer-footer"><span class="muted">${t('privacy')}</span>${busy ? `<button type="button" id="stop-request" class="secondary-button">${t('stop')}</button>` : `<button type="button" id="voice-input" class="secondary-button">${getLocale()==='zh'?'语音输入':'Voice input'}</button><button type="submit" class="primary-button">${t('send')} →</button>`}</div><p class="field-hint">${getLocale()==='zh'?'语音由浏览器识别，可能使用浏览器服务商的云服务；点击后才请求权限。本 App 不保存录音，不支持时可用系统键盘语音输入。':'Speech recognition may use your browser provider’s cloud service. Permission is requested on click. No audio is stored by this app; use keyboard dictation if unsupported.'}</p></form>
       ${messages.at(-1)?.role === 'assistant' && !busy ? `<div class="followups"><button class="secondary-button" data-followup="simpler">${t('simpler')}</button><button class="secondary-button" data-followup="example">${t('example')}</button></div>` : ''}</section>`;
+  }
+  // Free allowance bar: what is left today, the local-mode note, and the one-time consent to send questions to 智谱.
+  function freeBar() {
+    const words = copy[getLocale()], left = freeState ? words.freeLeft(freeLeft('ask'), freeLeft('grade')) : '';
+    if (!auth?.freeModel) return `<div class="connection-bar"><span class="status-dot"></span><span>${t('error-free-unavailable')}</span><button class="text-button" data-model-settings ${busy ? 'disabled' : ''}>${t('modelSettings')}</button></div>`;
+    return `<div class="connection-bar free-bar"><span class="status-dot ${ready() ? 'ready' : ''}"></span><span><strong>${words.freeName}</strong>${left ? ` · ${left}` : ''}</span><button class="text-button" data-model-settings ${busy ? 'disabled' : ''}>${t('modelSettings')}</button></div>
+      ${freeState && !freeState.signedIn ? `<p class="field-hint free-note">${words.freeLocal}</p>` : ''}
+      ${consent ? '' : `<div class="sharing-notice free-consent"><p>${words.freeConsent}</p><button class="primary-button" data-free-consent>${words.freeAgree}</button></div>`}`;
   }
   function messageView(message, last) {
     const date = new Intl.DateTimeFormat(getLocale() === 'zh' ? 'zh-CN' : 'en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(message.createdAt));
@@ -221,6 +259,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     document.querySelectorAll('[data-library]').forEach(button=>{button.onclick=()=>{if(!busy&&!testing&&!review.busy&&!library.busy){page='library';refresh();}};});
     // Leaving local mode: forget the choice and show the sign-in page; local records stay and are offered to the account.
     document.querySelectorAll('[data-signin]').forEach(button=>button.onclick=()=>{if(locked())return;try{localStorage.removeItem(LOCAL_MODE_KEY);}catch{/* Ignored. */}location.reload();});
+    document.querySelectorAll('[data-free-consent]').forEach(button=>button.onclick=()=>{consent=true;try{localStorage.setItem(FREE_CONSENT_KEY,'1');}catch{/* This page only. */}notice='';refresh();});
     document.querySelectorAll('[data-recommend]').forEach(button=>button.onclick=()=>{if(!locked()){page='recommend';refresh();}});
     document.querySelectorAll('[data-square]').forEach(button=>button.onclick=()=>{if(!locked()){page='square';refresh();}});
     // The "更多" menu closes when clicking elsewhere (it is a <details>, so it needs no script to open).
@@ -240,24 +279,24 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   }
   function draftError() {
     if (!validConfig(modelDraft)) return t('config');
-    if (!/^[\x21-\x7e]{8,512}$/.test(keyDraft)) return t('keyError');
+    if (!isFree(modelDraft) && !/^[\x21-\x7e]{8,512}$/.test(keyDraft)) return t('keyError');
     if (!consentDraft) return t('consentError');
     return '';
   }
   function bindModel() {
-    attachModelHelp(getLocale());
-    document.querySelector('#api-key').value = keyDraft;
+    attachModelHelp(getLocale(), { welcome: !isFree(modelDraft) });
+    const keyInput = document.querySelector('#api-key'); if (keyInput) keyInput.value = keyDraft;
     const invalidate = () => { testMessage = ''; modelError = ''; document.querySelector('#model-error').textContent = ''; document.querySelector('#connection-status').textContent = ''; };
     document.querySelector('#provider').onchange = event => {
       const provider = event.target.value;
       modelDraft = { version: 1, provider, model: providers[provider].model, workspace: '', search: providers[provider].search };
       keyDraft = ''; consentDraft = false; modelError = ''; testMessage = ''; refresh();
     };
-    document.querySelector('#model-name').oninput = event => { modelDraft.model = event.target.value.trim(); invalidate(); };
+    const modelName = document.querySelector('#model-name'); if (modelName) modelName.oninput = event => { modelDraft.model = event.target.value.trim(); invalidate(); };
     const workspace = document.querySelector('#workspace');
     if (workspace) workspace.oninput = event => { modelDraft.workspace = event.target.value.trim(); consentDraft = false; document.querySelector('#model-consent').checked = false; invalidate(); };
-    document.querySelector('#api-key').oninput = event => { keyDraft = event.target.value.trim(); invalidate(); };
-    document.querySelector('#web-search').onchange = event => { modelDraft.search = event.target.checked; invalidate(); };
+    if (keyInput) keyInput.oninput = event => { keyDraft = event.target.value.trim(); invalidate(); };
+    const search = document.querySelector('#web-search'); if (search) search.onchange = event => { modelDraft.search = event.target.checked; invalidate(); };
     document.querySelector('#model-consent').onchange = event => { consentDraft = event.target.checked; invalidate(); };
     document.querySelector('#model-back').onclick = () => { keyDraft = ''; page = returnPage; refresh(); };
     document.querySelector('#forget-key').onclick = () => { apiKey = ''; keyDraft = ''; consent = false; consentDraft = false; modelError = ''; testMessage = t('keyCleared'); refresh(); };
@@ -267,7 +306,9 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
       if (modelError) { refresh(); return; }
       try { localStorage.setItem(CONFIG_KEY, JSON.stringify(modelDraft)); }
       catch { modelError = t('storage'); refresh(); return; }
-      config = { ...modelDraft }; apiKey = keyDraft; consent = consentDraft; keyDraft = ''; notice = ''; page = returnPage; refresh();
+      config = { ...modelDraft }; apiKey = isFree(modelDraft) ? '' : keyDraft; consent = consentDraft; keyDraft = ''; notice = ''; page = returnPage;
+      if (isFree()) { try { localStorage.setItem(FREE_CONSENT_KEY, consent ? '1' : ''); } catch { /* This page only. */ } loadFreeState(); }
+      refresh();
     };
     document.querySelector('#test-connection').onclick = async () => {
       modelError = draftError(); testMessage = '';
@@ -281,8 +322,10 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     };
   }
   async function request(path, body, signal) {
+    // Free allowance calls carry the sign-in token so the server can count them against this account.
+    const free = isFree(body.config || config), token = free ? await auth?.accessToken?.() : '';
     try {
-      const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(100000)]) : AbortSignal.timeout(100000) });
+      const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body), signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(100000)]) : AbortSignal.timeout(100000) });
       const data = await response.json();
       if (!response.ok) throw Object.assign(new Error('Request failed'), { code: data.error });
       return data;
@@ -290,7 +333,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
       if (signal?.aborted) throw Object.assign(new Error('Cancelled'), { code: 'cancelled' });
       if (error.name === 'TimeoutError') throw Object.assign(new Error('Timeout'), { code: 'timeout' });
       throw error;
-    }
+    } finally { if (free && ['/api/chat', '/api/review-task'].includes(path)) loadFreeState(); }
   }
   function bindChat() {
     const voice=document.querySelector('#voice-input');if(voice)voice.onclick=()=>{
@@ -353,6 +396,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
       saveChats();
     } finally { busy = false; controller = null; requestBody.apiKey = ''; refresh(); }
   }
+  loadFreeState();
   return { nav, view, bind, openModule, openModel, get isHome() { return page === 'home'; },
     // Used by the phone tab bar: the current page, and switching pages (ignored while something is running).
     get page() { return page; },

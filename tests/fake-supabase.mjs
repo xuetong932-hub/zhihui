@@ -9,7 +9,7 @@ const REGIONS = ['CN','HK','MO','TW','SG','MY','US','GB','CA','AU','JP','KR','OT
 
 // seedAdmin: an administrator that exists from the start and signs in with a password (like an operator-created one).
 export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedAdmin = null, now = () => new Date() } = {}) {
-  const users = new Map(), tokens = new Map(), refreshTokens = new Map(), eligibility = new Map(), profiles = new Map(), admins = new Set(), snapshots = new Map();
+  const users = new Map(), tokens = new Map(), refreshTokens = new Map(), eligibility = new Map(), profiles = new Map(), admins = new Set(), snapshots = new Map(), freeUsage = new Map();
   // A fixed id keeps the preset administrator the same account across test-service restarts.
   if (seedAdmin) { const user = { id: '00000000-0000-4000-8000-0000000000ad', email: seedAdmin.email, phone: '', password: seedAdmin.password, created_at: now().toISOString() }; users.set(user.id, user); admins.add(user.id); }
   const send = (response, status, data) => { response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); response.end(data === undefined ? '' : JSON.stringify(data)); };
@@ -49,6 +49,17 @@ export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedA
         .sort((a, b) => b[1].created_at.localeCompare(a[1].created_at)).slice(0, Math.min(Math.max(Number(max) || 200, 1), 500))
         .map(([userId, p]) => { const u = users.get(userId); return { username: p.username, region: p.region, email: maskEmail(u.email || p.email), phone: maskPhone(p.phone || u.phone || null), registered_at: p.created_at, last_sign_in_at: u.last_sign_in_at || null, eligibility: eligibility.get(userId) || 'missing' }; });
       return [200, rows];
+    },
+    // Mirrors public.free_quota in cloud-schema.sql: 20 questions and 30 gradings per account per China day.
+    free_quota(id, { action, kind = 'ask' }) {
+      if (eligibility.get(id) !== 'adult' && !admins.has(id)) return [403, 'not_eligible'];
+      if (!['status', 'consume', 'refund'].includes(action) || !['ask', 'grade'].includes(kind)) return [400, 'invalid_request'];
+      const day = new Date(now().getTime() + 8 * 3600000).toISOString().slice(0, 10), key = `${id}|${day}`, limits = { ask: 20, grade: 30 };
+      const used = freeUsage.get(key) || { ask: 0, grade: 0 }; let allowed = true;
+      if (action === 'consume') { allowed = used[kind] < limits[kind]; if (allowed) used[kind]++; }
+      if (action === 'refund' && used[kind] > 0) used[kind]--;
+      freeUsage.set(key, used);
+      return [200, { allowed, ask_used: used.ask, ask_limit: limits.ask, grade_used: used.grade, grade_limit: limits.grade }];
     },
     delete_own_account(id) { users.delete(id); profiles.delete(id); eligibility.delete(id); admins.delete(id); snapshots.delete(id); return [200, null]; },
   };

@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { callModel, ServiceError } from './model-service.mjs';
 import { extractKnowledge, relateKnowledge, expandMindmap } from './knowledge-service.mjs';
 import { reviewTask } from './review-service.mjs';
+import { createFreeQuota, FREE_PROVIDER, FREE_KIND, FREE_UNSUPPORTED } from './free-quota.mjs';
 
 const files = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
@@ -47,15 +48,26 @@ export function publicConfigFromEnv(env = process.env) {
   const googleClientId = (env.GOOGLE_CLIENT_ID || '').trim();
   return { url, publicKey, ...(username && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? { adminLogin: { username, email } } : {}), ...(/^[\w.-]+\.apps\.googleusercontent\.com$/.test(googleClientId) ? { googleClientId } : {}) };
 }
-export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask, relationCaller = relateKnowledge, mindmapCaller = expandMindmap, publicConfig = () => publicConfigFromEnv(), extraRoute } = {}) {
+export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask, relationCaller = relateKnowledge, mindmapCaller = expandMindmap, publicConfig = () => publicConfigFromEnv(), extraRoute,
+  freeModelKey = (process.env.ZHIPU_API_KEY || '').trim(), freeQuota = createFreeQuota() } = {}) {
   let activeRequests = 0;
+  const bearer = request => (/^Bearer ([\w.-]{10,4096})$/.exec(request.headers.authorization || '') || [])[1] || '';
+  const clientIp = request => request.socket.remoteAddress || 'unknown';
   return http.createServer(async (request, response) => {
     // Prototype is loopback-only. Reject foreign origins and DNS-rebinding hosts.
     const host = request.headers.host || '';
     if (!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)) { json(response, 403, { error: 'origin' }); return; }
     if (request.headers.origin && request.headers.origin !== `http://${host}`) { json(response, 403, { error: 'origin' }); return; }
     const path = new URL(request.url, `http://${host}`).pathname;
-    if (path === '/api/public-config') { if (request.method !== 'GET') { json(response, 405, { error: 'method' }); return; } json(response, 200, publicConfig(host)); return; }
+    if (path === '/api/public-config') { if (request.method !== 'GET') { json(response, 405, { error: 'method' }); return; } json(response, 200, { ...publicConfig(host), ...(freeModelKey ? { freeModel: true } : {}) }); return; }
+    // Today's free allowance for this account (or, without a sign-in, for this device's network).
+    if (path === '/api/free-quota') {
+      if (request.method !== 'GET') { json(response, 405, { error: 'method' }); return; }
+      if (!freeModelKey) { json(response, 503, { error: 'free-unavailable' }); return; }
+      try { const { allowed, ...state } = await freeQuota.use({ token: bearer(request), ip: clientIp(request), action: 'status', account: publicConfig(host) }); json(response, 200, state); }
+      catch (error) { json(response, error instanceof ServiceError ? error.status : 500, { error: error instanceof ServiceError ? error.code : 'internal' }); }
+      return;
+    }
     // Test servers mount extra routes (the fake account service); production passes none.
     if (extraRoute && await extraRoute(request, response, path)) return;
     if (['/api/chat', '/api/test', '/api/extract', '/api/review-task', '/api/relations', '/api/mindmap'].includes(path)) {
@@ -64,13 +76,30 @@ export function createApp({ modelCaller = callModel, knowledgeCaller = extractKn
       activeRequests++;
       const controller = new AbortController();
       response.on('close', () => { if (!response.writableEnded) controller.abort(); });
+      let charged = null;
       try {
         let input = await readJson(request);
         if (path === '/api/test' && input && typeof input === 'object') input = { ...input, config: { ...input.config, search: false }, messages: [{ role: 'user', content: 'Reply only: OK' }] };
+        // Free allowance: check limits, count the call, then use the server's key (any key from the client is ignored).
+        if (input?.config?.provider === FREE_PROVIDER) {
+          if (!freeModelKey) throw new ServiceError('free-unavailable', 503);
+          if (FREE_UNSUPPORTED.includes(path)) throw new ServiceError('free-unsupported', 403);
+          const ip = clientIp(request), token = bearer(request), kind = FREE_KIND[path];
+          if (!freeQuota.burst(ip)) throw new ServiceError('rate', 429);
+          if (kind) {
+            const state = await freeQuota.use({ token, ip, action: 'consume', kind, account: publicConfig(host) });
+            if (!state.allowed) throw new ServiceError(state.signedIn ? 'free-limit' : 'free-limit-local', 429);
+            charged = { token, ip, kind, account: publicConfig(host) };
+          }
+          input = { ...input, apiKey: freeModelKey };
+        }
         const caller = { '/api/review-task': reviewCaller, '/api/extract': knowledgeCaller, '/api/relations': relationCaller, '/api/mindmap': mindmapCaller }[path] || modelCaller;
         const result = await caller(input, { signal: controller.signal });
+        charged = null;
         json(response, 200, path === '/api/test' ? { ok: true } : result);
       } catch (error) {
+        // A failed or cancelled call does not use up the allowance.
+        if (charged) await freeQuota.use({ ...charged, action: 'refund' }).catch(() => {});
         json(response, error instanceof ServiceError ? error.status : 500, { error: error instanceof ServiceError ? error.code : 'internal' });
       } finally { activeRequests--; }
       return;

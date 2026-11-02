@@ -36,6 +36,8 @@ export function buildUpstream(value, instruction) {
   const messages = [{ role: 'system', content: instruction || systemPrompt(value) }, ...value.messages.map(({ role, content }) => ({ role, content }))];
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` };
   if (config.provider === 'deepseek') return { url: 'https://api.deepseek.com/chat/completions', headers, body: { model: config.model, messages, stream: false, max_tokens: 4096, thinking: { type: 'disabled' } } };
+  // 知回 free allowance: 智谱 (OpenAI-compatible); the model is fixed by the server, not taken from the client.
+  if (config.provider === 'zhipu-free') return { url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions', headers, body: { model: providers['zhipu-free'].model, messages, stream: false, max_tokens: 4096 } };
   const provider = providers[config.provider];
   const host = config.workspace ? `${config.workspace}.${provider.region}.maas.aliyuncs.com` : 'dashscope.aliyuncs.com';
   return { url: `https://${host}/api/v1/services/aigc/text-generation/generation`, headers,
@@ -45,10 +47,10 @@ export function buildUpstream(value, instruction) {
     } } };
 }
 export function extractResponse(data, config) {
-  const output = config.provider === 'deepseek' ? data : data?.output;
+  const output = ['deepseek', 'zhipu-free'].includes(config.provider) ? data : data?.output;
   const choice = output?.choices?.[0];
   const content = choice?.message?.content;
-  if (choice?.finish_reason === 'content_filter') throw new ServiceError('filtered', 422);
+  if (['content_filter', 'sensitive'].includes(choice?.finish_reason)) throw new ServiceError('filtered', 422);
   if (typeof content !== 'string' || !content.trim() || content.length > 60000) throw new ServiceError('empty', 502);
   if (choice.finish_reason && !['stop', 'length'].includes(choice.finish_reason)) throw new ServiceError('upstream', 502);
   const rawSources = output?.search_info?.search_results;
@@ -63,7 +65,7 @@ export function extractResponse(data, config) {
   return { content: content.trim(), sources, truncated: choice.finish_reason === 'length',
     searchStatus: !config.search ? 'off' : sources.length ? 'sources-returned' : 'no-sources',
     usage: { inputTokens: data?.usage?.prompt_tokens ?? data?.usage?.input_tokens ?? null, outputTokens: data?.usage?.completion_tokens ?? data?.usage?.output_tokens ?? null },
-    provider: config.provider, model: config.model };
+    provider: config.provider, model: config.provider === 'zhipu-free' ? providers['zhipu-free'].model : config.model };
 }
 function statusError(status) {
   if (status === 401) return new ServiceError('unauthorized', 401);
