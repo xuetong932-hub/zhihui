@@ -188,11 +188,11 @@ function boot() {
     ['home', 'house', ['home', 'chat'], '首页', 'Home'], ['review', 'repeat', ['review'], '复习', 'Review'], ['library', 'book', ['library'], '知识库', 'Knowledge'],
     ['discover', 'compass', ['discover', 'recommend', 'square'], '发现', 'Discover'], ['me', 'user', ['me', 'device', 'cloud', 'admin', 'model'], '我的', 'Me'],
   ];
-  // Icons only; each tab keeps its name for screen readers and as a tooltip.
+  // Icon on top, its name below in the current language only (Chinese or English, never both).
   function tabBar(locked) {
     return `<nav class="tabbar" aria-label="${locale === 'zh' ? '主导航' : 'Main'}">${TABS.map(([id, icon, pages, zh, en]) => {
       const on = pages.includes(chat.page), label = locale === 'zh' ? zh : en;
-      return `<button class="tab ${on ? 'active' : ''}" data-tab="${id}" aria-label="${label}" title="${label}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}>${iconSvg(icon, 26)}</button>`;
+      return `<button class="tab ${on ? 'active' : ''}" data-tab="${id}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}>${iconSvg(icon, 24)}<span class="tab-label">${label}</span></button>`;
     }).join('')}</nav>`;
   }
   function meView() {
