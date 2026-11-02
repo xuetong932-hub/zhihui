@@ -171,9 +171,13 @@ footer{color:var(--stone);border-top:1px solid var(--hairline-soft);margin-top:4
 [data-theme="dark"] .bg-dialog{background:#1a1d21}
 @media(max-width:700px){.bg-grid{grid-template-columns:repeat(3,1fr)}}
 /* Text that sits straight on a background image gets a soft halo in the page colour */
-.has-background .intro,.has-background .modules-section>.section-heading,.has-background .development-note,.has-background footer{text-shadow:0 0 2px #fff,0 0 10px #fff,0 0 18px #fff}
-[data-theme="dark"].has-background .intro,[data-theme="dark"].has-background .modules-section>.section-heading,[data-theme="dark"].has-background .development-note,[data-theme="dark"].has-background footer{text-shadow:0 0 2px #000,0 0 10px #000,0 0 18px #000}
-.has-background .intro p,.has-background .intro .eyebrow,.has-background .modules-section>.section-heading .muted{color:var(--ink)}
+/* Text that sits straight on a background image goes on a translucent plate in the page colour, with a light blur
+   behind it, so it stays readable over any photo in day and night mode (cards already have solid surfaces). */
+.has-background :is(.intro,.modules-section>.section-heading,.development-note,footer,.discover-toolbar,.keyword-row,.day-heading,main>p,main>.field-hint,main>.section-heading,.m-hello,.m-section>.section-heading,.me-head){background:rgba(255,255,255,.84);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-radius:14px;padding:10px 14px;width:fit-content;max-width:100%;box-sizing:border-box;text-shadow:none}
+.has-background :is(.home-intro,.modules-section>.section-heading,.m-section>.section-heading){width:auto}
+.has-background #app>footer{width:auto;border-radius:0;margin-top:24px}
+.has-background :is(.intro,.modules-section>.section-heading,.development-note,footer,.discover-toolbar,.keyword-row,.day-heading,main>p,main>.field-hint,main>.section-heading,.m-hello,.m-section>.section-heading,.me-head) :is(p,.muted,.eyebrow,.field-hint),.has-background :is(.development-note,footer,.day-heading,main>p,main>.field-hint){color:var(--ink)}
+[data-theme="dark"].has-background :is(.intro,.modules-section>.section-heading,.development-note,footer,.discover-toolbar,.keyword-row,.day-heading,main>p,main>.field-hint,main>.section-heading,.m-hello,.m-section>.section-heading,.me-head){background:rgba(18,20,23,.8);text-shadow:none}
 .app-background{background-repeat:no-repeat}
 .bg-layout{display:grid;grid-template-columns:1fr auto;gap:18px;margin-top:14px;align-items:start}
 .bg-field{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
@@ -223,7 +227,6 @@ footer{color:var(--stone);border-top:1px solid var(--hairline-soft);margin-top:4
 .square-actions{display:flex;gap:6px}
 [data-theme="dark"] .search-link,[data-theme="dark"] .discover-glyph,[data-theme="dark"] .square-avatar{color:#7cc4a0}
 @media(max-width:900px){.discover-grid{grid-template-columns:1fr}}
-.has-background .discover-toolbar,.has-background .keyword-row>.field-hint{text-shadow:0 0 2px #fff,0 0 10px #fff,0 0 18px #fff}.has-background .discover-toolbar .muted,.has-background .keyword-row>.field-hint{color:var(--ink)}[data-theme="dark"].has-background .discover-toolbar,[data-theme="dark"].has-background .keyword-row>.field-hint{text-shadow:0 0 2px #000,0 0 10px #000,0 0 18px #000}
 .local-option{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.local-entry{margin-bottom:16px}.local-entry h2{margin-top:0}
 .review-progress{display:none}
 
