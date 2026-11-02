@@ -121,3 +121,28 @@
 [data-theme="dark"] #question-form{background:#0f1113f2}
 [data-theme="dark"] .assistant-message,[data-theme="dark"] .messages .empty-state{background:#1a1d21}
 [data-layout="mobile"] #question{scrollbar-width:none}[data-layout="mobile"] #question::-webkit-scrollbar{display:none}
+
+/* 知识库 on the phone: sticky swipeable tabs, compact filters, full-width cards, charts that fit or scroll sideways */
+[data-layout="mobile"] main:has(.library-tabs)>.intro p{display:none}
+[data-layout="mobile"] main:has(.library-tabs)>.intro h1{font-size:24px;margin-bottom:4px}
+[data-layout="mobile"] .library-tabs{position:sticky;top:50px;z-index:12;margin:0 -16px 12px;padding:8px 16px;background:#f6f7f6f2;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+[data-layout="mobile"] .library-controls{display:flex;flex-wrap:wrap;gap:10px;padding:14px}
+[data-layout="mobile"] .library-controls label{flex:1 1 100%;display:flex;flex-direction:column;gap:4px;font-size:13px}
+[data-layout="mobile"] .library-controls input,[data-layout="mobile"] .library-controls select{width:100%;min-height:44px;font-size:16px}
+[data-layout="mobile"] .library-controls button{min-height:40px}
+[data-layout="mobile"] .day-heading{margin:18px 2px 8px;font-size:13px;color:var(--muted)}
+[data-layout="mobile"] .knowledge-card{padding:16px;margin-bottom:12px}
+[data-layout="mobile"] .knowledge-card .section-heading{flex-wrap:wrap;gap:6px}
+[data-layout="mobile"] .knowledge-card h3{font-size:18px;line-height:1.4}
+[data-layout="mobile"] .card-badges{display:flex;flex-wrap:wrap;gap:6px}
+[data-layout="mobile"] .knowledge-summary{font-size:15px;line-height:1.7}
+[data-layout="mobile"] .card-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+[data-layout="mobile"] .card-actions .text-button{min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:18px;font-size:13px}
+[data-layout="mobile"] .merge-row{flex-direction:column;align-items:stretch}
+[data-layout="mobile"] .graph-toolbar{flex-wrap:wrap;gap:8px}
+[data-layout="mobile"] .graph-toolbar .segmented{flex:1 1 100%;display:flex}
+[data-layout="mobile"] .graph-toolbar .segmented button{flex:1}
+[data-layout="mobile"] .viz-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+[data-layout="mobile"] .viz{min-width:100%}
+[data-theme="dark"] .library-tabs{background:#0f1113f2}
+[data-layout="mobile"] .library-controls{gap:8px 10px;padding:12px 14px}[data-layout="mobile"] .library-controls label{flex:1 1 40%;margin:0}[data-layout="mobile"] .library-controls label:has(input[type=text]),[data-layout="mobile"] .library-controls label:has(input[type=search]){flex-basis:100%}[data-layout="mobile"] .library-controls input,[data-layout="mobile"] .library-controls select{min-height:40px;margin:0}
