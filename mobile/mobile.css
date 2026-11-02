@@ -71,3 +71,24 @@
 [data-theme="dark"] .task-start{background:#e9f3ee;color:#1f4a37}
 [data-theme="dark"] .strip-card,[data-theme="dark"] .me-group,[data-theme="dark"] .m-section .review-preview,[data-theme="dark"] .m-section .empty-state{background:#1a1d21}
 [data-theme="dark"] .me-icon,[data-theme="dark"] .me-avatar{color:#7cc4a0;background:#7cc4a01f}
+
+/* 复习 on the phone: while answering, one question fills the screen and the actions sit in a bar above the tabs */
+[data-layout="mobile"] main:has(.answering)>.intro{display:none}
+[data-layout="mobile"] .answering{border:0;background:transparent;padding:0;box-shadow:none}
+.answering .review-setup{display:none}
+.review-card{display:flex;flex-direction:column;min-height:calc(100dvh - 210px);padding:22px 20px;border-radius:22px;background:#fff;border:1px solid var(--line);box-shadow:0 8px 24px #0000000d}
+.review-progress{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:14px}
+.review-progress span:first-child{font-weight:600;color:var(--accent)}
+.review-card>h3{font-size:22px;line-height:1.4;margin:6px 0 18px}
+.review-card textarea{flex:1;min-height:180px;font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;font-size:16px;line-height:1.6;border-radius:14px}
+.review-card .choice-options{display:flex;flex-direction:column;gap:10px}
+.review-card .choice-options .check-row{min-height:54px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;font-size:16px}
+.review-card .review-feedback{margin-top:4px}
+[data-layout="mobile"] main:has(.review-bar){padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 110px)}
+.review-bar{position:fixed;left:0;right:0;bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom));z-index:25;display:flex;gap:10px;margin:0;padding:10px 16px;background:#f6f7f6f2;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line)}
+.review-bar button{flex:1;min-height:52px;font-size:16px;border-radius:14px}
+.review-bar #review-skip{flex:0 0 32%}
+.rating-bar{display:grid;grid-template-columns:1fr 1fr}
+.rating-bar button{min-height:48px}
+[data-theme="dark"] .review-card{background:#1a1d21;box-shadow:none}
+[data-theme="dark"] .review-bar{background:#0f1113f2}
