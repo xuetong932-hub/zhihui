@@ -21,7 +21,7 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
   let theme = null, relationMode = 'basic', graphMessage = '', mindmapId = '', mindmapMessage = '';
   const collapsed = new Set();
   // Zoomed-in views (double-click / double-tap): one module's curve, one module's graph, one mind map branch.
-  let curveFocus = '', graphFocus = '', graphEdit = '', linksOpen = false, mindmapFocus = null, mindmapSelected = null, editNow = false, graph = null;
+  let curveFocus = '', graphFocus = '', graphEdit = '', linksOpen = false, mindmapFocus = null, mindmapSelected = null, editNow = false;
   const graphEdits = () => { const saved = store.read(GRAPH_KEY, null); return { positions: saved?.positions && typeof saved.positions === 'object' ? saved.positions : {},
     added: Array.isArray(saved?.added) ? saved.added.filter(p => typeof p?.a === 'string' && typeof p?.b === 'string' && p.a !== p.b) : [], removed: Array.isArray(saved?.removed) ? saved.removed.filter(key => typeof key === 'string') : [] }; };
   const writeGraphEdits = change => { const next = graphEdits(); change(next); return store.write(GRAPH_KEY, { version: 1, ...next }); };
@@ -91,7 +91,7 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
     if (tab === 'graph') {
       const semantic = semanticRelations(activeCards());
       const shown = graphCards(), editing = shown.find(card => card.id === graphEdit);
-      return `<section class="panel"><div class="viz-head">${graphFocus ? backButton('graph-back') : ''}<h2>${text('知识图谱', 'Knowledge graph')}${graphFocus ? ` · ${e(moduleName(graphFocus))}` : ''}</h2><div class="viz-downloads"><button class="text-button" id="graph-png">${text('下载 PNG', 'PNG')}</button><button class="text-button" id="graph-svg">${text('下载 SVG', 'SVG')}</button></div></div>
+      return `<section class="panel"><div class="viz-head">${graphFocus ? backButton('graph-back') : ''}<h2>${text('知识图谱', 'Knowledge graph')}${graphFocus ? ` · ${e(moduleName(graphFocus))}` : ''}</h2></div>
         ${graphFocus ? '' : `<p><strong>${e(summary)}</strong></p>`}<p class="viz-hint">${graphFocus ? text('双击知识点修改标题；拖动节点调整位置（会被记住）；在下方“编辑连线”里添加或删除连线。点一下知识点打开它的思维导图。', 'Double-click an idea to rename it; drag nodes to arrange them (remembered); add or remove links under Edit links. Tap an idea to open its mind map.') : text('双击模块（大圆）只看这个模块；双击知识点修改标题。拖动节点调整位置，拖动空白处平移，滚轮缩放；点一下知识点打开它的思维导图。带光晕的是今天要复习的知识。', 'Double-click a module (large circle) to see only that module; double-click an idea to rename it. Drag nodes to arrange them, drag the background to pan, scroll to zoom; tap an idea to open its mind map. Glowing ideas are due today.')}</p>
         ${editing ? `<div class="viz-editor"><label class="field-label" for="graph-title">${text('修改标题', 'Rename idea')}</label><div class="viz-editor-row"><input id="graph-title" type="text" maxlength="120" value="${e(editing.title)}"><button class="primary-button" id="graph-title-save">${text('保存', 'Save')}</button><button class="text-button" id="graph-title-cancel">${text('取消', 'Cancel')}</button></div><p class="field-hint">${text('会同时修改知识库里这张卡片的标题。', 'This also renames the card in your library.')}</p></div>` : ''}
         <div class="graph-toolbar"><div class="segmented" role="group" aria-label="${text('外观', 'Appearance')}"><button data-graph-theme="light" class="${graphTheme() === 'light' ? 'active' : ''}">${text('浅色', 'Light')}</button><button data-graph-theme="dark" class="${graphTheme() === 'dark' ? 'active' : ''}">${text('深色星空', 'Dark')}</button></div>
@@ -184,10 +184,6 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
       writeGraphEdits(edits => { edits.removed = edits.removed.filter(key => key !== pairKey(a, b)); if (!edits.added.some(p => pairKey(p.a, p.b) === pairKey(a, b))) edits.added.push({ a, b }); }); graphMessage = ''; refresh();
     });
     document.querySelectorAll('[data-link-remove]').forEach(button => { button.onclick = () => { const key = button.dataset.linkRemove; writeGraphEdits(edits => { edits.added = edits.added.filter(p => pairKey(p.a, p.b) !== key); if (!edits.removed.includes(key)) edits.removed.push(key); }); refresh(); }; });
-    const graphFile = () => `${safeFileName(text('知回-知识图谱', 'knowledge-graph'))}${graphFocus ? `-${safeFileName(moduleName(graphFocus))}` : ''}`, graphOptions = () => ({ box: graph.bounds(), background: graphTheme() === 'dark' ? '#121417' : '#ffffff' });
-    on('#graph-svg', () => { if (graph) downloadSvg(graph.svg, `${graphFile()}.svg`, graphOptions()); });
-    on('#graph-png', () => { if (graph) downloadPng(graph.svg, `${graphFile()}.png`, graphOptions()).catch(() => { graphMessage = text('图片生成失败，请改用 SVG。', 'The image could not be made; try SVG.'); refresh(); }); });
-    graph = null;
     if (host) {
       const list = graphCards(), today = dueIds(), style = moduleStyles([...new Set([...modules(), ...list.map(card => card.module)])]), data = reviews();
       const nodes = [...new Set(list.map(card => card.module))].map(id => ({ id: `hub:${id}`, label: moduleName(id), kind: 'hub', module: id, color: style.get(id).color, size: 3, detail: [['strong', moduleName(id)], ['span', text(`${list.filter(card => card.module === id).length} 个知识点`, `${list.filter(card => card.module === id).length} ideas`)]] }))
@@ -195,7 +191,7 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
           detail: [['strong', card.title], ['span', `${text('模块', 'Module')}：${moduleName(card.module)}${card.category ? ` · ${card.category}` : ''}`], ['span', `${text('上次复习', 'Last review')}：${last ? `${new Date(last.at).toLocaleDateString(locale() === 'zh' ? 'zh-CN' : 'en')} · ${ratingName(last.rating)}` : ratingName(null)}`], ['span', today.has(card.id) ? text('今天需要复习', 'Review today') : text('今天不用复习', 'Not due today')], ['span', text('点一下打开思维导图 · 双击修改标题', 'Tap to open its mind map · double-click to rename')]] }; }));
       const links = list.slice(0, 160).map(card => ({ source: `hub:${card.module}`, target: card.id, kind: 'spoke' })).concat(relationsFor(list).map(p => ({ source: p.a, target: p.b, kind: 'relation', label: p.label })));
       const positions = positionsFor(scopeKey);
-      graph = mountGraph(host, { nodes, links, theme: graphTheme(), positions,
+      const graph = mountGraph(host, { nodes, links, theme: graphTheme(), positions,
         onOpen: id => { mindmapId = id; mindmapFocus = null; mindmapSelected = null; collapsed.clear(); openTab('mindmap'); },
         // Double tap: a module hub zooms into (or back out of) that module; an idea opens its title editor.
         onDouble: node => { if (node.kind === 'hub') { graphFocus = graphFocus ? '' : node.module; graphEdit = ''; } else graphEdit = node.id; refresh(); },

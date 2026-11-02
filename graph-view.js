@@ -103,7 +103,5 @@ export function mountGraph(host, { nodes, links, theme = 'light', positions = ne
   }, { passive: false });
   for (const node of nodes) if (positions.get(node.id)?.fixed) node.fixed = true;
   applyView(); draw(); reheat(alpha);
-  return { reset: () => { scale = 1; tx = ty = 0; applyView(); nodes.forEach(node => { node.fixed = false; }); reheat(1); },
-    // For downloads: the drawing and the extent of everything in it, ignoring the current pan and zoom.
-    svg, bounds: () => { const box = world.getBBox(); return { x: box.x, y: box.y, width: box.width, height: box.height }; } };
+  return { reset: () => { scale = 1; tx = ty = 0; applyView(); nodes.forEach(node => { node.fixed = false; }); reheat(1); } };
 }
