@@ -99,5 +99,7 @@ export function createReviewUI({locale,profile,cards,markWeak,call,refresh,adapt
   // For the library's memory view: all review events and today's planned cards.
   // Home-page preview of today's queue, in the order review will ask it.
   const preview=()=>queue().map(card=>{const last=latestReview(data,card.id);return {card,last:last?.at||'',kind:!last?'new':['wrong','unclear','guessed'].includes(last.rating)?'weak':'due'};});
-  return {view,bind,reload:load,count:()=>queue().length,preview,events:()=>data,dueIds:()=>new Set(reviewQueue(cards(),data,profile(),new Date()).map(card=>card.id)),get busy(){return busy;}};
+  // Opens extra practice (all active cards, not only due ones), e.g. right after adding starter cards.
+  const startExtra=()=>{extra=true;visited.clear();skipped.clear();current=null;begin();};
+  return {view,bind,reload:load,count:()=>queue().length,preview,startExtra,events:()=>data,dueIds:()=>new Set(reviewQueue(cards(),data,profile(),new Date()).map(card=>card.id)),get busy(){return busy;}};
 }

@@ -10,6 +10,7 @@ import {moduleLabel,activeModuleIds,isActiveModule,isCustomModule} from './modul
 import {moduleIcon} from './module-icons.js';
 import {createDiscoverUI} from './discover-ui.js';
 import {resizeImage} from './background.js';
+import {starterQuestions,starterCards,hasStarterPack,starterPackPanel} from './starter-content.js';
 import {LOCAL_MODE_KEY} from './auth-ui.js';
 
 const copy = {
@@ -136,7 +137,13 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     const question=thread.messages[index-1];
     return message.role==='assistant'&&message.status==='done'&&question?.role==='user'&&question.status==='done'?[{id:message.id,threadId:thread.id,sourceModule,question:question.content,answer:message.content,createdAt:question.createdAt,sources:message.sources||[]}]:[];
   })));
-  const library = createKnowledgeUI({locale:getLocale, enabled:()=>activeModuleIds(getProfile()), moduleName, refresh,
+  // Starter card pack: built-in modules (enabled) whose cards are not in the library yet; added only on request.
+  let starterAdded = 0;
+  const starterModules = () => activeModuleIds(getProfile()).filter(id => hasStarterPack(id) && !library.hasCard(starterCards(id, getLocale())[0].id));
+  const starterPanel = (dismissible = false) => starterPackPanel({ modules: starterModules().map(id => ({ id, name: moduleName(id) })), locale: getLocale(), added: starterAdded, dismissible });
+  const STARTER_DISMISS_KEY = 'knowledge-review.starter-dismissed.v1';
+  const starterDismissed = () => { try { return localStorage.getItem(STARTER_DISMISS_KEY) === '1'; } catch { return false; } };
+  const library = createKnowledgeUI({locale:getLocale, enabled:()=>activeModuleIds(getProfile()), moduleName, refresh, starterPanel,
     // review is created below; these run only when the library renders.
     reviews:()=>review.events(), dueIds:()=>review.dueIds(), googleClientId:()=>auth?.googleClientId||'',
     // User-triggered model calls for the graph's semantic relations and mind map expansion.
@@ -239,11 +246,16 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
       <div class="module-tabs" role="group" aria-label="${getLocale() === 'zh' ? '学习模块' : 'Learning modules'}">${activeModuleIds(profile).map(id => `<button class="module-tab ${id === activeModule ? 'active' : ''}" data-switch-module="${id}" aria-pressed="${id === activeModule}" ${busy ? 'disabled' : ''}>${moduleIcon(profile, id, 16)}${esc(moduleName(id))}</button>`).join('')}</div>
       <section class="panel conversation-panel"><div class="chat-toolbar"><label class="thread-label" for="thread-select">${t('history')}</label><select id="thread-select" ${busy || !threads.length ? 'disabled' : ''}>${threads.length ? [...threads].reverse().map(item => `<option value="${esc(item.id)}" ${item.id === current?.id ? 'selected' : ''}>${esc(item.title || t('unnamed'))}</option>`).join('') : `<option>${t('unnamed')}</option>`}</select><button class="secondary-button" id="new-thread" ${busy ? 'disabled' : ''}>＋ ${t('fresh')}</button></div>
       ${isFree() ? freeBar() : `<div class="connection-bar"><span class="status-dot ${ready() ? 'ready' : ''}"></span><span>${t(ready() ? 'configured' : 'needsKey')} · ${esc(providers[config.provider].name)} · ${esc(config.model)}</span><button class="text-button" data-model-settings ${busy ? 'disabled' : ''}>${t('modelSettings')}</button></div>`}
-      <div class="messages" aria-label="${t('history')}" aria-busy="${busy}">${messages.length ? messages.map((message, index) => messageView(message, index === messages.length - 1)).join('') : `<div class="empty-state"><div class="empty-icon" aria-hidden="true">?</div><h3>${t('empty')}</h3><p>${t('emptyHint')}</p></div>`}</div>
+      <div class="messages" aria-label="${t('history')}" aria-busy="${busy}">${messages.length ? messages.map((message, index) => messageView(message, index === messages.length - 1)).join('') : `<div class="empty-state"><div class="empty-icon" aria-hidden="true">?</div><h3>${t('empty')}</h3><p>${t('emptyHint')}</p>${starterChips(profile)}</div>`}</div>
       ${busy ? `<p class="pending-indicator" role="status">${t('sending')}</p>` : ''}
       <p class="error chat-notice" role="alert">${esc(notice || (corrupt ? t('corrupt') : ''))}</p>
       <form id="question-form"><label class="field-label" for="question">${t('ask')}</label><textarea id="question" rows="4" ${photoStatus === t('photoDone') ? 'class="photo-text"' : ''} maxlength="8000" placeholder="${t('placeholder')}" ${busy ? 'disabled' : ''}>${esc(input)}</textarea><div class="composer-footer"><span class="muted">${t('privacy')}</span>${busy ? `<button type="button" id="stop-request" class="secondary-button">${t('stop')}</button>` : `<button type="button" id="photo-input" class="secondary-button" aria-label="${t('photo')}" ${photoBusy ? 'disabled' : ''}>📷 ${t('photo')}</button><input type="file" id="photo-file" accept="image/*" hidden><button type="button" id="voice-input" class="secondary-button">${getLocale()==='zh'?'语音输入':'Voice input'}</button><button type="submit" class="primary-button" ${photoBusy ? 'disabled' : ''}>${t('send')} →</button>`}</div>${photoStatus ? `<p class="verified photo-status" role="status">${esc(photoStatus)}</p>` : ''}<p class="field-hint">${getLocale()==='zh'?'语音由浏览器识别，可能使用浏览器服务商的云服务；点击后才请求权限。本 App 不保存录音，不支持时可用系统键盘语音输入。':'Speech recognition may use your browser provider’s cloud service. Permission is requested on click. No audio is stored by this app; use keyboard dictation if unsupported.'}</p></form>
       ${messages.at(-1)?.role === 'assistant' && !busy ? `<div class="followups"><button class="secondary-button" data-followup="simpler">${t('simpler')}</button><button class="secondary-button" data-followup="example">${t('example')}</button></div>` : ''}</section>`;
+  }
+  // Suggested questions for an empty conversation, matched to the module and the user's level; a tap fills the box.
+  function starterChips(profile) {
+    const list = starterQuestions(activeModule, profile.modules[activeModule]?.level || 'beginner', getLocale(), moduleName(activeModule));
+    return `<div class="starter-questions"><p class="field-hint">${getLocale() === 'zh' ? '不知道问什么？试试这些：' : 'Not sure what to ask? Try one:'}</p>${list.map(q => `<button type="button" class="starter-chip" data-starter-question="${esc(q)}" ${busy ? 'disabled' : ''}>${esc(q)}</button>`).join('')}</div>`;
   }
   // Free allowance bar: what is left today, the local-mode note, and the one-time consent to send questions to 智谱.
   function freeBar() {
@@ -270,6 +282,9 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     document.querySelectorAll('[data-library]').forEach(button=>{button.onclick=()=>{if(!busy&&!testing&&!review.busy&&!library.busy){page='library';refresh();}};});
     // Leaving local mode: forget the choice and show the sign-in page; local records stay and are offered to the account.
     document.querySelectorAll('[data-signin]').forEach(button=>button.onclick=()=>{if(locked())return;try{localStorage.removeItem(LOCAL_MODE_KEY);}catch{/* Ignored. */}location.reload();});
+    document.querySelectorAll('[data-starter-add]').forEach(button=>button.onclick=()=>{if(locked())return;const ids=button.dataset.starterAdd==='all'?starterModules():[button.dataset.starterAdd];const added=library.addCards(ids.flatMap(id=>starterCards(id,getLocale())));if(added){starterAdded=added;}refresh();});
+    document.querySelectorAll('[data-starter-dismiss]').forEach(button=>button.onclick=()=>{try{localStorage.setItem(STARTER_DISMISS_KEY,'1');}catch{/* Hidden for this page only. */}starterAdded=0;refresh();});
+    document.querySelectorAll('[data-starter-practise]').forEach(button=>button.onclick=()=>{if(locked())return;starterAdded=0;page='review';review.startExtra();refresh();window.scrollTo(0,0);});
     document.querySelectorAll('[data-free-consent]').forEach(button=>button.onclick=()=>{consent=true;try{localStorage.setItem(FREE_CONSENT_KEY,'1');}catch{/* This page only. */}notice='';refresh();});
     document.querySelectorAll('[data-recommend]').forEach(button=>button.onclick=()=>{if(!locked()){page='recommend';refresh();}});
     document.querySelectorAll('[data-square]').forEach(button=>button.onclick=()=>{if(!locked()){page='square';refresh();}});
@@ -361,6 +376,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     finally { photoBusy = false; refresh(); document.querySelector('#question')?.focus(); }
   }
   function bindChat() {
+    document.querySelectorAll('[data-starter-question]').forEach(button => { button.onclick = () => { inputs[activeModule] = button.dataset.starterQuestion; refresh(); const box = document.querySelector('#question'); if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); } }; });
     const photo = document.querySelector('#photo-input'), photoFile = document.querySelector('#photo-file');
     if (photo && photoFile) {
       photo.onclick = () => {
@@ -439,6 +455,9 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     get page() { return page; },
     go(next) { if (busy || testing || library.busy || review.busy || cloud.busy || admin.busy) return; page = next; notice = ''; refresh(); window.scrollTo(0, 0); },
     reviewEvents: () => review.events().events,
+    // Home page: the starter pack while the library is empty, or the "practise now" step right after adding.
+    // Shown until every pack is added or the user picks "以后再说".
+    starterHome: () => (starterAdded || (starterModules().length && !starterDismissed())) ? starterPanel(true) : '',
     get locked() { return busy || testing || library.busy || review.busy || cloud.busy || admin.busy; },
     openingPopup:()=>device.openingPopup(),
     reviewCount:()=>review.count(),

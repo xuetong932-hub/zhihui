@@ -213,9 +213,10 @@ function boot() {
     const date = new Intl.DateTimeFormat(zh ? 'zh-CN' : 'en', { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
     return `<section class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1></section>
       <section class="task-card"><div class="task-top"><div class="task-ring">${ring}<div class="task-ring-text"><strong>${done}</strong><span>/ ${total}</span></div></div>
-        <div class="task-info"><h2>${zh ? '今日任务' : 'Today'}</h2><p>${due ? (zh ? `还有 ${due} 个知识点待复习` : `${due} ideas left to review`) : (zh ? '今天的复习完成了' : 'Review done for today')}</p>
+        <div class="task-info"><h2>${zh ? '今日任务' : 'Today'}</h2><p>${due ? (zh ? `还有 ${due} 个知识点待复习` : `${due} ideas left to review`) : total ? (zh ? '今天的复习完成了' : 'Review done for today') : (zh ? '还没有要复习的知识' : 'Nothing to review yet')}</p>
         <div class="task-stats"><span><b>${streak}</b>${zh ? ' 天连续' : ' day streak'}</span><span><b>${done}</b>${zh ? ' 已复习' : ' reviewed'}</span></div></div></div>
-        <button class="task-start" data-review>${due ? (zh ? '开始复习' : 'Start review') : (zh ? '再练一会' : 'Practise more')} →</button></section>
+        ${total ? `<button class="task-start" data-review>${due ? (zh ? '开始复习' : 'Start review') : (zh ? '再练一会' : 'Practise more')} →</button>` : `<button class="task-start" data-open-module="${activeModuleIds(profile)[0]}">${zh ? '去提问' : 'Ask a question'} →</button>`}</section>
+      ${chat.starterHome() ? `<div class="m-section">${chat.starterHome()}</div>` : ''}
       <section class="m-section"><div class="section-heading"><h2>${zh ? '今日清单' : 'Today’s list'}</h2><span class="pill">${due} ${t('zero')}</span></div>${reviewPreview()}</section>
       <section class="m-section"><div class="section-heading"><h2>${zh ? '继续提问' : 'Keep asking'}</h2></div><div class="module-strip">${activeModuleIds(profile).map(id => `<button class="strip-card" data-open-module="${id}"><span class="module-badge">${moduleIcon(profile, id, 22)}</span><strong>${esc(moduleLabel(profile, id, locale))}</strong><span class="muted">${chat.messageCount(id)} ${chat.homeText('records')}</span></button>`).join('')}</div></section>`;
   }
@@ -293,7 +294,8 @@ function boot() {
   function reviewPreview() {
     const zh = locale === 'zh', items = chat.reviewPreview(), shown = items.slice(0, 5);
     const button = `<button class="primary-button" data-review>${zh ? '进入复习' : 'Open review'} →</button>`;
-    if (!items.length) return `<div class="empty-state"><div class="empty-icon" aria-hidden="true">✧</div><h3>${t('emptyTitle')}</h3><p>${t('emptyHint')}</p>${button}</div>`;
+    const hasCards = activeModuleIds(profile).some(id => chat.knowledgeCount(id));
+    if (!items.length) return `<div class="empty-state"><div class="empty-icon" aria-hidden="true">✧</div><h3>${hasCards ? (zh ? '今天没有到期的复习' : 'Nothing due today') : t('emptyTitle')}</h3><p>${hasCards ? (zh ? '新卡片从第二天开始复习；想现在练习，可以进入复习后选择“自主加练”。' : 'New cards are reviewed from tomorrow. To practise now, open Review and choose Extra practice.') : t('emptyHint')}</p>${button}</div>`;
     const styles = moduleStyles([...new Set([...activeModuleIds(profile), ...items.map(item => item.card.module)])]);
     const kinds = { new: zh ? '新学' : 'New', due: zh ? '到期' : 'Due', weak: zh ? '薄弱' : 'Weak' };
     const ago = at => {
@@ -312,7 +314,7 @@ function boot() {
   function homeView() {
     const date = new Intl.DateTimeFormat(locale === 'zh' ? 'zh-CN' : 'en', { dateStyle: 'full' }).format(new Date());
     return `<section class="intro home-intro"><div><span class="eyebrow">${date}</span><h1>${t('hello')}</h1><p>${t('homeHint')}</p></div><button class="secondary-button" id="settings">${t('settings')}</button></section>
-      ${new Date().getDay() === 0 ? `<div class="sunday-note">${t('sunday')}</div>` : ''}
+      ${new Date().getDay() === 0 ? `<div class="sunday-note">${t('sunday')}</div>` : ''}${chat.starterHome()}
       <div class="dashboard"><section class="panel review-panel"><div class="section-heading"><h2>${t('today')}</h2><span class="pill">${chat.reviewCount()} ${t('zero')}</span></div>
         ${reviewPreview()}</section>
         <aside class="panel plan-panel"><span class="eyebrow">${t('reviewPlan')}</span><p>${t('batchHint')}</p><hr><h3>${t('weekly')}</h3><p>${t('weekHint')}</p><h3>${t('notifications')}</h3><p>${t('notificationHint')}</p></aside></div>
