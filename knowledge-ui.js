@@ -42,7 +42,9 @@ export function createKnowledgeUI({ locale, enabled, moduleName, extract, refres
   }
   // Library tabs: cards, forgetting curve, knowledge graph, export.
   let tab = 'cards';
-  const panel = createMemoryPanel({ locale, cards: () => data.cards, reviews, dueIds, moduleName, modules: enabled, googleClientId, refresh, relate, expand, openTab: next => { tab = next; refresh(); } });
+  // The chart views can rename a card (graph) or mark it important / pause it (curve detail); saved like the card list.
+  const updateCard = (id, change) => { const card = data.cards.find(item => item.id === id); if (!card || blocked) return false; change(card); card.updatedAt = new Date().toISOString(); return save(); };
+  const panel = createMemoryPanel({ locale, cards: () => data.cards, reviews, dueIds, moduleName, modules: enabled, googleClientId, refresh, relate, expand, updateCard, openTab: next => { tab = next; refresh(); } });
   const tabs = () => `<div class="module-tabs library-tabs" role="tablist">${[['cards', text('知识卡片', 'Cards')], ['curve', text('遗忘曲线', 'Forgetting curve')], ['graph', text('知识图谱', 'Knowledge graph')], ['mindmap', text('思维导图', 'Mind map')], ['export', text('导出', 'Export')]].map(([id, label]) => `<button class="module-tab ${tab === id ? 'active' : ''}" role="tab" aria-selected="${tab === id}" data-library-tab="${id}">${label}</button>`).join('')}</div>`;
   function view() { return tab === 'cards' ? cardsView().replace('</section>', '</section>' + tabs()) : `<section class="intro"><span class="eyebrow">${text('知识库', 'Knowledge library')}</span><h1>${text('让问过的，成为记得住的。', 'Keep what you learn.')}</h1></section>${tabs()}${panel.view(tab)}`; }
   function bind() {

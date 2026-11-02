@@ -226,3 +226,33 @@ footer{color:var(--stone);border-top:1px solid var(--hairline-soft);margin-top:4
 .has-background .discover-toolbar,.has-background .keyword-row>.field-hint{text-shadow:0 0 2px #fff,0 0 10px #fff,0 0 18px #fff}.has-background .discover-toolbar .muted,.has-background .keyword-row>.field-hint{color:var(--ink)}[data-theme="dark"].has-background .discover-toolbar,[data-theme="dark"].has-background .keyword-row>.field-hint{text-shadow:0 0 2px #000,0 0 10px #000,0 0 18px #000}
 .local-option{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.local-entry{margin-bottom:16px}.local-entry h2{margin-top:0}
 .review-progress{display:none}
+
+/* Editable library views (curve, graph, mind map): heading row with back and downloads, inline editors, curve detail */
+.viz-head{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.viz-head h2{margin:0;flex:1;min-width:0}
+.viz-back{min-height:34px;padding:0 12px}
+.viz-downloads{display:flex;gap:4px;flex-wrap:wrap}
+.viz-downloads .text-button{font-size:13px;padding:4px 10px;border:1px solid var(--line);border-radius:999px}
+.viz-hint{font-size:13px;color:var(--muted);margin:8px 0 10px}
+.viz-editor{margin:10px 0;padding:12px 14px;border:1px solid #30694f55;border-radius:12px;background:#30694f0a}
+.viz-editor-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}
+.viz-editor-row input,.viz-editor-row select{flex:1 1 180px;min-width:0}
+.viz-editor summary{cursor:pointer;font-weight:600}
+.link-list{list-style:none;margin:10px 0 0;padding:0;max-height:240px;overflow:auto}
+.link-list li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:13.5px}
+.danger-text{color:#b4532a}
+.viz-curve-hit,[data-legend-module]{cursor:pointer}
+.mm-node{cursor:pointer}
+.mm-node:focus{outline:none}
+.mm-selected rect{stroke:#30694f;stroke-width:2.5}
+.mm-leaf.mm-selected .mm-hit{fill:#30694f1f}
+.mm-root.mm-selected rect{stroke:#f0c27b;stroke-width:3}
+.curve-zoom .viz{max-height:420px}
+.curve-list{list-style:none;margin:14px 0 0;padding:0}
+.curve-row{padding:12px 0;border-top:1px solid var(--line)}
+.curve-row.is-today .curve-row-main strong::before{content:"● ";color:#30694f}
+.curve-row-main{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.curve-row-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted);margin-top:4px}
+.curve-row-actions{display:flex;gap:6px;margin-top:6px}
+.curve-row-actions .text-button{font-size:12.5px;padding:3px 10px;border:1px solid var(--line);border-radius:999px}
+[data-theme="dark"] .viz-editor{background:#7cc4a00f;border-color:#7cc4a055}

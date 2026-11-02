@@ -1,11 +1,13 @@
 // Interactive knowledge graph (no dependencies): a small force simulation drawn as SVG.
-// Drag a node to move it (it stays pinned; double-click to release), drag the background to pan, scroll to zoom.
-// Hover highlights a node and its neighbours; a click on an idea calls onOpen(id).
+// Drag a node to move it (it stays pinned until Reset layout), drag the background to pan, scroll to zoom.
+// Hover highlights a node and its neighbours; a tap on an idea calls onOpen(id), a double tap on any node calls
+// onDouble(node), and onMoved() reports a finished drag so the layout can be saved.
+import { tap } from './viz-edit.js';
 const NS = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs = {}) => { const node = document.createElementNS(NS, tag); for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value); return node; };
 // nodes: [{id, label, kind:'hub'|'card', module, color, size, today, detail}], links: [{source, target, kind:'spoke'|'relation', label}]
 // positions: Map shared across re-renders so the layout does not jump when the page redraws.
-export function mountGraph(host, { nodes, links, theme = 'light', positions = new Map(), onOpen = () => {}, width = 760, height = 520 }) {
+export function mountGraph(host, { nodes, links, theme = 'light', positions = new Map(), onOpen = () => {}, onDouble = () => {}, onMoved = () => {}, width = 760, height = 520 }) {
   host.replaceChildren();
   const wrap = document.createElement('div'); wrap.className = `graph-canvas graph-${theme}`;
   const svg = el('svg', { viewBox: `0 0 ${width} ${height}`, class: 'graph-svg', role: 'img' });
@@ -84,9 +86,12 @@ export function mountGraph(host, { nodes, links, theme = 'light', positions = ne
     node.el.addEventListener('focus', () => focus(node)); node.el.addEventListener('blur', blur);
     node.el.addEventListener('pointerdown', event => { event.stopPropagation(); dragging = node; moved = false; node.el.setPointerCapture(event.pointerId); reheat(0.3); });
     node.el.addEventListener('pointermove', event => { if (dragging !== node) return; const p = toWorld(event); moved ||= Math.hypot(p.x - node.x, p.y - node.y) > 2; node.x = p.x; node.y = p.y; node.fixed = true; reheat(0.25); });
-    node.el.addEventListener('pointerup', () => { if (dragging === node && !moved && node.kind === 'card') onOpen(node.id); dragging = null; });
-    node.el.addEventListener('dblclick', () => { node.fixed = false; reheat(0.5); });
-    node.el.addEventListener('keydown', event => { if (event.key === 'Enter' && node.kind === 'card') onOpen(node.id); });
+    node.el.addEventListener('pointerup', () => {
+      if (dragging === node && !moved) tap(`graph:${node.id}`, () => { if (node.kind === 'card') onOpen(node.id); }, () => onDouble(node));
+      else if (dragging === node) onMoved();
+      dragging = null;
+    });
+    node.el.addEventListener('keydown', event => { if (event.key === 'Enter') { if (node.kind === 'card') onOpen(node.id); else onDouble(node); } });
   }
   svg.addEventListener('pointerdown', event => { panning = { x: event.clientX, y: event.clientY, tx, ty }; svg.setPointerCapture(event.pointerId); blur(); });
   svg.addEventListener('pointermove', event => { if (!panning) return; const box = svg.getBoundingClientRect(); tx = panning.tx + (event.clientX - panning.x) * width / box.width; ty = panning.ty + (event.clientY - panning.y) * height / box.height; applyView(); });
@@ -98,5 +103,7 @@ export function mountGraph(host, { nodes, links, theme = 'light', positions = ne
   }, { passive: false });
   for (const node of nodes) if (positions.get(node.id)?.fixed) node.fixed = true;
   applyView(); draw(); reheat(alpha);
-  return { reset: () => { scale = 1; tx = ty = 0; applyView(); nodes.forEach(node => { node.fixed = false; }); reheat(1); } };
+  return { reset: () => { scale = 1; tx = ty = 0; applyView(); nodes.forEach(node => { node.fixed = false; }); reheat(1); },
+    // For downloads: the drawing and the extent of everything in it, ignoring the current pan and zoom.
+    svg, bounds: () => { const box = world.getBBox(); return { x: box.x, y: box.y, width: box.width, height: box.height }; } };
 }

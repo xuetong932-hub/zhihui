@@ -71,7 +71,9 @@ export function curveSvg(points, curves, styles, moduleName, labels, now = new D
   const W = 640, H = 320, L = 48, R = 16, T = 20, B = 44, x = offset => L + ((offset + PAST) / (PAST + AHEAD)) * (W - L - R), y = r => T + (1 - r / 100) * (H - T - B);
   const grid = [0, 25, 50, 75, 100].map(r => `<line x1="${L}" x2="${W - R}" y1="${y(r)}" y2="${y(r)}" stroke="#e6eaee"/><text x="${L - 8}" y="${y(r) + 4}" text-anchor="end" font-size="11" fill="#6c7784">${r}%</text>`).join('');
   const ticks = [-14, -7, 0, 7].map(offset => { const d = new Date(now.getTime() + offset * DAY); return `<text x="${x(offset)}" y="${H - B + 18}" text-anchor="middle" font-size="11" fill="#6c7784">${offset === 0 ? esc(labels.today) : `${d.getMonth() + 1}/${d.getDate()}`}</text>`; }).join('');
-  const lines = [...curves].map(([module, line]) => `<path class="viz-curve" data-module="${esc(module)}" d="${line.map((p, i) => `${i ? 'L' : 'M'}${x(p.offset).toFixed(1)},${y(p.retention).toFixed(1)}`).join('')}" fill="none" stroke="${styles.get(module)?.color || '#999'}" stroke-width="2.2" stroke-linejoin="round"/>`).join('');
+  // Each line also gets a wide transparent twin so it is easy to double-click (or double-tap) to open that module.
+  const lines = [...curves].map(([module, line]) => { const d = line.map((p, i) => `${i ? 'L' : 'M'}${x(p.offset).toFixed(1)},${y(p.retention).toFixed(1)}`).join('');
+    return `<path class="viz-curve" data-module="${esc(module)}" d="${d}" fill="none" stroke="${styles.get(module)?.color || '#999'}" stroke-width="2.2" stroke-linejoin="round"/><path class="viz-curve-hit" data-curve-module="${esc(module)}" d="${d}" fill="none" stroke="transparent" stroke-width="16"/>`; }).join('');
   // Several points on the same day spread sideways a little so none hide another.
   const slots = new Map();
   const dots = [...points].sort((a, b) => Number(a.today) - Number(b.today)).map(p => { const key = `${p.offset}`, n = slots.get(key) || 0; slots.set(key, n + 1); const dx = ((n % 5) - 2) * 5; return pointNode(p, styles.get(p.module), moduleName, labels, (x(p.offset) + dx).toFixed(1), y(p.retention).toFixed(1), p.today ? 6.5 : 5.5); }).join('');
