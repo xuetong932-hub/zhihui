@@ -43,11 +43,12 @@ const putImage = blob => fileOp('readwrite', store => store.put(blob, FILE));
 const deleteImage = () => fileOp('readwrite', store => store.delete(FILE)).catch(() => {});
 
 // Decoding through a canvas drops metadata (such as location) and keeps the stored file small.
-export async function resizeImage(file) {
+// Also used for photo questions, with a smaller maximum side.
+export async function resizeImage(file, { maxSide = MAX_SIDE } = {}) {
   if (file.type && !file.type.startsWith('image/')) throw new Error('type');
   if (file.size > MAX_UPLOAD_BYTES) throw new Error('size');
   const bitmap = await createImageBitmap(file).catch(() => { throw new Error('decode'); });
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height)), canvas = document.createElement('canvas');
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height)), canvas = document.createElement('canvas');
   canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
   canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close();
   return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('decode')), 'image/jpeg', 0.85));

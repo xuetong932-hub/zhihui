@@ -6,6 +6,7 @@ import { callModel, ServiceError } from './model-service.mjs';
 import { extractKnowledge, relateKnowledge, expandMindmap } from './knowledge-service.mjs';
 import { reviewTask } from './review-service.mjs';
 import { createFreeQuota, FREE_PROVIDER, FREE_KIND, FREE_UNSUPPORTED } from './free-quota.mjs';
+import { recognizeImage } from './recognize-service.mjs';
 
 const files = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
@@ -27,13 +28,14 @@ function json(response, status, data) {
   response.writeHead(status, { ...headers, 'Content-Type': 'application/json; charset=utf-8' });
   response.end(JSON.stringify(data));
 }
-async function readJson(request) {
+// Photo recognition carries one compressed image, so that route accepts a larger body.
+async function readJson(request, limit = 320 * 1024) {
   if (!request.headers['content-type']?.startsWith('application/json')) throw new ServiceError('request', 415);
   const chunks = [];
   let bytes = 0;
   for await (const chunk of request) {
     bytes += chunk.length;
-    if (bytes > 320 * 1024) throw new ServiceError('large', 413);
+    if (bytes > limit) throw new ServiceError('large', 413);
     chunks.push(chunk);
   }
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new ServiceError('request'); }
@@ -48,7 +50,7 @@ export function publicConfigFromEnv(env = process.env) {
   const googleClientId = (env.GOOGLE_CLIENT_ID || '').trim();
   return { url, publicKey, ...(username && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? { adminLogin: { username, email } } : {}), ...(/^[\w.-]+\.apps\.googleusercontent\.com$/.test(googleClientId) ? { googleClientId } : {}) };
 }
-export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask, relationCaller = relateKnowledge, mindmapCaller = expandMindmap, publicConfig = () => publicConfigFromEnv(), extraRoute,
+export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask, relationCaller = relateKnowledge, mindmapCaller = expandMindmap, recognizeCaller = recognizeImage, publicConfig = () => publicConfigFromEnv(), extraRoute,
   freeModelKey = (process.env.ZHIPU_API_KEY || '').trim(), freeQuota = createFreeQuota() } = {}) {
   let activeRequests = 0;
   const bearer = request => (/^Bearer ([\w.-]{10,4096})$/.exec(request.headers.authorization || '') || [])[1] || '';
@@ -70,7 +72,7 @@ export function createApp({ modelCaller = callModel, knowledgeCaller = extractKn
     }
     // Test servers mount extra routes (the fake account service); production passes none.
     if (extraRoute && await extraRoute(request, response, path)) return;
-    if (['/api/chat', '/api/test', '/api/extract', '/api/review-task', '/api/relations', '/api/mindmap'].includes(path)) {
+    if (['/api/chat', '/api/test', '/api/extract', '/api/review-task', '/api/relations', '/api/mindmap', '/api/recognize'].includes(path)) {
       if (request.method !== 'POST') { json(response, 405, { error: 'method' }); return; }
       if (activeRequests >= 2) { json(response, 429, { error: 'busy' }); return; }
       activeRequests++;
@@ -78,7 +80,7 @@ export function createApp({ modelCaller = callModel, knowledgeCaller = extractKn
       response.on('close', () => { if (!response.writableEnded) controller.abort(); });
       let charged = null;
       try {
-        let input = await readJson(request);
+        let input = await readJson(request, path === '/api/recognize' ? 3.5 * 1024 * 1024 : undefined);
         if (path === '/api/test' && input && typeof input === 'object') input = { ...input, config: { ...input.config, search: false }, messages: [{ role: 'user', content: 'Reply only: OK' }] };
         // Free allowance: check limits, count the call, then use the server's key (any key from the client is ignored).
         if (input?.config?.provider === FREE_PROVIDER) {
@@ -93,7 +95,7 @@ export function createApp({ modelCaller = callModel, knowledgeCaller = extractKn
           }
           input = { ...input, apiKey: freeModelKey };
         }
-        const caller = { '/api/review-task': reviewCaller, '/api/extract': knowledgeCaller, '/api/relations': relationCaller, '/api/mindmap': mindmapCaller }[path] || modelCaller;
+        const caller = { '/api/review-task': reviewCaller, '/api/extract': knowledgeCaller, '/api/relations': relationCaller, '/api/mindmap': mindmapCaller, '/api/recognize': recognizeCaller }[path] || modelCaller;
         const result = await caller(input, { signal: controller.signal });
         charged = null;
         json(response, 200, path === '/api/test' ? { ok: true } : result);

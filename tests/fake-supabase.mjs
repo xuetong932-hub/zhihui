@@ -53,13 +53,13 @@ export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedA
     // Mirrors public.free_quota in cloud-schema.sql: 20 questions and 30 gradings per account per China day.
     free_quota(id, { action, kind = 'ask' }) {
       if (eligibility.get(id) !== 'adult' && !admins.has(id)) return [403, 'not_eligible'];
-      if (!['status', 'consume', 'refund'].includes(action) || !['ask', 'grade'].includes(kind)) return [400, 'invalid_request'];
-      const day = new Date(now().getTime() + 8 * 3600000).toISOString().slice(0, 10), key = `${id}|${day}`, limits = { ask: 20, grade: 30 };
-      const used = freeUsage.get(key) || { ask: 0, grade: 0 }; let allowed = true;
+      if (!['status', 'consume', 'refund'].includes(action) || !['ask', 'grade', 'photo'].includes(kind)) return [400, 'invalid_request'];
+      const day = new Date(now().getTime() + 8 * 3600000).toISOString().slice(0, 10), key = `${id}|${day}`, limits = { ask: 20, grade: 30, photo: 20 };
+      const used = freeUsage.get(key) || { ask: 0, grade: 0, photo: 0 }; let allowed = true;
       if (action === 'consume') { allowed = used[kind] < limits[kind]; if (allowed) used[kind]++; }
       if (action === 'refund' && used[kind] > 0) used[kind]--;
       freeUsage.set(key, used);
-      return [200, { allowed, ask_used: used.ask, ask_limit: limits.ask, grade_used: used.grade, grade_limit: limits.grade }];
+      return [200, { allowed, ask_used: used.ask, ask_limit: limits.ask, grade_used: used.grade, grade_limit: limits.grade, photo_used: used.photo, photo_limit: limits.photo }];
     },
     delete_own_account(id) { users.delete(id); profiles.delete(id); eligibility.delete(id); admins.delete(id); snapshots.delete(id); return [200, null]; },
   };

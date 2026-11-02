@@ -9,6 +9,7 @@ import {createAdminUI} from './admin-ui.js';
 import {moduleLabel,activeModuleIds,isActiveModule,isCustomModule} from './modules.js';
 import {moduleIcon} from './module-icons.js';
 import {createDiscoverUI} from './discover-ui.js';
+import {resizeImage} from './background.js';
 import {LOCAL_MODE_KEY} from './auth-ui.js';
 
 const copy = {
@@ -43,7 +44,10 @@ const copy = {
     'error-free-limit': '今天的免费次数已用完，明天会恢复。复习可以先用“快速翻卡”；也可以在“模型设置”中填写自己的 Key。', 'error-free-limit-local': '本地模式今天的体验次数已用完。登录后每天可提问 20 次、复习判分 30 次。',
     'error-free-unavailable': '免费额度暂时不可用，请稍后再试；复习可以先用“快速翻卡”。', 'error-signin': '登录已过期，请重新登录后继续使用免费额度。',
     'error-free-unsupported': '这个功能不包含在免费额度内，请在“模型设置”中填写自己的 Key。',
-    freeName: '知回免费额度', freeLeft: (a, g) => `今天还可提问 ${a} 次、复习判分 ${g} 次`, freeLocal: '本地模式每天提问 3 次、判分 5 次；登录后每天提问 20 次、判分 30 次。',
+    freeName: '知回免费额度', freeLeft: (a, g, p) => `今天还可提问 ${a} 次、复习判分 ${g} 次、拍照识别 ${p} 次`, freeLocal: '本地模式每天提问 3 次、判分 5 次、拍照识别 3 次；登录后每天提问 20 次、判分 30 次、拍照识别 20 次。',
+    photo: '拍照提问', photoNotice: name => `照片会发送给${name}识别其中的文字，识别后不保存照片，只保留文字。继续吗？`, photoReading: '正在识别照片中的文字…', photoDone: '已识别。识别结果可以修改后再发送。',
+    photoNeedsModel: '拍照提问需要先在“模型设置”中选择模型并确认数据发送说明。', 'error-vision-unsupported': '当前模型不支持拍照识别，请改用知回免费额度或千问。', 'error-no-text': '照片里没有识别到文字，请换一张更清晰的照片。',
+    'error-large': '照片太大，请换一张或裁小后再试。', 'error-photo': '这张照片无法读取，请换一张。',
     freeConsent: '使用免费额度时，你的问题和近期对话会发送给智谱 AI（GLM-4-Flash）处理。', freeAgree: '同意并开始使用',
     freeHint: '由知回提供，不需要填写 Key。知识图谱的“语义关系”和思维导图的“用模型展开”不包含在免费额度内。',
     records: '条问答消息', open: '进入提问', back: '返回首页', networkLabel: '联网搜索', privacy: '问答只保存在当前浏览器。',
@@ -79,7 +83,10 @@ const copy = {
     'error-free-limit': 'Today’s free allowance is used up; it resets tomorrow. Review with quick flashcards, or add your own key in Model settings.', 'error-free-limit-local': 'Local mode’s trial uses for today are used up. Sign in for 20 questions and 30 gradings a day.',
     'error-free-unavailable': 'The free allowance is unavailable right now. Try later; quick flashcards still work.', 'error-signin': 'Your sign-in has expired. Sign in again to use the free allowance.',
     'error-free-unsupported': 'This feature is not part of the free allowance. Add your own key in Model settings.',
-    freeName: 'Free allowance', freeLeft: (a, g) => `${a} questions and ${g} gradings left today`, freeLocal: 'Local mode: 3 questions and 5 gradings a day; signed in: 20 questions and 30 gradings.',
+    freeName: 'Free allowance', freeLeft: (a, g, p) => `${a} questions, ${g} gradings and ${p} photos left today`, freeLocal: 'Local mode: 3 questions, 5 gradings and 3 photos a day; signed in: 20, 30 and 20.',
+    photo: 'Photo question', photoNotice: name => `The photo is sent to ${name} to read its text. The photo is not kept, only the text. Continue?`, photoReading: 'Reading the text in your photo…', photoDone: 'Text recognised. Edit it if needed, then send.',
+    photoNeedsModel: 'Photo questions need a model: choose one in Model settings and confirm the sharing notice.', 'error-vision-unsupported': 'This model cannot read photos. Use the free allowance or Qwen.', 'error-no-text': 'No text was found in the photo. Try a clearer one.',
+    'error-large': 'The photo is too large. Try another or crop it.', 'error-photo': 'This photo could not be read. Try another.',
     freeConsent: 'With the free allowance, your question and recent conversation are sent to Zhipu AI (GLM-4-Flash).', freeAgree: 'Agree and start',
     freeHint: 'Provided by Knowledge Review; no key needed. Semantic relations and mind map expansion are not included.',
     records: 'messages', open: 'Ask a question', back: 'Back to home', networkLabel: 'Web search', privacy: 'Conversations stay in this browser.',
@@ -104,6 +111,10 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   try { if (isFree() && localStorage.getItem(FREE_CONSENT_KEY) === '1') consent = true; } catch { /* Asks again. */ }
   // Today's free allowance as reported by the server: {signedIn, ask:{used,limit}, grade:{used,limit}}.
   let freeState = null;
+  // Photo questions: the photo is shrunk on the device, its text is recognised and put into the question box to edit.
+  // The photo itself is not kept. The first use shows a one-time notice naming the provider.
+  const PHOTO_NOTICE_KEY = 'knowledge-review.photo-notice.v1', VISION = ['zhipu-free', 'qwen-cn', 'qwen-intl'];
+  let photoBusy = false, photoStatus = '';
   const freeLeft = kind => freeState ? Math.max(0, freeState[kind].limit - freeState[kind].used) : null;
   async function loadFreeState() {
     if (!auth?.freeModel || !isFree()) return;
@@ -207,7 +218,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
         <label>${t('provider')}<select id="provider" ${testing ? 'disabled' : ''}>${Object.entries(providers).filter(([, value]) => !value.free || auth?.freeModel).map(([id, value]) => `<option value="${id}" ${id === modelDraft.provider ? 'selected' : ''}>${value.name}</option>`).join('')}</select></label>
         ${isFree(modelDraft) ? '' : `<label>${t('model')}<input id="model-name" type="text" maxlength="100" value="${esc(modelDraft.model)}" required ${testing ? 'disabled' : ''}></label>`}
       </div>
-      ${isFree(modelDraft) ? `<div class="free-settings"><p>${copy[getLocale()].freeHint}</p>${freeState ? `<p><strong>${copy[getLocale()].freeLeft(freeLeft('ask'), freeLeft('grade'))}</strong></p>` : ''}${freeState?.signedIn ? '' : `<p class="field-hint">${copy[getLocale()].freeLocal}</p>`}</div>
+      ${isFree(modelDraft) ? `<div class="free-settings"><p>${copy[getLocale()].freeHint}</p>${freeState ? `<p><strong>${copy[getLocale()].freeLeft(freeLeft('ask'), freeLeft('grade'), freeLeft('photo'))}</strong></p>` : ''}${freeState?.signedIn ? '' : `<p class="field-hint">${copy[getLocale()].freeLocal}</p>`}</div>
       <div class="sharing-notice"><label class="check-row consent-row"><input id="model-consent" type="checkbox" ${consentDraft ? 'checked' : ''} ${testing ? 'disabled' : ''}><span>${copy[getLocale()].freeConsent}</span></label></div>` : `
       ${modelDraft.provider !== 'deepseek' ? `<label class="field-label" for="workspace">${t('workspace')}${p.workspaceRequired ? ' *' : ''}</label><input id="workspace" type="text" maxlength="63" value="${esc(modelDraft.workspace)}" ${testing ? 'disabled' : ''}><p class="field-hint">${t('workspaceHint')}</p>` : ''}
       <label class="field-label" for="api-key">${t('key')}</label><input id="api-key" type="password" autocomplete="off" spellcheck="false" maxlength="512" required aria-describedby="key-hint" ${testing ? 'disabled' : ''}><p id="key-hint" class="field-hint">${t('keyHint')}</p>
@@ -231,12 +242,12 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
       <div class="messages" aria-label="${t('history')}" aria-busy="${busy}">${messages.length ? messages.map((message, index) => messageView(message, index === messages.length - 1)).join('') : `<div class="empty-state"><div class="empty-icon" aria-hidden="true">?</div><h3>${t('empty')}</h3><p>${t('emptyHint')}</p></div>`}</div>
       ${busy ? `<p class="pending-indicator" role="status">${t('sending')}</p>` : ''}
       <p class="error chat-notice" role="alert">${esc(notice || (corrupt ? t('corrupt') : ''))}</p>
-      <form id="question-form"><label class="field-label" for="question">${t('ask')}</label><textarea id="question" rows="4" maxlength="8000" placeholder="${t('placeholder')}" ${busy ? 'disabled' : ''}>${esc(input)}</textarea><div class="composer-footer"><span class="muted">${t('privacy')}</span>${busy ? `<button type="button" id="stop-request" class="secondary-button">${t('stop')}</button>` : `<button type="button" id="voice-input" class="secondary-button">${getLocale()==='zh'?'语音输入':'Voice input'}</button><button type="submit" class="primary-button">${t('send')} →</button>`}</div><p class="field-hint">${getLocale()==='zh'?'语音由浏览器识别，可能使用浏览器服务商的云服务；点击后才请求权限。本 App 不保存录音，不支持时可用系统键盘语音输入。':'Speech recognition may use your browser provider’s cloud service. Permission is requested on click. No audio is stored by this app; use keyboard dictation if unsupported.'}</p></form>
+      <form id="question-form"><label class="field-label" for="question">${t('ask')}</label><textarea id="question" rows="4" ${photoStatus === t('photoDone') ? 'class="photo-text"' : ''} maxlength="8000" placeholder="${t('placeholder')}" ${busy ? 'disabled' : ''}>${esc(input)}</textarea><div class="composer-footer"><span class="muted">${t('privacy')}</span>${busy ? `<button type="button" id="stop-request" class="secondary-button">${t('stop')}</button>` : `<button type="button" id="photo-input" class="secondary-button" aria-label="${t('photo')}" ${photoBusy ? 'disabled' : ''}>📷 ${t('photo')}</button><input type="file" id="photo-file" accept="image/*" hidden><button type="button" id="voice-input" class="secondary-button">${getLocale()==='zh'?'语音输入':'Voice input'}</button><button type="submit" class="primary-button" ${photoBusy ? 'disabled' : ''}>${t('send')} →</button>`}</div>${photoStatus ? `<p class="verified photo-status" role="status">${esc(photoStatus)}</p>` : ''}<p class="field-hint">${getLocale()==='zh'?'语音由浏览器识别，可能使用浏览器服务商的云服务；点击后才请求权限。本 App 不保存录音，不支持时可用系统键盘语音输入。':'Speech recognition may use your browser provider’s cloud service. Permission is requested on click. No audio is stored by this app; use keyboard dictation if unsupported.'}</p></form>
       ${messages.at(-1)?.role === 'assistant' && !busy ? `<div class="followups"><button class="secondary-button" data-followup="simpler">${t('simpler')}</button><button class="secondary-button" data-followup="example">${t('example')}</button></div>` : ''}</section>`;
   }
   // Free allowance bar: what is left today, the local-mode note, and the one-time consent to send questions to 智谱.
   function freeBar() {
-    const words = copy[getLocale()], left = freeState ? words.freeLeft(freeLeft('ask'), freeLeft('grade')) : '';
+    const words = copy[getLocale()], left = freeState ? words.freeLeft(freeLeft('ask'), freeLeft('grade'), freeLeft('photo')) : '';
     if (!auth?.freeModel) return `<div class="connection-bar"><span class="status-dot"></span><span>${t('error-free-unavailable')}</span><button class="text-button" data-model-settings ${busy ? 'disabled' : ''}>${t('modelSettings')}</button></div>`;
     return `<div class="connection-bar free-bar"><span class="status-dot ${ready() ? 'ready' : ''}"></span><span><strong>${words.freeName}</strong>${left ? ` · ${left}` : ''}</span><button class="text-button" data-model-settings ${busy ? 'disabled' : ''}>${t('modelSettings')}</button></div>
       ${freeState && !freeState.signedIn ? `<p class="field-hint free-note">${words.freeLocal}</p>` : ''}
@@ -333,10 +344,35 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
       if (signal?.aborted) throw Object.assign(new Error('Cancelled'), { code: 'cancelled' });
       if (error.name === 'TimeoutError') throw Object.assign(new Error('Timeout'), { code: 'timeout' });
       throw error;
-    } finally { if (free && ['/api/chat', '/api/review-task'].includes(path)) loadFreeState(); }
+    } finally { if (free && ['/api/chat', '/api/review-task', '/api/recognize'].includes(path)) loadFreeState(); }
+  }
+  async function recognizePhoto(file) {
+    const module = activeModule;
+    photoBusy = true; photoStatus = t('photoReading'); notice = ''; refresh();
+    try {
+      let image;
+      try { const blob = await resizeImage(file, { maxSide: 1600 }); image = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); }); }
+      catch (error) { throw Object.assign(new Error('photo'), { code: error.message === 'size' ? 'large' : 'photo' }); }
+      const result = await request('/api/recognize', { config: { ...config }, apiKey, consent, locale: getLocale(), image });
+      const before = (inputs[module] || '').trim();
+      inputs[module] = before ? `${before}\n${result.text}` : result.text;
+      photoStatus = t('photoDone');
+    } catch (error) { photoStatus = ''; notice = errorText(error.code || 'generic'); }
+    finally { photoBusy = false; refresh(); document.querySelector('#question')?.focus(); }
   }
   function bindChat() {
-    const voice=document.querySelector('#voice-input');if(voice)voice.onclick=()=>{
+    const photo = document.querySelector('#photo-input'), photoFile = document.querySelector('#photo-file');
+    if (photo && photoFile) {
+      photo.onclick = () => {
+        if (busy || photoBusy) return;
+        if (!ready()) { notice = t('photoNeedsModel'); refresh(); return; }
+        if (!VISION.includes(config.provider)) { notice = errorText('vision-unsupported'); refresh(); return; }
+        let seen = false; try { seen = localStorage.getItem(PHOTO_NOTICE_KEY) === '1'; } catch { /* Ask this time. */ }
+        if (!seen) { const name = isFree() ? (getLocale() === 'zh' ? '智谱 AI' : 'Zhipu AI') : providers[config.provider].name; if (!confirm(t('photoNotice')(name))) return; try { localStorage.setItem(PHOTO_NOTICE_KEY, '1'); } catch { /* Asks again next time. */ } }
+        photoFile.click();
+      };
+      photoFile.onchange = () => { const file = photoFile.files[0]; photoFile.value = ''; if (file) recognizePhoto(file); };
+    }    const voice=document.querySelector('#voice-input');if(voice)voice.onclick=()=>{
       if(recognition){recognition.stop();return;}
       const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
       if(!Speech){notice=getLocale()==='zh'?'浏览器未提供语音识别，请用系统键盘语音输入。':'Speech recognition is unavailable. Use keyboard dictation.';refresh();return;}
@@ -375,6 +411,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     user.status = 'pending'; delete user.error; notice = '';
     if (!saveChats()) { user.status = 'failed'; if (!retryId) inputs[activeModule] = text; refresh(); return; }
     const sentModule = activeModule;
+    photoStatus = '';
     const requestBody = { config: { ...config }, apiKey, consent, ...moduleInfo(sentModule), level: getProfile().modules[sentModule].level, locale: getLocale(), messages };
     // A retry resends a stored question; the box may hold a different draft that must stay.
     controller = new AbortController(); busy = true; if (!retryId) inputs[sentModule] = ''; refresh();

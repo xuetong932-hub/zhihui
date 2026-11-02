@@ -145,12 +145,16 @@ create table if not exists public.free_usage (
   day date not null,
   ask_used int not null default 0 check (ask_used >= 0),
   grade_used int not null default 0 check (grade_used >= 0),
+  photo_used int not null default 0 check (photo_used >= 0),
   primary key (user_id, day)
 );
+-- Added with photo questions; safe to run again on a table created before.
+alter table public.free_usage add column if not exists photo_used int not null default 0 check (photo_used >= 0);
 alter table public.free_usage enable row level security;
 revoke all on public.free_usage from public, anon, authenticated;
 
--- action: 'status' | 'consume' | 'refund'; kind: 'ask' (questions, 20 a day) | 'grade' (review grading, 30 a day).
+-- action: 'status' | 'consume' | 'refund'; kind: 'ask' (questions, 20 a day) | 'grade' (review grading, 30 a day)
+-- | 'photo' (photo-question text recognition, 20 a day).
 create or replace function public.free_quota(action text, kind text default 'ask') returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
@@ -158,20 +162,21 @@ declare
   today date := (now() at time zone 'Asia/Shanghai')::date;
   ask_limit constant int := 20;
   grade_limit constant int := 30;
+  photo_limit constant int := 20;
   used public.free_usage;
   ok boolean := true;
 begin
   if uid is null or not public.is_adult() then raise exception 'not eligible' using errcode = '42501'; end if;
-  if action not in ('status', 'consume', 'refund') or kind not in ('ask', 'grade') then raise exception 'invalid request' using errcode = '22023'; end if;
+  if action not in ('status', 'consume', 'refund') or kind not in ('ask', 'grade', 'photo') then raise exception 'invalid request' using errcode = '22023'; end if;
   insert into public.free_usage(user_id, day) values (uid, today) on conflict do nothing;
   select * into used from public.free_usage where user_id = uid and day = today for update;
   if action = 'consume' then
-    ok := case kind when 'ask' then used.ask_used < ask_limit else used.grade_used < grade_limit end;
-    if ok then update public.free_usage set ask_used = ask_used + (kind = 'ask')::int, grade_used = grade_used + (kind = 'grade')::int where user_id = uid and day = today returning * into used; end if;
+    ok := case kind when 'ask' then used.ask_used < ask_limit when 'grade' then used.grade_used < grade_limit else used.photo_used < photo_limit end;
+    if ok then update public.free_usage set ask_used = ask_used + (kind = 'ask')::int, grade_used = grade_used + (kind = 'grade')::int, photo_used = photo_used + (kind = 'photo')::int where user_id = uid and day = today returning * into used; end if;
   elsif action = 'refund' then
-    update public.free_usage set ask_used = greatest(0, ask_used - (kind = 'ask')::int), grade_used = greatest(0, grade_used - (kind = 'grade')::int) where user_id = uid and day = today returning * into used;
+    update public.free_usage set ask_used = greatest(0, ask_used - (kind = 'ask')::int), grade_used = greatest(0, grade_used - (kind = 'grade')::int), photo_used = greatest(0, photo_used - (kind = 'photo')::int) where user_id = uid and day = today returning * into used;
   end if;
-  return jsonb_build_object('allowed', ok, 'ask_used', used.ask_used, 'ask_limit', ask_limit, 'grade_used', used.grade_used, 'grade_limit', grade_limit);
+  return jsonb_build_object('allowed', ok, 'ask_used', used.ask_used, 'ask_limit', ask_limit, 'grade_used', used.grade_used, 'grade_limit', grade_limit, 'photo_used', used.photo_used, 'photo_limit', photo_limit);
 end $$;
 revoke all on function public.free_quota(text, text) from public, anon;
 grant execute on function public.free_quota(text, text) to authenticated;

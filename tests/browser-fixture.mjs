@@ -1,6 +1,7 @@
 // Isolated browser QA only. Not loaded by npm start; never calls external services.
 import { createApp } from '../server.mjs';
 import { validateRequest, ServiceError } from '../model-service.mjs';
+import { validateRecognize } from '../recognize-service.mjs';
 import { createFakeSupabase, FAKE_PREFIX } from './fake-supabase.mjs';
 import { readFileSync } from 'node:fs';
 // Fake account service: every code is 123456. The administrator signs in with the username and password from
@@ -11,6 +12,8 @@ const fake = createFakeSupabase({ adminEmails: [], seedAdmin: admin && { email: 
 const app = createApp({publicConfig: host => ({ url: `http://${host}${FAKE_PREFIX}`, publicKey: 'sb_publishable_fake_test_only', ...(admin ? { adminLogin: { username: admin.username, email: admin.email } } : {}) }), extraRoute: fake.route,
   // The free allowance runs against the fake account service's free_quota and the test model below; no real key.
   freeModelKey: 'test-free-allowance-not-real',
+  // Photo questions: checks the request like the real service, then returns fixed text (not real recognition).
+  recognizeCaller: async input => { validateRecognize(input); return { text: '测试识别：什么是闭包？它和作用域有什么关系？（隔离测试，不是真实识别结果）' }; },
   // Test responses for the user-triggered model features; clearly not real model output.
   relationCaller: async input => ({ relations: input.cards.slice(1).map((card, i) => ({ a: input.cards[i].id, b: card.id, label: '测试关系' })) }),
   mindmapCaller: async () => ({ prerequisites: ['测试：前置知识'], subconcepts: ['测试：子概念一', '测试：子概念二'], misconceptions: ['测试：常见误区'], applications: ['测试：延伸应用'] }),

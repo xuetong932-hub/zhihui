@@ -261,3 +261,4 @@ footer{color:var(--stone);border-top:1px solid var(--hairline-soft);margin-top:4
 [data-theme="dark"] .viz-editor{background:#7cc4a00f;border-color:#7cc4a055}
 .flip-hint{color:var(--muted);margin:6px 0 16px}.flip-answer{margin:4px 0 8px;padding:14px 16px;border-radius:12px;background:#30694f0d;border-left:3px solid #30694f}.flip-example{margin:10px 0 0;font-size:14px}.flip-rating{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}[data-theme="dark"] .flip-answer{background:#7cc4a014;border-left-color:#7cc4a0}
 .flip-rating button{justify-content:center;text-align:center}
+.photo-status{margin:8px 0 0;font-size:13px}
