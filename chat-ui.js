@@ -11,6 +11,7 @@ import {moduleIcon} from './module-icons.js';
 import {createDiscoverUI} from './discover-ui.js';
 import {resizeImage} from './background.js';
 import {starterQuestions,starterCards,hasStarterPack,starterPackPanel} from './starter-content.js';
+import {createOnboarding,onboardingDone,markOnboardingDone} from './onboarding.js';
 import {LOCAL_MODE_KEY} from './auth-ui.js';
 
 const copy = {
@@ -212,12 +213,12 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     const zh=getLocale()==='zh',item=(attr,label,current)=>`<button class="text-button ${current.includes(page)?'active':''}" ${attr} ${current.includes(page)?'aria-current="page"':''}>${label}</button>`;
     const inMore=['device','cloud','admin','model'].includes(page);
     return `<nav class="app-nav" aria-label="${t('home')}">${item('data-chat-home',t('home'),['home','chat'])}${item('data-review',zh?'复习':'Review',['review'])}${item('data-library',zh?'知识库':'Knowledge',['library'])}${item('data-recommend',zh?'推荐':'For you',['recommend'])}${item('data-square',zh?'广场':'Square',['square'])}
-      <details class="nav-more"><summary class="text-button ${inMore?'active':''}">${zh?'更多':'More'} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span><span aria-hidden="true">▾</span></summary><div class="nav-menu">${item('data-device',zh?'设备':'Device',['device'])}${getAccount?.()?.local?`<button class="text-button" data-signin>${zh?'登录 / 注册':'Sign in / Register'}</button>`:item('data-cloud',zh?'账号':'Account',['cloud'])}${getAccount?.()?.is_admin?item('data-admin',zh?'管理':'Admin',['admin']):''}${item('data-model-settings',`${t('modelSettings')} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span>`,['model'])}</div></details></nav>`;
+      <details class="nav-more"><summary class="text-button ${inMore?'active':''}">${zh?'更多':'More'} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span><span aria-hidden="true">▾</span></summary><div class="nav-menu">${item('data-device',zh?'设备':'Device',['device'])}${getAccount?.()?.local?`<button class="text-button" data-signin>${zh?'登录 / 注册':'Sign in / Register'}</button>`:item('data-cloud',zh?'账号':'Account',['cloud'])}${getAccount?.()?.is_admin?item('data-admin',zh?'管理':'Admin',['admin']):''}<button class="text-button" data-onboarding>${zh?'产品演示':'Product tour'}</button>${item('data-model-settings',`${t('modelSettings')}<span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span>`,['model'])}</div></details></nav>`;
   }
   // Phone layout: 推荐 and 广场 share one 发现 tab with a switch at the top.
   let discoverTab='recommend';
   function discoverView(){const zh=getLocale()==='zh';return `<div class="segmented discover-switch" role="group" aria-label="${zh?'发现':'Discover'}">${[['recommend',zh?'推荐':'For you'],['square',zh?'广场':'Square']].map(([id,label])=>`<button type="button" class="${discoverTab===id?'active':''}" data-discover-tab="${id}" aria-pressed="${discoverTab===id}">${label}</button>`).join('')}</div>${discoverTab==='square'?discover.squareView():discover.recommendView()}`;}
-  function view() { return page==='discover'?discoverView():page==='recommend'?discover.recommendView():page==='square'?discover.squareView():page==='admin'?admin.view():page==='cloud'?cloud.view():page==='device'?device.view():page === 'review' ? review.view() : page === 'library' ? library.view() : page === 'model' ? modelView() : chatView(); }
+  function view() { return page==='onboarding'?onboarding.view():page==='discover'?discoverView():page==='recommend'?discover.recommendView():page==='square'?discover.squareView():page==='admin'?admin.view():page==='cloud'?cloud.view():page==='device'?device.view():page === 'review' ? review.view() : page === 'library' ? library.view() : page === 'model' ? modelView() : chatView(); }
   function modelView() {
     const p = providers[modelDraft.provider];
     return `<section class="intro model-intro"><div><span class="eyebrow">${t('modelSettings')}</span><h1>${t('modelTitle')}</h1><p>${isFree(modelDraft) ? (getLocale() === 'zh' ? '默认使用知回免费额度，不需要填写 Key；也可以改选服务商，使用自己的 Key。' : 'The free allowance is used by default with no key; you can switch to a provider with your own key.') : t('modelHint')}</p></div><a class="inline-link model-help-link" id="model-help-link" href="#model-config-guide" aria-haspopup="dialog">${getLocale()==='zh'?'配置说明':'Setup guide'} ↗</a></section>
@@ -282,6 +283,8 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     document.querySelectorAll('[data-library]').forEach(button=>{button.onclick=()=>{if(!busy&&!testing&&!review.busy&&!library.busy){page='library';refresh();}};});
     // Leaving local mode: forget the choice and show the sign-in page; local records stay and are offered to the account.
     document.querySelectorAll('[data-signin]').forEach(button=>button.onclick=()=>{if(locked())return;try{localStorage.removeItem(LOCAL_MODE_KEY);}catch{/* Ignored. */}location.reload();});
+    if (page === 'onboarding') onboarding.bind();
+    document.querySelectorAll('[data-onboarding]').forEach(button=>button.onclick=()=>{if(locked())return;onboarding.reset();page='onboarding';refresh();window.scrollTo(0,0);});
     document.querySelectorAll('[data-starter-add]').forEach(button=>button.onclick=()=>{if(locked())return;const ids=button.dataset.starterAdd==='all'?starterModules():[button.dataset.starterAdd];const added=library.addCards(ids.flatMap(id=>starterCards(id,getLocale())));if(added){starterAdded=added;}refresh();});
     document.querySelectorAll('[data-starter-dismiss]').forEach(button=>button.onclick=()=>{try{localStorage.setItem(STARTER_DISMISS_KEY,'1');}catch{/* Hidden for this page only. */}starterAdded=0;refresh();});
     document.querySelectorAll('[data-starter-practise]').forEach(button=>button.onclick=()=>{if(locked())return;starterAdded=0;page='review';review.startExtra();refresh();window.scrollTo(0,0);});
@@ -414,7 +417,8 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
       else { inputs[activeModule] = appendDraft(inputs[activeModule], item.content); refresh(); document.querySelector('#question').focus(); }
     }; });
   }
-  async function send(text, retryId) {
+  // brief: the first-run guide asks for a short answer; everything else (saving, knowledge cards) is the normal flow.
+  async function send(text, retryId, { brief = false } = {}) {
     if (busy || library.busy) return;
     const content = text.trim();
     if (!content || content.length > 8000) { notice = t('length'); refresh(); return; }
@@ -428,7 +432,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     if (!saveChats()) { user.status = 'failed'; if (!retryId) inputs[activeModule] = text; refresh(); return; }
     const sentModule = activeModule;
     photoStatus = '';
-    const requestBody = { config: { ...config }, apiKey, consent, ...moduleInfo(sentModule), level: getProfile().modules[sentModule].level, locale: getLocale(), messages };
+    const requestBody = { config: { ...config }, apiKey, consent, ...moduleInfo(sentModule), level: getProfile().modules[sentModule].level, locale: getLocale(), messages, ...(brief ? { brief: true } : {}) };
     // A retry resends a stored question; the box may hold a different draft that must stay.
     controller = new AbortController(); busy = true; if (!retryId) inputs[sentModule] = ''; refresh();
     try {
@@ -450,6 +454,22 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     } finally { busy = false; controller = null; requestBody.apiKey = ''; refresh(); }
   }
   loadFreeState();
+  // First-run guide: asks through the normal flow (saved, and turned into the first card) with a short answer.
+  const onboarding = createOnboarding({ locale: getLocale, refresh, canAsk: () => ready(),
+    modules: () => activeModuleIds(getProfile()).map(id => ({ id, name: moduleName(id), icon: moduleIcon(getProfile(), id, 16) })),
+    level: id => getProfile().modules[id]?.level || 'beginner',
+    needsConsent: () => isFree() && Boolean(auth?.freeModel) && !consent,
+    giveConsent: () => { consent = true; try { localStorage.setItem(FREE_CONSENT_KEY, '1'); } catch { /* This page only. */ } },
+    ask: async (module, question) => {
+      activeModule = module; delete selected[module];
+      await send(question, undefined, { brief: true });
+      const answer = thread()?.messages.at(-1);
+      if (answer?.role !== 'assistant' || answer.status !== 'done') return { error: notice || undefined };
+      return { answer: answer.content, card: library.cards().find(card => card.origins.some(origin => origin.id === answer.id)) || null };
+    },
+    finish: () => { markOnboardingDone(); onboarding.reset(); page = 'home'; notice = ''; refresh(); window.scrollTo(0, 0); } });
+  // A brand-new user (nothing asked, empty library) starts with the guide; anyone can replay it from 我的 / 更多.
+  if (!onboardingDone() && !Object.values(chats.modules).some(list => list.length) && !library.activeCount()) page = 'onboarding';
   return { nav, view, bind, openModule, openModel, get isHome() { return page === 'home'; },
     // Used by the phone tab bar: the current page, and switching pages (ignored while something is running).
     get page() { return page; },

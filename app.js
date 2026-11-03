@@ -205,7 +205,7 @@ function boot() {
     const name = account?.local ? (zh ? '本地模式' : 'Local mode') : account?.username || (account?.is_admin ? (zh ? '管理员' : 'Administrator') : (zh ? '已登录' : 'Signed in'));
     return `<section class="me-head"><span class="me-avatar">${iconSvg('user', 28)}</span><div><h1>${esc(name)}</h1><p>${account?.local ? (zh ? '记录只保存在这台设备' : 'Records stay on this device') : (zh ? '学习记录保存在本机，可在账号中加密同步' : 'Records are kept here; encrypted sync is in Account')}</p></div></section>
       <div class="me-group"><h2>${zh ? '学习' : 'Learning'}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), zh ? `目标 ${goalOf(profile)} 张` : `Goal ${goalOf(profile)}`)}${row('id="background-open"', iconSvg('palette'), zh ? '背景' : 'Background')}${row('id="theme-toggle"', iconSvg('bulb'), zh ? '外观' : 'Appearance', dark ? (zh ? '黑夜' : 'Night') : (zh ? '白天' : 'Day'))}${row('id="language"', iconSvg('globe'), zh ? '语言' : 'Language', zh ? '中文' : 'English')}</div>
-      <div class="me-group"><h2>${zh ? '账号与设备' : 'Account & device'}</h2>${account?.local ? row('data-signin', iconSvg('user'), zh ? '登录 / 注册' : 'Sign in / Register') : row('data-cloud', iconSvg('user'), zh ? '账号与同步' : 'Account & sync')}${row('data-device', iconSvg('camera'), zh ? '设备与提醒' : 'Device & reminders')}${account?.is_admin ? row('data-admin', iconSvg('chart'), zh ? '管理' : 'Admin') : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}</div>
+      <div class="me-group"><h2>${zh ? '账号与设备' : 'Account & device'}</h2>${account?.local ? row('data-signin', iconSvg('user'), zh ? '登录 / 注册' : 'Sign in / Register') : row('data-cloud', iconSvg('user'), zh ? '账号与同步' : 'Account & sync')}${row('data-device', iconSvg('camera'), zh ? '设备与提醒' : 'Device & reminders')}${account?.is_admin ? row('data-admin', iconSvg('chart'), zh ? '管理' : 'Admin') : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}${row('data-onboarding', iconSvg('compass'), zh ? '产品演示' : 'Product tour')}</div>
       <p class="development-note">${t('preview')}</p>`;
   }
   // Daily goal: cards reviewed today against the goal, days in a row it was met, and the check-in image once reached.
@@ -245,10 +245,11 @@ function boot() {
   function renderPage() {
     document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
     document.title = t('brand');
-    const inApp = Boolean(chat), locked = inApp ? chat.locked : gate.busy, tabs = phone && inApp && profile && !editing;
+    // The first-run guide is full-screen: no tab bar and no page navigation until it is finished or skipped.
+    const inApp = Boolean(chat), locked = inApp ? chat.locked : gate.busy, guide = inApp && chat.page === 'onboarding', tabs = phone && inApp && profile && !editing && !guide;
     app.innerHTML = `
       <header class="header"><a class="brand" href="${phone ? '/m/' : '/'}" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
-        ${tabs ? '' : `<div class="header-actions">${inApp && profile && !editing ? chat.nav() : ''}${themeButton()}<button class="text-button theme-toggle" id="background-open" aria-label="${locale === 'zh' ? '背景' : 'Background'}"><span aria-hidden="true">▧</span><span class="theme-name">${locale === 'zh' ? '背景' : 'Background'}</span></button><button class="text-button" id="language" ${locked ? 'disabled' : ''}>${t('language')}</button></div>`}</header>
+        ${tabs ? '' : `<div class="header-actions">${inApp && profile && !editing && !guide ? chat.nav() : ''}${themeButton()}<button class="text-button theme-toggle" id="background-open" aria-label="${locale === 'zh' ? '背景' : 'Background'}"><span aria-hidden="true">▧</span><span class="theme-name">${locale === 'zh' ? '背景' : 'Background'}</span></button><button class="text-button" id="language" ${locked ? 'disabled' : ''}>${t('language')}</button></div>`}</header>
       <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? meView() : chat.isHome ? homeView() : chat.view()}</main>
       ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
