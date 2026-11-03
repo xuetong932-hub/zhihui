@@ -13,6 +13,8 @@ const files = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
   ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','module-icons.js','background.js','discover-ui.js','starter-content.js','habit.js','fsrs.js','onboarding.js','theme.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','graph-view.js','mindmap.js','viz-edit.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
   ['/manifest.webmanifest',['manifest.webmanifest','application/manifest+json']],['/icon.svg',['icon.svg','image/svg+xml']],
+  // PNG icons for installing to a phone (Android app package, home screen); made from icon.svg.
+  ...['icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png'].map(name => [`/${name}`, [name, 'image/png']]),
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   // Built-in background photos (see docs/BACKGROUNDS.md), each with a small thumbnail for the picker.
   ...['lake','forest','sea','anime-day','anime-night','neon-street','neon-city','silhouette'].flatMap(id => [`/backgrounds/${id}.jpg`, `/backgrounds/${id}-thumb.jpg`]).map(path => [path, [path.slice(1), 'image/jpeg']]),
