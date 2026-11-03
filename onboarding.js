@@ -7,6 +7,18 @@ import { iconSvg } from './module-icons.js';
 import { escapeHtml as e, renderAnswer } from './chat-store.js';
 export const ONBOARDING_KEY = 'knowledge-review.onboarding.v1';
 export const onboardingDone = () => { try { return localStorage.getItem(ONBOARDING_KEY) === '1'; } catch { return true; } };
+// The browser's speech-recognition error codes, explained for the user (shared with the question page).
+export function speechErrorText(code, zh) {
+  const words = {
+    'not-allowed': ['麦克风权限被拒绝。请在浏览器或手机设置中允许本网站使用麦克风，或改用文字输入。', 'Microphone access was denied. Allow it for this site in your browser or phone settings, or type instead.'],
+    'service-not-allowed': ['当前浏览器不允许使用语音识别，请换一个浏览器或改用文字输入。', 'This browser does not allow speech recognition. Try another browser or type instead.'],
+    'audio-capture': ['没有找到可用的麦克风，请检查设备，或改用文字输入。', 'No microphone was found. Check your device or type instead.'],
+    network: ['语音识别需要联网，现在连接不上识别服务，请改用文字输入。', 'Speech recognition needs a connection to its service, which is unavailable. Please type instead.'],
+    'no-speech': ['没有听到声音，请靠近话筒再试一次。', 'No speech was heard. Move closer to the mic and try again.'],
+  }[code];
+  if (code === 'aborted') return '';
+  return words ? words[zh ? 0 : 1] : (zh ? '语音识别没有完成，请重试或改用文字输入。' : 'Speech recognition did not finish. Try again or type instead.');
+}
 export const markOnboardingDone = () => { try { localStorage.setItem(ONBOARDING_KEY, '1'); } catch { /* Shown again next time. */ } };
 
 // Used only when no model is available: one prepared answer per built-in module, clearly labelled as an example.
@@ -94,7 +106,7 @@ export function createOnboarding(deps) {
     const Recognition = Speech(); if (!Recognition) return;
     recognition = new Recognition(); recognition.lang = zh() ? 'zh-CN' : 'en-US'; recognition.interimResults = true; recognition.continuous = false;
     recognition.onresult = event => { text = [...event.results].map(item => item[0].transcript).join(''); const box = document.querySelector('[data-onb-text]'); if (box) box.value = text; const send = document.querySelector('[data-onb-send]'); if (send) send.disabled = !text.trim() || (deps.needsConsent() && !agreed); };
-    recognition.onerror = () => { error = tr('没有听清，请再试一次或改用文字。', 'Could not hear you. Try again or type instead.'); listening = false; deps.refresh(); };
+    recognition.onerror = event => { error = speechErrorText(event.error, zh()); listening = false; deps.refresh(); };
     recognition.onend = () => { listening = false; recognition = null; deps.refresh(); };
     try { recognition.start(); listening = true; error = ''; } catch { listening = false; }
     deps.refresh();

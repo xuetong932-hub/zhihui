@@ -11,7 +11,7 @@ import {moduleIcon} from './module-icons.js';
 import {createDiscoverUI} from './discover-ui.js';
 import {resizeImage} from './background.js';
 import {starterQuestions,starterCards,hasStarterPack,starterPackPanel} from './starter-content.js';
-import {createOnboarding,onboardingDone,markOnboardingDone} from './onboarding.js';
+import {createOnboarding,onboardingDone,markOnboardingDone,speechErrorText} from './onboarding.js';
 import {LOCAL_MODE_KEY} from './auth-ui.js';
 
 const copy = {
@@ -398,7 +398,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
       const module=activeModule;recognition=new Speech();recognition.lang=getLocale()==='zh'?'zh-CN':'en-US';recognition.interimResults=false;
       // Append to the draft as it is now, so text typed while dictating is kept.
       recognition.onresult=event=>{const transcript=newTranscript(event.results,event.resultIndex);if(!transcript)return;inputs[module]=appendDraft(inputs[module],transcript,' ');const field=document.querySelector('#question');if(page==='chat'&&activeModule===module&&field)field.value=inputs[module];};
-      recognition.onerror=()=>{notice=getLocale()==='zh'?'语音识别未完成，请检查权限或使用文字输入。':'Speech recognition incomplete. Check permissions or type instead.';};
+      recognition.onerror=event=>{notice=speechErrorText(event.error,getLocale()==='zh');};
       recognition.onend=()=>{recognition=null;refresh();};try{recognition.start();voice.textContent=getLocale()==='zh'?'停止语音':'Stop dictation';}catch{recognition=null;notice=getLocale()==='zh'?'无法启动语音识别。':'Could not start dictation.';refresh();}
     };
     document.querySelectorAll('[data-switch-module]').forEach(button => { button.onclick = () => openModule(button.dataset.switchModule); });

@@ -13,3 +13,12 @@ test('first-run guide: brief answers only when asked, and the flag must be a boo
   assert.ok(validateRequest(request()));
   assert.throws(() => validateRequest(request({ brief: 'yes' })), { code: 'request' });
 });
+
+test('speech errors are explained by cause; an intentional stop shows nothing', async () => {
+  const { speechErrorText } = await import('../onboarding.js');
+  assert.match(speechErrorText('not-allowed', true), /麦克风权限被拒绝/);
+  assert.match(speechErrorText('network', true), /联网/);
+  assert.match(speechErrorText('no-speech', false), /No speech/);
+  assert.equal(speechErrorText('aborted', true), '');
+  assert.match(speechErrorText('something-new', true), /没有完成/);
+});
