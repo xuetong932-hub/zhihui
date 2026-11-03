@@ -116,7 +116,19 @@ export function createApp({ modelCaller = callModel, knowledgeCaller = extractKn
     } catch { json(response, 500, { error: 'internal' }); }
   });
 }
+// Local development secrets: server.local.json (gitignored via *.local.json) may hold the operator settings below.
+// Environment variables always win. Values are never logged, and are only read when this file is started directly.
+const LOCAL_SETTINGS = ['ZHIPU_API_KEY', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'ADMIN_USERNAME', 'ADMIN_LOGIN_EMAIL', 'GOOGLE_CLIENT_ID'];
+async function loadLocalSettings() {
+  let values;
+  try { values = JSON.parse(await readFile(fileURLToPath(new URL('server.local.json', import.meta.url)), 'utf8')); } catch { return []; }
+  const loaded = [];
+  for (const name of LOCAL_SETTINGS) if (!process.env[name] && typeof values?.[name] === 'string' && values[name].trim()) { process.env[name] = values[name].trim(); loaded.push(name); }
+  return loaded;
+}
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const loaded = await loadLocalSettings();
+  if (loaded.length) console.log(`Loaded from server.local.json: ${loaded.join(', ')}`);
   const port = Number(process.env.PORT || 4174);
   createApp().listen(port, '127.0.0.1', () => console.log(`Knowledge Review: http://127.0.0.1:${port}`));
 }
