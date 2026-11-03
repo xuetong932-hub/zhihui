@@ -47,6 +47,17 @@ test('Google and Apple sign-in are offered only when the account service has the
   assert.deepEqual(await start({ oauth: ['google', 'apple'] }), ['google', 'apple']);
 });
 
+test('a code the provider refuses to send is reported as such, not as a network problem', async t => {
+  const fake = createFakeSupabase({ failSend: true });
+  const app = createApp({ publicConfig: host => ({ url: `http://${host}${FAKE_PREFIX}`, publicKey: 'sb_publishable_fake_test_only' }), extraRoute: fake.route });
+  app.listen(0, '127.0.0.1'); await once(app, 'listening');
+  t.after(() => { app.closeAllConnections(); app.close(); });
+  const origin = `http://127.0.0.1:${app.address().port}`;
+  const auth = createAuth({ fetchImpl: (url, options) => fetch(url.startsWith('/') ? origin + url : url, options), storage: memory(), session: memory(), location: { href: origin + '/', origin, assign() {} }, history: { replaceState() {} } });
+  await auth.init();
+  await assert.rejects(auth.sendCode({ method: 'phone', identifier: '+601100000000', create: true }), error => error.code === 'sms_send_failed' && error.status === 422);
+});
+
 test('sign-up, the server age check, admin listing and session restore work end to end against the test service', async t => {
   const fake = createFakeSupabase({ adminEmails: ['admin@example.test'] });
   const app = createApp({ publicConfig: host => ({ url: `http://${host}${FAKE_PREFIX}`, publicKey: 'sb_publishable_fake_test_only' }), extraRoute: fake.route });

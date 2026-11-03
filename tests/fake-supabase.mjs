@@ -8,7 +8,7 @@ export const FAKE_CODE = '123456';
 const REGIONS = ['CN','HK','MO','TW','SG','MY','US','GB','CA','AU','JP','KR','OTHER'];
 
 // seedAdmin: an administrator that exists from the start and signs in with a password (like an operator-created one).
-export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedAdmin = null, now = () => new Date(), oauth = [] } = {}) {
+export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedAdmin = null, now = () => new Date(), oauth = [], failSend = false } = {}) {
   const users = new Map(), tokens = new Map(), refreshTokens = new Map(), eligibility = new Map(), profiles = new Map(), admins = new Set(), snapshots = new Map(), freeUsage = new Map();
   // A fixed id keeps the preset administrator the same account across test-service restarts.
   if (seedAdmin) { const user = { id: '00000000-0000-4000-8000-0000000000ad', email: seedAdmin.email, phone: '', password: seedAdmin.password, created_at: now().toISOString() }; users.set(user.id, user); admins.add(user.id); }
@@ -66,6 +66,8 @@ export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedA
   async function route(request, response, path) {
     if (!path.startsWith(FAKE_PREFIX + '/')) return false;
     const sub = path.slice(FAKE_PREFIX.length), url = new URL(request.url, 'http://fake'), method = request.method;
+    // A provider refusing to send (e.g. a trial SMS account and an unlisted number), as the real service reports it.
+    if (sub === '/auth/v1/otp' && method === 'POST' && failSend) { send(response, 422, { code: 422, error_code: 'sms_send_failed', msg: 'Error sending confirmation OTP to provider: provider detail' }); return true; }
     if (sub === '/auth/v1/otp' && method === 'POST') {
       const { email, phone, create_user: create } = await body(request);
       if (!email && !phone) { fail(response, 400, 'missing identifier'); return true; }

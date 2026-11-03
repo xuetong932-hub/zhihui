@@ -7,6 +7,8 @@ export const AGE_POLICY_VERSION='2026-11';
 export const REGIONS=['CN','HK','MO','TW','SG','MY','US','GB','CA','AU','JP','KR','OTHER'];
 // Server error messages the client may show (translated); anything else stays generic.
 const KNOWN_ERRORS=['username_taken','already_registered','denied','invalid_registration','not_admin'];
+// Auth service error codes (error_code) that the sign-in page explains; the provider's own message is never shown.
+const AUTH_ERROR_CODES=['sms_send_failed','email_send_failed'];
 
 export const validUsername=value=>typeof value==='string'&&/^[^\s\p{C}@<>"'`/\\]{2,20}$/u.test(value);
 export const validEmail=value=>typeof value==='string'&&value.length<=254&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -58,7 +60,7 @@ export function createAuth({fetchImpl=(...args)=>fetch(...args),storage=localSto
     if(!config)throw Object.assign(new Error('config'),{code:'config'});
     const response=await fetchImpl(config.url+path,{method,headers:{apikey:config.publicKey,Authorization:`Bearer ${auth&&session?session.access_token:config.publicKey}`,'Content-Type':'application/json',...headers},...(body!==undefined?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(30000)});
     const raw=await response.text();let data=null;try{data=raw?JSON.parse(raw):null;}catch{/* Non-JSON bodies are ignored. */}
-    if(!response.ok){const known=KNOWN_ERRORS.find(code=>typeof data?.message==='string'&&data.message.includes(code));throw Object.assign(new Error('request'),{status:response.status,code:known||`http-${response.status}`});}
+    if(!response.ok){const known=KNOWN_ERRORS.find(code=>typeof data?.message==='string'&&data.message.includes(code))||AUTH_ERROR_CODES.find(code=>data?.error_code===code);throw Object.assign(new Error('request'),{status:response.status,code:known||`http-${response.status}`});}
     return data;
   }
   async function refresh(){
