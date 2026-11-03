@@ -32,6 +32,21 @@ test('only hosted projects with a public key are accepted; loopback only when th
   assert.deepEqual(publicConfigFromEnv({ SUPABASE_URL: 'https://abc.supabase.co', SUPABASE_PUBLISHABLE_KEY: 'sb_secret_x1234567' }), {}, 'a server secret is never exposed');
 });
 
+test('Google and Apple sign-in are offered only when the account service has them switched on', async t => {
+  const start = async options => {
+    const fake = createFakeSupabase(options);
+    const app = createApp({ publicConfig: host => ({ url: `http://${host}${FAKE_PREFIX}`, publicKey: 'sb_publishable_fake_test_only' }), extraRoute: fake.route });
+    app.listen(0, '127.0.0.1'); await once(app, 'listening');
+    t.after(() => { app.closeAllConnections(); app.close(); });
+    const origin = `http://127.0.0.1:${app.address().port}`;
+    const auth = createAuth({ fetchImpl: (url, options) => fetch(url.startsWith('/') ? origin + url : url, options), storage: memory(), session: memory(), location: { href: origin + '/', origin, assign() {} }, history: { replaceState() {} } });
+    await auth.init(); return auth.oauthProviders;
+  };
+  assert.deepEqual(await start(), []);
+  assert.deepEqual(await start({ oauth: ['apple'] }), ['apple']);
+  assert.deepEqual(await start({ oauth: ['google', 'apple'] }), ['google', 'apple']);
+});
+
 test('sign-up, the server age check, admin listing and session restore work end to end against the test service', async t => {
   const fake = createFakeSupabase({ adminEmails: ['admin@example.test'] });
   const app = createApp({ publicConfig: host => ({ url: `http://${host}${FAKE_PREFIX}`, publicKey: 'sb_publishable_fake_test_only' }), extraRoute: fake.route });

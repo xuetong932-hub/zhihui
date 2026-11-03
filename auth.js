@@ -51,7 +51,8 @@ export function createAuth({fetchImpl=(...args)=>fetch(...args),storage=localSto
   // adminLogin: {username, email} from the server, so the administrator signs in with a username and password.
   // The password itself is set on the account service, never in this code.
   // freeModel: the server offers 知回's free allowance (it holds the model key; signed-in users get the daily quota).
-  let config=null,source='',adminLogin=null,googleClientId='',freeModel=false,session=readSession(storage);
+  // oauthProviders: the Google/Apple sign-ins the account service has switched on; buttons for others stay hidden.
+  let config=null,source='',adminLogin=null,googleClientId='',freeModel=false,oauthProviders=[],session=readSession(storage);
   const save=value=>{session=value;try{if(value)storage.setItem(SESSION_KEY,JSON.stringify(value));else storage.removeItem(SESSION_KEY);}catch{/* Session then lasts for this page only. */}};
   async function request(path,{method='GET',body,headers={},auth=true}={}){
     if(!config)throw Object.assign(new Error('config'),{code:'config'});
@@ -83,10 +84,13 @@ export function createAuth({fetchImpl=(...args)=>fetch(...args),storage=localSto
   }
   return {
     get config(){return config;},get source(){return source;},get session(){return session;},
-    get user(){return session?.user||null;},get googleClientId(){return googleClientId;},get freeModel(){return freeModel;},
+    get user(){return session?.user||null;},get googleClientId(){return googleClientId;},get freeModel(){return freeModel;},get oauthProviders(){return oauthProviders;},
     // Access token for the free allowance, refreshed first when it is about to expire; '' when not signed in.
     accessToken:async()=>{if(!session||!config)return '';const exp=Number(session.expires_at)||0,ms=exp<1e12?exp*1000:exp;if(ms&&ms<Date.now()+60000){try{await refresh();}catch{/* Server will ask to sign in again. */}}return session?.access_token||'';},adminEmail:username=>adminLogin&&typeof username==='string'&&username.trim().toLowerCase()===adminLogin.username.toLowerCase()?adminLogin.email:null,
-    async init(){await loadConfig();if(!config)return;await handleCallback();if(session&&session.expires_at-60000<Date.now())await refresh();},
+    async init(){await loadConfig();if(!config)return;
+      // The public settings say which providers are enabled; if they cannot be read, no provider button is shown.
+      try{const external=(await request('/auth/v1/settings',{auth:false}))?.external||{};oauthProviders=['google','apple'].filter(name=>external[name]===true);}catch{oauthProviders=[];}
+      await handleCallback();if(session&&session.expires_at-60000<Date.now())await refresh();},
     saveDeviceConfig(value){if(!validConfig(value))return false;storage.setItem(DEVICE_CONFIG_KEY,JSON.stringify({url:value.url,publicKey:value.publicKey}));config={...value};source='device';save(null);return true;},
     api,
     sendCode:({method,identifier,create})=>request('/auth/v1/otp',{method:'POST',body:{[method]:identifier,create_user:Boolean(create)},auth:false}),

@@ -8,7 +8,7 @@ export const FAKE_CODE = '123456';
 const REGIONS = ['CN','HK','MO','TW','SG','MY','US','GB','CA','AU','JP','KR','OTHER'];
 
 // seedAdmin: an administrator that exists from the start and signs in with a password (like an operator-created one).
-export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedAdmin = null, now = () => new Date() } = {}) {
+export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedAdmin = null, now = () => new Date(), oauth = [] } = {}) {
   const users = new Map(), tokens = new Map(), refreshTokens = new Map(), eligibility = new Map(), profiles = new Map(), admins = new Set(), snapshots = new Map(), freeUsage = new Map();
   // A fixed id keeps the preset administrator the same account across test-service restarts.
   if (seedAdmin) { const user = { id: '00000000-0000-4000-8000-0000000000ad', email: seedAdmin.email, phone: '', password: seedAdmin.password, created_at: now().toISOString() }; users.set(user.id, user); admins.add(user.id); }
@@ -92,6 +92,8 @@ export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedA
       send(response, 200, session(user)); return true;
     }
     if (sub === '/auth/v1/logout' && method === 'POST') { tokens.delete((request.headers.authorization || '').replace(/^Bearer /, '')); send(response, 204); return true; }
+    // Public auth settings, as the real service reports them; options.oauth lists providers switched on.
+    if (sub === '/auth/v1/settings' && method === 'GET') { send(response, 200, { external: { email: true, phone: true, google: oauth.includes('google'), apple: oauth.includes('apple') } }); return true; }
     if (sub.startsWith('/auth/v1/authorize')) { fail(response, 400, 'OAuth is not available in the test service'); return true; }
     const id = caller(request);
     if (!id || !users.has(id)) { fail(response, 401, 'JWT expired or invalid'); return true; }
