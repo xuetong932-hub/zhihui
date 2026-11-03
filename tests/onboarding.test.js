@@ -6,8 +6,9 @@ const request = extra => ({ config: { version: 1, provider: 'qwen-cn', model: 'q
 
 test('first-run guide: brief answers only when asked, and the flag must be a boolean', () => {
   const config = request().config;
-  assert.match(systemPrompt({ module: 'coding', level: 'beginner', locale: 'zh', config, brief: true }), /约 150 字/);
-  assert.doesNotMatch(systemPrompt({ module: 'coding', level: 'beginner', locale: 'zh', config }), /150 字/);
+  const brief = systemPrompt({ module: 'coding', level: 'beginner', locale: 'zh', config, brief: true }), normal = systemPrompt({ module: 'coding', level: 'beginner', locale: 'zh', config });
+  assert.match(brief, /约 150 字/); assert.doesNotMatch(brief, /四个清晰小标题/, 'the heading format is replaced, not contradicted');
+  assert.match(normal, /四个清晰小标题/); assert.doesNotMatch(normal, /150 字/);
   assert.ok(validateRequest(request({ brief: true })));
   assert.ok(validateRequest(request()));
   assert.throws(() => validateRequest(request({ brief: 'yes' })), { code: 'request' });
