@@ -17,6 +17,8 @@ export function speechErrorText(code, zh) {
     'no-speech': ['没有听到声音，请靠近话筒再试一次。', 'No speech was heard. Move closer to the mic and try again.'],
   }[code];
   if (code === 'aborted') return '';
+  // Phones on the home-network address (plain http) never get the microphone, whatever the permission says.
+  if ((code === 'not-allowed' || code === 'service-not-allowed') && globalThis.isSecureContext === false) return zh ? '语音输入需要 HTTPS 网址，局域网地址（http）下手机浏览器不允许使用麦克风，请改用文字输入。' : 'Voice input needs an HTTPS address. On the home-network (http) address, phone browsers block the microphone. Please type instead.';
   return words ? words[zh ? 0 : 1] : (zh ? '语音识别没有完成，请重试或改用文字输入。' : 'Speech recognition did not finish. Try again or type instead.');
 }
 export const markOnboardingDone = () => { try { localStorage.setItem(ONBOARDING_KEY, '1'); } catch { /* Shown again next time. */ } };

@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { networkInterfaces } from 'node:os';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
@@ -50,17 +51,41 @@ export function publicConfigFromEnv(env = process.env) {
   const googleClientId = (env.GOOGLE_CLIENT_ID || '').trim();
   return { url, publicKey, ...(username && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? { adminLogin: { username, email } } : {}), ...(/^[\w.-]+\.apps\.googleusercontent\.com$/.test(googleClientId) ? { googleClientId } : {}) };
 }
+// Home-network mode: this computer's private IPv4 addresses (10/8, 172.16/12, 192.168/16), which phones on the same
+// Wi-Fi use to reach it. Public and link-local addresses are never included.
+const isPrivate = ip => /^10\./.test(ip) || /^192\.168\./.test(ip) || /^172\.(1[6-9]|2\d|3[01])\./.test(ip);
+// A caller on this computer or the home network (IPv4, or IPv4 mapped into IPv6).
+export const isNearby = ip => { const v4 = String(ip).replace(/^::ffff:/, ''); return v4 === '::1' || /^127\./.test(v4) || isPrivate(v4); };
+export function privateAddresses(interfaces = networkInterfaces()) {
+  return [...new Set(Object.values(interfaces).flat().filter(item => item && item.family === 'IPv4' && !item.internal && isPrivate(item.address)).map(item => item.address))];
+}
+// Phone browsers opening the start page are sent to the phone layout; "/?desktop" keeps the desktop page.
+const PHONE_AGENT = /Android.+Mobile|iPhone|iPod|Windows Phone|HarmonyOS.+Mobile/i;
 export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask, relationCaller = relateKnowledge, mindmapCaller = expandMindmap, recognizeCaller = recognizeImage, publicConfig = () => publicConfigFromEnv(), extraRoute,
-  freeModelKey = (process.env.ZHIPU_API_KEY || '').trim(), freeQuota = createFreeQuota() } = {}) {
+  freeModelKey = (process.env.ZHIPU_API_KEY || '').trim(), freeQuota = createFreeQuota(), lanHosts = [], publicOrigin = '' } = {}) {
+  // Public mode: served at one HTTPS address behind the host's proxy (e.g. Render), which terminates TLS.
+  const publicHost = publicOrigin ? new URL(publicOrigin).hostname : '';
+  const allowedHosts = new Set(['127.0.0.1', 'localhost', ...lanHosts, ...(publicHost ? [publicHost] : [])]);
   let activeRequests = 0;
   const bearer = request => (/^Bearer ([\w.-]{10,4096})$/.exec(request.headers.authorization || '') || [])[1] || '';
-  const clientIp = request => request.socket.remoteAddress || 'unknown';
+  // Behind the proxy every connection comes from the proxy, so the visitor is the first X-Forwarded-For entry.
+  // A visitor can prepend a forged entry, which only affects the no-account allowance and burst limit.
+  const clientIp = request => (publicHost && String(request.headers['x-forwarded-for'] || '').split(',')[0].trim()) || request.socket.remoteAddress || 'unknown';
+  const publicHeaders = publicOrigin.startsWith('https://') ? { 'Strict-Transport-Security': 'max-age=31536000' } : {};
   return http.createServer(async (request, response) => {
-    // Prototype is loopback-only. Reject foreign origins and DNS-rebinding hosts.
-    const host = request.headers.host || '';
-    if (!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)) { json(response, 403, { error: 'origin' }); return; }
-    if (request.headers.origin && request.headers.origin !== `http://${host}`) { json(response, 403, { error: 'origin' }); return; }
-    const path = new URL(request.url, `http://${host}`).pathname;
+    // Loopback by default; home-network mode adds only this computer's own private addresses.
+    // Reject foreign origins and DNS-rebinding hosts.
+    const host = request.headers.host || '', hostMatch = /^([\w.-]+)(:\d+)?$/.exec(host);
+    if (!hostMatch || !allowedHosts.has(hostMatch[1].toLowerCase())) { json(response, 403, { error: 'origin' }); return; }
+    // The Host header can be forged, so home-network mode also checks that the caller itself is on a private network.
+    if (lanHosts.length && !isNearby(clientIp(request))) { json(response, 403, { error: 'origin' }); return; }
+    const isPublic = publicHost && hostMatch[1].toLowerCase() === publicHost;
+    if (request.headers.origin && request.headers.origin !== (isPublic ? publicOrigin : `http://${host}`)) { json(response, 403, { error: 'origin' }); return; }
+    for (const [name, value] of Object.entries(isPublic ? publicHeaders : {})) response.setHeader(name, value);
+    const url = new URL(request.url, `http://${host}`), path = url.pathname;
+    if (path === '/' && !url.searchParams.has('desktop') && request.method === 'GET' && PHONE_AGENT.test(request.headers['user-agent'] || '')) {
+      response.writeHead(302, { ...headers, Location: '/m/' }); response.end(); return;
+    }
     if (path === '/api/public-config') { if (request.method !== 'GET') { json(response, 405, { error: 'method' }); return; } json(response, 200, { ...publicConfig(host), ...(freeModelKey ? { freeModel: true } : {}) }); return; }
     // Today's free allowance for this account (or, without a sign-in, for this device's network).
     if (path === '/api/free-quota') {
@@ -118,17 +143,31 @@ export function createApp({ modelCaller = callModel, knowledgeCaller = extractKn
 }
 // Local development secrets: server.local.json (gitignored via *.local.json) may hold the operator settings below.
 // Environment variables always win. Values are never logged, and are only read when this file is started directly.
-const LOCAL_SETTINGS = ['ZHIPU_API_KEY', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'ADMIN_USERNAME', 'ADMIN_LOGIN_EMAIL', 'GOOGLE_CLIENT_ID'];
+// LAN ("true"/"1") opens home-network mode so phones on the same Wi-Fi can connect; it is off unless set.
+const LOCAL_SETTINGS = ['ZHIPU_API_KEY', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'ADMIN_USERNAME', 'ADMIN_LOGIN_EMAIL', 'GOOGLE_CLIENT_ID', 'LAN', 'PUBLIC_ORIGIN'];
 async function loadLocalSettings() {
   let values;
   try { values = JSON.parse(await readFile(fileURLToPath(new URL('server.local.json', import.meta.url)), 'utf8')); } catch { return []; }
   const loaded = [];
-  for (const name of LOCAL_SETTINGS) if (!process.env[name] && typeof values?.[name] === 'string' && values[name].trim()) { process.env[name] = values[name].trim(); loaded.push(name); }
+  for (const name of LOCAL_SETTINGS) {
+    const value = typeof values?.[name] === 'boolean' ? String(values[name]) : values?.[name];
+    if (!process.env[name] && typeof value === 'string' && value.trim()) { process.env[name] = value.trim(); loaded.push(name); }
+  }
   return loaded;
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const loaded = await loadLocalSettings();
   if (loaded.length) console.log(`Loaded from server.local.json: ${loaded.join(', ')}`);
-  const port = Number(process.env.PORT || 4174);
-  createApp().listen(port, '127.0.0.1', () => console.log(`Knowledge Review: http://127.0.0.1:${port}`));
+  const port = Number(process.env.PORT || 4174), lan = /^(1|true)$/i.test(process.env.LAN || ''), lanHosts = lan ? privateAddresses() : [];
+  // Public HTTPS address: PUBLIC_ORIGIN, or the address Render gives the service (RENDER_EXTERNAL_URL).
+  const publicOrigin = (process.env.PUBLIC_ORIGIN || process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/$/, '');
+  if (publicOrigin && !/^https:\/\/[a-z0-9.-]+$/i.test(publicOrigin)) { console.error('PUBLIC_ORIGIN must look like https://example.com (no path).'); process.exit(1); }
+  createApp({ lanHosts, publicOrigin }).listen(port, lan || publicOrigin ? '0.0.0.0' : '127.0.0.1', () => {
+    if (publicOrigin) { console.log(`Knowledge Review (public): ${publicOrigin}`); return; }
+    console.log(`Knowledge Review: http://127.0.0.1:${port}`);
+    if (!lan) return;
+    if (!lanHosts.length) console.log('Home-network mode is on, but this computer has no private network address. Connect to Wi-Fi and restart.');
+    for (const ip of lanHosts) console.log(`On a phone on the same Wi-Fi: http://${ip}:${port}`);
+    console.log('Home-network mode: anyone on this Wi-Fi can open the app. Sync, voice and install need HTTPS and are unavailable here.');
+  });
 }

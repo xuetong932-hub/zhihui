@@ -1,0 +1,22 @@
+# Render Blueprint for a free public test deployment (see docs/DEPLOY_RENDER.md).
+# Secrets are entered in the Render dashboard (sync: false); none are stored in this file.
+services:
+  - type: web
+    name: zhihui
+    runtime: node
+    plan: free
+    buildCommand: echo "No build step"
+    startCommand: node server.mjs
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ZHIPU_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_LOGIN_EMAIL
+        sync: false
