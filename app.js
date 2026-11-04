@@ -10,7 +10,7 @@ import { createAuth } from './auth.js';
 import { createAuthGate } from './auth-ui.js';
 import { escapeHtml as esc } from './chat-store.js';
 import { PRESET_MODULES as moduleIds, LEVELS as levels, MAX_CUSTOM_MODULES, isCustomModule, cleanModuleName, validModules, validDailyMinutes, newCustomModuleId, activeModuleIds, moduleLabel } from './modules.js';
-import { pick, intlLocale, currentLocale, isLocale, detectLocale, setLocale, loadCatalog, needsCatalog, ENABLED, localeName } from './i18n.js';
+import { pick, intlLocale, currentLocale, isLocale, setLocale, loadCatalog, needsCatalog, ENABLED, localeName, savedLocale, saveLocale } from './i18n.js';
 const words = {
   zh: {
     brand: '知回', subtitle: '把好问题，变成记得住的知识。', language: 'English',
@@ -129,7 +129,10 @@ function restoreFocus(focus) {
 
 function boot() {
   let profile = readProfile();
-  let locale = profile?.locale || detectLocale();
+  // English until the user chooses. On first open the language page comes before sign-in, so every later page is
+  // already in the chosen language; a profile made earlier counts as a choice.
+  let locale = profile?.locale || savedLocale() || 'en';
+  let choosingLanguage = !profile?.locale && !savedLocale();
   const blankDraft = () => ({
     version: 1, locale, dailyMinutes: 10, dailyGoal: DEFAULT_GOAL,
     modules: Object.fromEntries(moduleIds.map(id => [id, { enabled: true, level: 'beginner' }])),
@@ -255,6 +258,7 @@ function boot() {
     if (needsCatalog(locale)) loadCatalog(locale).then(render);
     document.title = t('brand');
     // The first-run guide is full-screen: no tab bar and no page navigation until it is finished or skipped.
+    if (choosingLanguage) { renderLanguageChoice(); return; }
     const inApp = Boolean(chat), locked = inApp ? chat.locked : gate.busy, guide = inApp && chat.page === 'onboarding', tabs = phone && inApp && profile && !editing && !guide;
     app.innerHTML = `
       <header class="header"><a class="brand" href="${phone ? '/m/' : '/'}" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
@@ -273,7 +277,7 @@ function boot() {
         catch { errorKey = 'storageError'; editing = true; openDraft(profile); render(); return; }
         profile.locale = next;
       }
-      locale = next; draft.locale = locale; loadCatalog(next).then(render);
+      locale = next; draft.locale = locale; saveLocale(next); loadCatalog(next).then(render);
     }));
     if (!inApp) { gate.bind(); return; }
     if (editing) bindSetup();
@@ -285,6 +289,23 @@ function boot() {
       };
       chat.bind();
     }
+  }
+
+  // First open: a full page asking for the interface language. Tapping a language previews the page in it; Continue
+  // remembers it on this device and moves on to sign-in. It can be changed later from the language button.
+  function renderLanguageChoice() {
+    app.innerHTML = `<header class="header"><span class="brand"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</span></header>
+      <main><section class="panel language-first" aria-labelledby="language-first-title">
+        <h1 id="language-first-title">${pick('选择你的语言', 'Choose your language')}</h1>
+        <p class="muted">${pick('之后可以随时在设置里更改。', 'You can change it any time in settings.')}</p>
+        <div class="language-list">${ENABLED.map(code => `<button type="button" class="language-option ${code === locale ? 'active' : ''}" data-first-locale="${code}" lang="${code}" aria-pressed="${code === locale}">${localeName(code)}</button>`).join('')}</div>
+        <button type="button" class="primary-button" id="language-continue">${pick('继续', 'Continue')} →</button>
+      </section></main>`;
+    document.querySelectorAll('[data-first-locale]').forEach(button => { button.onclick = () => {
+      const next = button.dataset.firstLocale; if (!isLocale(next)) return;
+      locale = next; draft.locale = next; loadCatalog(next).then(render);
+    }; });
+    document.querySelector('#language-continue').onclick = () => { saveLocale(locale); choosingLanguage = false; render(); window.scrollTo(0, 0); };
   }
 
   // Learning modules. After registration this step is optional; skipping saves the defaults.

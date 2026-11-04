@@ -336,4 +336,10 @@ footer{color:var(--stone);border-top:1px solid var(--hairline-soft);margin-top:4
 .language-option:hover{border-color:#30694f}
 .language-option.active{background:#30694f;border-color:#30694f;color:#fff}
 .language-dialog .actions{display:flex;justify-content:flex-end}
+.language-first{max-width:520px;margin:48px auto;padding:28px}
+.language-first h1{margin:0 0 6px;font-size:26px}
+.language-first .muted{margin:0 0 20px}
+.language-first .language-list{margin-bottom:22px}
+.language-first .primary-button{width:100%;justify-content:center;text-align:center}
+@media (max-width:600px){.language-first{margin:24px auto;padding:22px}}
 [data-theme="dark"] .language-dialog{background:#1f2326;color:#e8ece9}

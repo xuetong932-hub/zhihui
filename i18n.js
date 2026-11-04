@@ -24,15 +24,13 @@ export const intlLocale = code => info(code).intl;
 export const speechLocale = code => info(code).speech;
 export const isChineseLocale = code => Boolean(info(code).chinese);
 
-// First visit: the best enabled match for the browser's languages, else English.
-export function detectLocale(languages = globalThis.navigator?.languages || [globalThis.navigator?.language || 'en'], enabled = ENABLED) {
-  for (const raw of languages) {
-    const tag = String(raw || '').toLowerCase();
-    const code = /^zh-(tw|hk|mo|hant)/.test(tag) || tag.includes('hant') ? 'zh-TW' : tag.startsWith('zh') ? 'zh' : tag.startsWith('pt') ? 'pt' : tag.split('-')[0];
-    if (enabled.includes(code)) return code;
-    if (code === 'zh-TW' && enabled.includes('zh')) return 'zh';
-  }
-  return enabled.includes('en') ? 'en' : enabled[0];
+// The language the user chose on this device (kept before and apart from a learning profile); null until chosen.
+const LOCALE_KEY = 'knowledge-review.locale.v1';
+export function savedLocale(enabled = ENABLED) {
+  try { const code = globalThis.localStorage?.getItem(LOCALE_KEY); return enabled.includes(code) ? code : null; } catch { return null; }
+}
+export function saveLocale(code) {
+  try { if (ENABLED.includes(code)) globalThis.localStorage?.setItem(LOCALE_KEY, code); } catch { /* This visit only. */ }
 }
 
 const catalogs = {};

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LOCALES, ENABLED, isLocale, detectLocale, translate, registerCatalog, loadCatalog, needsCatalog, intlLocale, speechLocale, isChineseLocale, localeName } from '../i18n.js';
+import { LOCALES, ENABLED, isLocale, savedLocale, saveLocale, translate, registerCatalog, loadCatalog, needsCatalog, intlLocale, speechLocale, isChineseLocale, localeName } from '../i18n.js';
 
 test('i18n: ten languages, existing zh/en codes kept, only finished ones offered', () => {
   assert.deepEqual(LOCALES.map(item => item.code), ['zh', 'zh-TW', 'en', 'ja', 'ko', 'ms', 'es', 'fr', 'pt', 'de']);
@@ -11,16 +11,18 @@ test('i18n: ten languages, existing zh/en codes kept, only finished ones offered
   assert.ok(isChineseLocale('zh-TW') && !isChineseLocale('ja'));
 });
 
-test('i18n: first visit follows the browser language among enabled ones, else English', () => {
-  const all = LOCALES.map(item => item.code);
-  assert.equal(detectLocale(['zh-CN'], all), 'zh');
-  assert.equal(detectLocale(['zh-TW'], all), 'zh-TW');
-  assert.equal(detectLocale(['zh-Hant-HK'], all), 'zh-TW');
-  assert.equal(detectLocale(['pt-PT'], all), 'pt');
-  assert.equal(detectLocale(['ja-JP', 'en'], all), 'ja');
-  assert.equal(detectLocale(['ru-RU'], all), 'en');
-  assert.equal(detectLocale(['zh-TW'], ['zh', 'en']), 'zh', 'Traditional falls back to Simplified while it is not offered');
-  assert.equal(detectLocale(['de-DE'], ['zh', 'en']), 'en');
+test('i18n: no language until the user chooses one; the choice is remembered on this device', () => {
+  const store = new Map();
+  globalThis.localStorage = { getItem: key => store.get(key) ?? null, setItem: (key, value) => store.set(key, String(value)) };
+  try {
+    assert.equal(savedLocale(), null, 'first open: nothing chosen, so the app shows the language page in English');
+    saveLocale('ja');
+    assert.equal(savedLocale(), 'ja');
+    saveLocale('xx');
+    assert.equal(savedLocale(), 'ja', 'unknown codes are ignored');
+    store.set('knowledge-review.locale.v1', 'tampered');
+    assert.equal(savedLocale(), null, 'an invalid stored value counts as not chosen');
+  } finally { delete globalThis.localStorage; }
 });
 
 test('i18n: catalogs are keyed by the English text, missing entries fall back to English, placeholders fill everywhere', () => {

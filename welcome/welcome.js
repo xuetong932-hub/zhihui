@@ -2,17 +2,17 @@
 // curve, scroll reveals, a cursor glow and card tilt, and "install to computer" through the browser's own app install.
 // Text is written as ['中文', 'English'] pairs; other languages come from the app's catalogs (i18n/<code>.js).
 // Decorative motion is skipped when the visitor asks for reduced motion.
-import { translate, setLocale, loadCatalog, detectLocale, isLocale, ENABLED, localeName, intlLocale, isChineseLocale } from '/i18n.js';
+import { translate, setLocale, loadCatalog, savedLocale, isLocale, ENABLED, localeName, intlLocale, isChineseLocale } from '/i18n.js';
 
 const LANG_KEY = 'knowledge-review.welcome-lang.v1', PROFILE_KEY = 'knowledge-review.profile.v1';
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-// The page's own saved choice, else the app's interface language, else the browser's.
+// The page's own saved choice, else the language chosen in the app, else English.
 let lang = (() => {
   try {
     const saved = localStorage.getItem(LANG_KEY); if (ENABLED.includes(saved)) return saved;
-    const app = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null')?.locale; if (ENABLED.includes(app)) return app;
-  } catch { /* Fall back to the browser language. */ }
-  return detectLocale();
+    const app = savedLocale() || JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null')?.locale; if (ENABLED.includes(app)) return app;
+  } catch { /* English. */ }
+  return 'en';
 })();
 const tr = (zh, en, vars) => translate(zh, en, vars, lang);
 const pair = ([zh, en], vars) => tr(zh, en, vars);
