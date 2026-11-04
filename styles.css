@@ -312,3 +312,17 @@ footer{color:var(--stone);border-top:1px solid var(--hairline-soft);margin-top:4
 [data-theme="dark"] .onb-choice .mod-icon,[data-theme="dark"] .onb-tour-icon{color:#7cc4a0}
 @media(max-width:560px){.onb-choices{grid-template-columns:1fr}.onb-choice{display:grid;grid-template-columns:48px 1fr;column-gap:14px;row-gap:2px;align-items:center;text-align:left;padding:18px}.onb-choice .mod-icon{grid-row:span 2}}
 .onb-card .eyebrow,.onb-card strong{display:block}.onb-card strong{margin-top:2px}
+
+/* Guided tour (tour.js): dimmed page, ring around one target, explanation card with an arrow. */
+.tour-layer{position:fixed;inset:0;z-index:1000}
+.tour-ring{position:fixed;z-index:1001;border-radius:14px;box-shadow:0 0 0 3px #fff,0 0 0 9999px rgba(15,23,20,.58);pointer-events:none;transition:top .2s,left .2s,width .2s,height .2s}
+.tour-card{position:fixed;z-index:1002;box-sizing:border-box;padding:18px 18px 14px;border-radius:14px;background:#fff;color:#1d2420;box-shadow:0 12px 32px rgba(0,0,0,.22)}
+.tour-card::before{content:"";position:absolute;left:var(--arrow-left,50%);width:14px;height:14px;background:#fff;transform:translateX(-50%) rotate(45deg)}
+.tour-card[data-side="below"]::before{top:-7px}
+.tour-card[data-side="above"]::before{bottom:-7px}
+.tour-card p{margin:6px 28px 16px 0;font-size:15px;line-height:1.6}
+.tour-close{position:absolute;top:8px;right:10px;width:32px;height:32px;border:0;background:none;color:#6b7570;font-size:22px;line-height:1;cursor:pointer}
+.tour-actions{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.tour-actions .primary-button{white-space:nowrap}
+[data-theme="dark"] .tour-card,[data-theme="dark"] .tour-card::before{background:#1f2326;color:#e8ece9}
+[data-theme="dark"] .tour-ring{box-shadow:0 0 0 3px #e8ece9,0 0 0 9999px rgba(0,0,0,.68)}

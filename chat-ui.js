@@ -12,6 +12,7 @@ import {createDiscoverUI} from './discover-ui.js';
 import {resizeImage} from './background.js';
 import {starterQuestions,starterCards,hasStarterPack,starterPackPanel} from './starter-content.js';
 import {createOnboarding,onboardingDone,markOnboardingDone,speechErrorText} from './onboarding.js';
+import {createTour,tourDone} from './tour.js';
 import {LOCAL_MODE_KEY} from './auth-ui.js';
 
 const copy = {
@@ -213,7 +214,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     const zh=getLocale()==='zh',item=(attr,label,current)=>`<button class="text-button ${current.includes(page)?'active':''}" ${attr} ${current.includes(page)?'aria-current="page"':''}>${label}</button>`;
     const inMore=['device','cloud','admin','model'].includes(page);
     return `<nav class="app-nav" aria-label="${t('home')}">${item('data-chat-home',t('home'),['home','chat'])}${item('data-review',zh?'复习':'Review',['review'])}${item('data-library',zh?'知识库':'Knowledge',['library'])}${item('data-recommend',zh?'推荐':'For you',['recommend'])}${item('data-square',zh?'广场':'Square',['square'])}
-      <details class="nav-more"><summary class="text-button ${inMore?'active':''}">${zh?'更多':'More'} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span><span aria-hidden="true">▾</span></summary><div class="nav-menu">${item('data-device',zh?'设备':'Device',['device'])}${getAccount?.()?.local?`<button class="text-button" data-signin>${zh?'登录 / 注册':'Sign in / Register'}</button>`:item('data-cloud',zh?'账号':'Account',['cloud'])}${getAccount?.()?.is_admin?item('data-admin',zh?'管理':'Admin',['admin']):''}<button class="text-button" data-onboarding>${zh?'产品演示':'Product tour'}</button>${item('data-model-settings',`${t('modelSettings')}<span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span>`,['model'])}</div></details></nav>`;
+      <details class="nav-more"><summary class="text-button ${inMore?'active':''}">${zh?'更多':'More'} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span><span aria-hidden="true">▾</span></summary><div class="nav-menu">${item('data-device',zh?'设备':'Device',['device'])}${getAccount?.()?.local?`<button class="text-button" data-signin>${zh?'登录 / 注册':'Sign in / Register'}</button>`:item('data-cloud',zh?'账号':'Account',['cloud'])}${getAccount?.()?.is_admin?item('data-admin',zh?'管理':'Admin',['admin']):''}<button class="text-button" data-onboarding>${zh?'产品演示':'Product tour'}</button><button class="text-button" data-tour>${zh?'新手指引':'Guided tour'}</button>${item('data-model-settings',`${t('modelSettings')}<span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span>`,['model'])}</div></details></nav>`;
   }
   // Phone layout: 推荐 and 广场 share one 发现 tab with a switch at the top.
   let discoverTab='recommend';
@@ -285,6 +286,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     document.querySelectorAll('[data-signin]').forEach(button=>button.onclick=()=>{if(locked())return;try{localStorage.removeItem(LOCAL_MODE_KEY);}catch{/* Ignored. */}location.reload();});
     if (page === 'onboarding') onboarding.bind();
     document.querySelectorAll('[data-onboarding]').forEach(button=>button.onclick=()=>{if(locked())return;onboarding.reset();page='onboarding';refresh();window.scrollTo(0,0);});
+    document.querySelectorAll('[data-tour]').forEach(button=>button.onclick=()=>{if(locked())return;button.closest('details')?.removeAttribute('open');startTour();});
     document.querySelectorAll('[data-starter-add]').forEach(button=>button.onclick=()=>{if(locked())return;const ids=button.dataset.starterAdd==='all'?starterModules():[button.dataset.starterAdd];const added=library.addCards(ids.flatMap(id=>starterCards(id,getLocale())));if(added){starterAdded=added;}refresh();});
     document.querySelectorAll('[data-starter-dismiss]').forEach(button=>button.onclick=()=>{try{localStorage.setItem(STARTER_DISMISS_KEY,'1');}catch{/* Hidden for this page only. */}starterAdded=0;refresh();});
     document.querySelectorAll('[data-starter-practise]').forEach(button=>button.onclick=()=>{if(locked())return;starterAdded=0;page='review';review.startExtra();refresh();window.scrollTo(0,0);});
@@ -467,7 +469,10 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
       if (answer?.role !== 'assistant' || answer.status !== 'done') return { error: notice || undefined };
       return { answer: answer.content, card: library.cards().find(card => card.origins.some(origin => origin.id === answer.id)) || null };
     },
-    finish: () => { markOnboardingDone(); onboarding.reset(); page = 'home'; notice = ''; refresh(); window.scrollTo(0, 0); } });
+    finish: () => { markOnboardingDone(); onboarding.reset(); page = 'home'; notice = ''; refresh(); window.scrollTo(0, 0); if (!tourDone()) startTour(); } });
+  // The spotlight tour runs on the home screen: once after the first-run guide, and again from 我的 / 更多.
+  const tour = createTour({ locale: getLocale });
+  function startTour() { page = 'home'; refresh(); window.scrollTo(0, 0); setTimeout(() => tour.start(), 250); }
   // A brand-new user (nothing asked, empty library) starts with the guide; anyone can replay it from 我的 / 更多.
   if (!onboardingDone() && !Object.values(chats.modules).some(list => list.length) && !library.activeCount()) page = 'onboarding';
   return { nav, view, bind, openModule, openModel, get isHome() { return page === 'home'; },
