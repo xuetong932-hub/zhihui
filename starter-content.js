@@ -2,7 +2,7 @@
 // beginner cards per built-in module, written for 知回 (marked as such; not model output). Chinese and English sets
 // are separate, so each interface language shows only its own text. Adding a pack is always the user's choice.
 import { PRESET_MODULES } from './modules.js';
-import { pick } from './i18n.js';
+import { pick, isChineseLocale } from './i18n.js';
 export const STARTER_PREFIX = 'starter-';
 export const isStarterCard = card => typeof card?.id === 'string' && card.id.startsWith(STARTER_PREFIX);
 
@@ -136,7 +136,7 @@ const CARDS = {
 export const hasStarterPack = module => PRESET_MODULES.includes(module);
 // Cards ready to add to the library: ids are fixed per module and position, so a pack is never added twice.
 export function starterCards(module, locale, now = new Date()) {
-  const list = CARDS[locale === 'zh' ? 'zh' : 'en'][module] || [], at = now.toISOString();
+  const list = CARDS[isChineseLocale(locale) ? 'zh' : 'en'][module] || [], at = now.toISOString();
   return list.map((item, i) => ({ id: `${STARTER_PREFIX}${module}-${i + 1}`, module, title: item.title, summary: item.summary, category: item.category, example: item.example,
     createdAt: at, updatedAt: at, status: 'active', extraction: 'ready', important: false, reason: '', origins: [] }));
 }

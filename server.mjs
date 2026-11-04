@@ -21,6 +21,8 @@ const files = new Map([
   // Built-in background photos (see docs/BACKGROUNDS.md), each with a small thumbnail for the picker.
   ...['lake','forest','sea','anime-day','anime-night','neon-street','neon-city','silhouette'].flatMap(id => [`/backgrounds/${id}.jpg`, `/backgrounds/${id}-thumb.jpg`]).map(path => [path, [path.slice(1), 'image/jpeg']]),
   // Phone layout: same app, its own entry page and styles (mobile/).
+  // Interface languages beyond Chinese and English (i18n.js loads the chosen one on demand).
+  ...['zh-TW', 'ja', 'ko', 'ms', 'es', 'fr', 'pt', 'de'].map(code => [`/i18n/${code}.js`, [`i18n/${code}.js`, 'text/javascript; charset=utf-8']]),
   // Product page (welcome/): what 知回 does, download and install links.
   ['/welcome', ['welcome/index.html', 'text/html; charset=utf-8']], ['/welcome/', ['welcome/index.html', 'text/html; charset=utf-8']], ['/welcome/welcome.css', ['welcome/welcome.css', 'text/css; charset=utf-8']], ['/welcome/welcome.js', ['welcome/welcome.js', 'text/javascript; charset=utf-8']],
   ['/m', ['mobile/index.html', 'text/html; charset=utf-8']], ['/m/', ['mobile/index.html', 'text/html; charset=utf-8']], ['/m/mobile.css', ['mobile/mobile.css', 'text/css; charset=utf-8']],

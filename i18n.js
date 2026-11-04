@@ -15,7 +15,7 @@ export const LOCALES = [
   { code: 'de', name: 'Deutsch', intl: 'de', speech: 'de-DE' },
 ];
 // Languages offered in the picker. Others stay hidden until their catalog is complete.
-export const ENABLED = ['zh', 'en'];
+export const ENABLED = ['zh', 'zh-TW', 'en', 'ja', 'ko'];
 export const LOCALE_CODES = LOCALES.map(item => item.code);
 export const isLocale = code => LOCALE_CODES.includes(code);
 const info = code => LOCALES.find(item => item.code === code) || LOCALES[2];

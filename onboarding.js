@@ -5,7 +5,7 @@
 import { starterQuestions } from './starter-content.js';
 import { iconSvg } from './module-icons.js';
 import { escapeHtml as e, renderAnswer } from './chat-store.js';
-import { pick, translate, currentLocale } from './i18n.js';
+import { pick, translate, currentLocale, speechLocale } from './i18n.js';
 export const ONBOARDING_KEY = 'knowledge-review.onboarding.v1';
 export const onboardingDone = () => { try { return localStorage.getItem(ONBOARDING_KEY) === '1'; } catch { return true; } };
 // The browser's speech-recognition error codes, explained for the user (shared with the question page).
@@ -28,25 +28,27 @@ export const markOnboardingDone = () => { try { localStorage.setItem(ONBOARDING_
 
 // Used only when no model is available: one prepared answer per built-in module, clearly labelled as an example.
 const SAMPLE = {
-  zh: {
-    coding: '**变量就是给一份数据起的名字。** 程序通过这个名字读取和修改数据：比如购物车的总价存进 total，每加一件商品就更新 total，名字不变，里面的数在变。',
-    english: '**一般现在时用来说习惯、经常发生的事和客观事实。** 主语是他、她、它时，动词通常加 -s，例如 She drinks coffee every morning（她每天早上喝咖啡）。',
-    work: '**一封清楚的工作邮件，先在标题和第一句说清目的。** 再分点写需要对方做什么、什么时候之前，最后附上联系方式。例如标题写“请在周五前确认方案 B”。',
-    life: '**冷冻肉放进冷藏室慢慢解冻最安全。** 温度一直较低，细菌不容易繁殖；放在室温下太久，表面容易滋生细菌。可以前一晚把第二天要吃的肉移到冷藏室。',
-  },
-  en: {
-    coding: '**A variable is a name for a piece of data.** The program reads and changes the data through that name: keep the cart total in total and update it whenever an item is added — the name stays, the value changes.',
-    english: '**Use the present simple for habits, repeated actions and facts.** With he, she or it the verb usually adds -s: She drinks coffee every morning.',
-    work: '**A clear work email states its purpose in the subject and first line.** Then list what you need and by when, and end with how to reach you — e.g. subject “Please confirm option B by Friday”.',
-    life: '**Thawing frozen meat in the fridge is safest.** It stays cold the whole time, which limits bacteria; left at room temperature, the surface warms up and bacteria grow. Move tomorrow’s meat to the fridge the night before.',
-  },
+  coding: { zh: "**变量就是给一份数据起的名字。** 程序通过这个名字读取和修改数据：比如购物车的总价存进 total，每加一件商品就更新 total，名字不变，里面的数在变。",
+    en: "**A variable is a name for a piece of data.** The program reads and changes the data through that name: keep the cart total in total and update it whenever an item is added — the name stays, the value changes." },
+  english: { zh: "**一般现在时用来说习惯、经常发生的事和客观事实。** 主语是他、她、它时，动词通常加 -s，例如 She drinks coffee every morning（她每天早上喝咖啡）。",
+    en: "**Use the present simple for habits, repeated actions and facts.** With he, she or it the verb usually adds -s: She drinks coffee every morning." },
+  work: { zh: "**一封清楚的工作邮件，先在标题和第一句说清目的。** 再分点写需要对方做什么、什么时候之前，最后附上联系方式。例如标题写“请在周五前确认方案 B”。",
+    en: "**A clear work email states its purpose in the subject and first line.** Then list what you need and by when, and end with how to reach you — e.g. subject “Please confirm option B by Friday”." },
+  life: { zh: "**冷冻肉放进冷藏室慢慢解冻最安全。** 温度一直较低，细菌不容易繁殖；放在室温下太久，表面容易滋生细菌。可以前一晚把第二天要吃的肉移到冷藏室。",
+    en: "**Thawing frozen meat in the fridge is safest.** It stays cold the whole time, which limits bacteria; left at room temperature, the surface warms up and bacteria grow. Move tomorrow’s meat to the fridge the night before." },
 };
-const TOUR = {
-  zh: [['bookmark', '自动整理成知识卡片', '每次提问后，知回会把要点整理成一张知识卡片，存进知识库。'], ['repeat', '按遗忘曲线安排复习', '在你快要忘记时安排复习：翻卡或用自己的话回答，几分钟就能完成。'],
-    ['globe', '知识图谱', '问得越多，相关的知识会自动连起来，看清自己学过什么。'], ['book', '思维导图与下载', '把一个知识点展开成思维导图，或把复习好的知识汇总下载成 Word。'], ['chart', '每日目标与打卡', '每天定一个小目标，完成后生成打卡图，和朋友分享。']],
-  en: [['bookmark', 'Knowledge cards, automatically', 'After each question, the key points become a card in your library.'], ['repeat', 'Reviews on the forgetting curve', 'Review just before you would forget: flashcards or your own words, a few minutes a day.'],
-    ['globe', 'Knowledge graph', 'The more you ask, the more related ideas connect, so you see what you have learned.'], ['book', 'Mind maps and downloads', 'Expand an idea into a mind map, or download what you have reviewed as a Word file.'], ['chart', 'Daily goal and check-ins', 'Set a small daily goal and share a check-in image when you reach it.']],
-};
+const TOUR = [
+  { icon: 'bookmark', title: { zh: "自动整理成知识卡片", en: "Knowledge cards, automatically" },
+    body: { zh: "每次提问后，知回会把要点整理成一张知识卡片，存进知识库。", en: "After each question, the key points become a card in your library." } },
+  { icon: 'repeat', title: { zh: "按遗忘曲线安排复习", en: "Reviews on the forgetting curve" },
+    body: { zh: "在你快要忘记时安排复习：翻卡或用自己的话回答，几分钟就能完成。", en: "Review just before you would forget: flashcards or your own words, a few minutes a day." } },
+  { icon: 'globe', title: { zh: "知识图谱", en: "Knowledge graph" },
+    body: { zh: "问得越多，相关的知识会自动连起来，看清自己学过什么。", en: "The more you ask, the more related ideas connect, so you see what you have learned." } },
+  { icon: 'book', title: { zh: "思维导图与下载", en: "Mind maps and downloads" },
+    body: { zh: "把一个知识点展开成思维导图，或把复习好的知识汇总下载成 Word。", en: "Expand an idea into a mind map, or download what you have reviewed as a Word file." } },
+  { icon: 'chart', title: { zh: "每日目标与打卡", en: "Daily goal and check-ins" },
+    body: { zh: "每天定一个小目标，完成后生成打卡图，和朋友分享。", en: "Set a small daily goal and share a check-in image when you reach it." } },
+];
 
 // deps: locale(), modules() [{id, name}], level(id), freeOffered(), needsConsent(), giveConsent(), canAsk(),
 // ask(module, text) → Promise<{answer, card} | {error}>, finish(), refresh()
@@ -84,7 +86,7 @@ export function createOnboarding(deps) {
       ${error ? `<p class="error" role="alert">${e(error)}</p>` : ''}`;
   }
   function answerView() {
-    const card = result.card, words = TOUR[zh() ? 'zh' : 'en'];
+    const card = result.card, words = TOUR.map(item => [item.icon, pick(item.title.zh, item.title.en), pick(item.body.zh, item.body.en)]);
     return `${header(tr('这就是知回', 'This is Knowledge Review'), '')}
       <div class="onb-chat"><div class="message user-message"><div class="message-content"><div class="user-text">${e(result.question)}</div></div></div>
         <div class="message assistant-message">${result.sample ? `<span class="pill">${tr('示例回答', 'Sample answer')}</span>` : ''}<div class="message-content">${renderAnswer(result.answer)}</div></div>
@@ -97,7 +99,7 @@ export function createOnboarding(deps) {
   async function submit(question) {
     const q = question.trim(); if (!q || busy) return;
     if (!deps.canAsk() && !deps.needsConsent()) {
-      result = { question: q, answer: SAMPLE[zh() ? 'zh' : 'en'][currentModule()] || SAMPLE[zh() ? 'zh' : 'en'].life, card: null, sample: true }; step = 'answer'; deps.refresh(); return;
+      result = { question: q, answer: (sample => pick(sample.zh, sample.en))(SAMPLE[currentModule()] || SAMPLE.life), card: null, sample: true }; step = 'answer'; deps.refresh(); return;
     }
     if (deps.needsConsent()) { if (!agreed) { error = tr('请先勾选同意说明。', 'Please tick the agreement first.'); deps.refresh(); return; } deps.giveConsent(); }
     busy = true; error = ''; text = q; stopVoice(); deps.refresh();
@@ -109,7 +111,7 @@ export function createOnboarding(deps) {
   }
   function startVoice() {
     const Recognition = Speech(); if (!Recognition) return;
-    recognition = new Recognition(); recognition.lang = zh() ? 'zh-CN' : 'en-US'; recognition.interimResults = true; recognition.continuous = false;
+    recognition = new Recognition(); recognition.lang = speechLocale(currentLocale()); recognition.interimResults = true; recognition.continuous = false;
     recognition.onresult = event => { text = [...event.results].map(item => item[0].transcript).join(''); const box = document.querySelector('[data-onb-text]'); if (box) box.value = text; const send = document.querySelector('[data-onb-send]'); if (send) send.disabled = !text.trim() || (deps.needsConsent() && !agreed); };
     recognition.onerror = event => { error = speechErrorText(event.error); listening = false; deps.refresh(); };
     recognition.onend = () => { listening = false; recognition = null; deps.refresh(); };

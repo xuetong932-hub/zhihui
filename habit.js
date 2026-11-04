@@ -25,7 +25,7 @@ export function goalStreak(events, goal, now = new Date()) {
 // A daily repeating calendar event with an alert at the start (iCalendar, RFC 5545). Floating local time, so it
 // rings at the same clock time wherever the phone is.
 export function reminderCalendar({ time, locale, url, now = new Date() }) {
-  const [hh, mm] = /^\d{2}:\d{2}$/.test(time) ? time.split(':') : ['19', '00'], zh = locale === 'zh';
+  const [hh, mm] = /^\d{2}:\d{2}$/.test(time) ? time.split(':') : ['19', '00'], zh = ['zh', 'zh-TW', 'ja', 'ko'].includes(locale) /* wide script: shorter lines */;
   const date = localDay(now).replaceAll('-', ''), stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
   const text = value => value.replace(/[\\,;]/g, char => `\\${char}`).replace(/\n/g, '\\n');
   const summary = pick('知回 · 每日复习', 'Knowledge Review · Daily review'), body = pick('花几分钟巩固今天的知识：{url}', 'Spend a few minutes reviewing: {url}', { url });
@@ -38,7 +38,7 @@ export function reminderCalendar({ time, locale, url, now = new Date() }) {
 // Check-in image, 1080 x 1440, drawn on a canvas. data: {date, done, goal, streak, goalStreak, modules: [names], titles: [..]}.
 // No user name is drawn; titles only when the user ticked "show what I learned".
 export function drawShareCard(canvas, data, { locale, showTitles = false } = {}) {
-  const zh = locale === 'zh', W = 1080, H = 1440, ctx = canvas.getContext('2d'), font = (size, weight = 500) => `${weight} ${size}px system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif`;
+  const zh = ['zh', 'zh-TW', 'ja', 'ko'].includes(locale) /* wide script: shorter lines */, W = 1080, H = 1440, ctx = canvas.getContext('2d'), font = (size, weight = 500) => `${weight} ${size}px system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif`;
   canvas.width = W; canvas.height = H;
   const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#2f6a50'); bg.addColorStop(0.6, '#3f8a68'); bg.addColorStop(1, '#5aa883');
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
@@ -69,7 +69,7 @@ export function drawShareCard(canvas, data, { locale, showTitles = false } = {})
 
 // Dialog: preview, optional "show what I learned", then share (system sheet with the image) or save the PNG.
 export function openShareDialog({ locale, data }) {
-  const zh = locale === 'zh', dialog = document.createElement('dialog'); dialog.className = 'share-dialog';
+  const zh = ['zh', 'zh-TW', 'ja', 'ko'].includes(locale) /* wide script: shorter lines */, dialog = document.createElement('dialog'); dialog.className = 'share-dialog';
   let showTitles = false, url = '';
   const canvas = document.createElement('canvas');
   const draw = () => {
