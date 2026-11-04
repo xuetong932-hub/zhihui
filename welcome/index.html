@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="知回：提问即笔记，遗忘前复习。AI 回答自动整理成知识卡片，按 FSRS 遗忘曲线安排复习。">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <title>知回 · 提问即笔记，遗忘前复习</title>
+  <script src="/theme.js"></script>
+  <link rel="stylesheet" href="/welcome/welcome.css">
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div>
+  <header class="top">
+    <a class="brand" href="/welcome"><img src="/icon.svg" alt="" width="28" height="28"><span>知回</span></a>
+    <nav class="top-links">
+      <a href="#how" data-i18n="navHow">怎么用</a><a href="#features" data-i18n="navFeatures">功能</a><a href="#download" data-i18n="navDownload">下载</a><a href="#faq" data-i18n="navFaq">常见问题</a>
+    </nav>
+    <div class="top-actions">
+      <button type="button" class="icon-button" id="lang" aria-label="English">EN</button>
+      <button type="button" class="icon-button" id="theme" aria-label="切换黑夜模式">☾</button>
+      <a class="pill primary small" href="/" data-i18n="openApp">在线使用</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-text reveal">
+        <span class="badge" data-i18n="badge">免费额度 · 无需自备 Key · 本地优先</span>
+        <h1><span data-i18n="title1">问一个问题，</span><br><span class="accent" data-i18n="title2">就记住它。</span></h1>
+        <p class="lead" data-i18n="lead">知回把你问 AI 的每一个问题，自动整理成知识卡片；再按遗忘曲线，在你快要忘记之前提醒你复习。学过的东西，真正留下来。</p>
+        <ul class="chips">
+          <li data-i18n="chip1">提问即笔记</li><li data-i18n="chip2">FSRS 遗忘曲线复习</li><li data-i18n="chip3">知识图谱与思维导图</li>
+        </ul>
+        <div class="cta">
+          <a class="pill primary magnetic" href="/"><span data-i18n="ctaStart">立即开始</span> →</a>
+          <button type="button" class="pill secondary magnetic" data-install><span data-i18n="ctaDesktop">安装到电脑</span></button>
+          <a class="pill secondary magnetic" href="/zhihui.apk" download="zhihui.apk" data-i18n="ctaAndroid">下载安卓 App</a>
+        </div>
+        <p class="fine" data-i18n="fine">网页版、电脑和安卓都能用，数据默认只存在你的设备上。</p>
+      </div>
+
+      <div class="demo-wrap reveal">
+        <div class="demo" id="demo" aria-live="polite">
+          <div class="demo-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span data-i18n="demoTitle">知回 · 演示</span><span class="demo-tag" data-i18n="demoTag">演示，不调用模型</span></div>
+          <div class="demo-body">
+            <p class="demo-hint" data-i18n="demoHint">选一个问题试试：</p>
+            <div class="demo-questions" id="demo-questions"></div>
+            <div class="demo-stage" id="demo-stage"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="how" id="how">
+      <div class="section-head reveal"><span class="eyebrow" data-i18n="howEyebrow">三步</span><h2 data-i18n="howTitle">从一个问题，到一张记得住的卡片</h2></div>
+      <ol class="steps">
+        <li class="step reveal"><span class="step-no">1</span><h3 data-i18n="step1">提问</h3><p data-i18n="step1d">打字、说话或拍照提问。按编程、英语、工作、生活分模块记录。</p></li>
+        <li class="step reveal"><span class="step-no">2</span><h3 data-i18n="step2">自动成卡</h3><p data-i18n="step2d">回答后自动提炼成一张知识卡片：标题、要点和例子，不用自己做笔记。</p></li>
+        <li class="step reveal"><span class="step-no">3</span><h3 data-i18n="step3">按时复习</h3><p data-i18n="step3d">FSRS 算法算出每张卡片快要忘记的时候，提醒你复习，越记越牢。</p></li>
+      </ol>
+      <div class="curve-card reveal">
+        <div class="curve-head"><div><h3 data-i18n="curveTitle">遗忘曲线：复习让记忆留得更久</h3><p class="muted" data-i18n="curveNote">按 FSRS-5 默认参数计算。把鼠标移到图上看看第几天还记得多少。</p></div>
+          <div class="legend"><span class="key no-review" data-i18n="legendNo">不复习</span><span class="key with-review" data-i18n="legendYes">按知回复习</span></div></div>
+        <svg id="curve" viewBox="0 0 640 260" role="img" aria-label="遗忘曲线对比"></svg>
+        <p class="curve-readout" id="curve-readout" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section class="features" id="features">
+      <div class="section-head reveal"><span class="eyebrow" data-i18n="featEyebrow">核心功能</span><h2 data-i18n="featTitle">学过的，都帮你留着</h2></div>
+      <div class="feature-grid" id="feature-grid"></div>
+    </section>
+
+    <section class="numbers reveal" aria-label="知回的数字">
+      <div><strong class="count" data-to="4">0</strong><span data-i18n="num1">个学习模块</span></div>
+      <div><strong class="count" data-to="54">0</strong><span data-i18n="num2">条人工核对的推荐资源</span></div>
+      <div><strong class="count" data-to="5" data-prefix="FSRS-">0</strong><span data-i18n="num3">复习算法</span></div>
+      <div><strong class="count" data-to="20">0</strong><span data-i18n="num4">次每日免费提问（登录后）</span></div>
+    </section>
+
+    <section class="download" id="download">
+      <div class="section-head reveal"><span class="eyebrow" data-i18n="dlEyebrow">下载与安装</span><h2 data-i18n="dlTitle">在你常用的设备上打开知回</h2></div>
+      <div class="dl-grid">
+        <article class="dl-card reveal"><div class="dl-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></div><h3 data-i18n="dlWeb">网页版</h3><p data-i18n="dlWebD">打开即用，电脑和手机浏览器都可以。</p><a class="pill secondary" href="/" data-i18n="dlWebBtn">在线使用</a></article>
+        <article class="dl-card reveal featured"><div class="dl-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></svg></div><h3 data-i18n="dlDesk">电脑（Windows / Mac）</h3><p data-i18n="dlDeskD">在 Chrome 或 Edge 中安装为独立窗口应用，开始菜单和任务栏里都有图标，自动更新。</p><button type="button" class="pill primary" data-install data-i18n="dlDeskBtn">安装到电脑（浏览器应用）</button></article>
+        <article class="dl-card reveal"><div class="dl-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div><h3 data-i18n="dlAndroid">安卓手机</h3><p data-i18n="dlAndroidD">下载安装包（约 1 MB），全屏打开。安装时选择"仍然安装"。</p><a class="pill secondary" href="/zhihui.apk" download="zhihui.apk" data-i18n="dlAndroidBtn">下载 APK</a></article>
+        <article class="dl-card reveal"><div class="dl-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2.5"/><circle cx="12" cy="17.5" r=".8"/></svg></div><h3 data-i18n="dlIos">iPhone / iPad</h3><p data-i18n="dlIosD">用 Safari 打开知回，点分享按钮，选"添加到主屏幕"。</p><a class="pill secondary" href="/" data-i18n="dlIosBtn">用 Safari 打开</a></article>
+      </div>
+    </section>
+
+    <section class="faq" id="faq">
+      <div class="section-head reveal"><span class="eyebrow" data-i18n="faqEyebrow">常见问题</span><h2 data-i18n="faqTitle">你可能想知道</h2></div>
+      <div class="faq-list" id="faq-list"></div>
+    </section>
+
+    <section class="final reveal">
+      <h2 data-i18n="finalTitle">下一个问题，就从知回开始问。</h2>
+      <div class="cta center"><a class="pill primary magnetic" href="/"><span data-i18n="ctaStart">立即开始</span> →</a><button type="button" class="pill secondary magnetic" data-install data-i18n="ctaDesktop">安装到电脑</button></div>
+    </section>
+  </main>
+
+  <footer class="foot"><span>© 知回 · Knowledge Review</span><span data-i18n="footNote">学习记录默认保存在你的设备上</span></footer>
+
+  <dialog class="install-dialog" id="install-dialog">
+    <h2 data-i18n="instTitle">安装到电脑</h2>
+    <div id="install-steps"></div>
+    <div class="dialog-actions"><button type="button" class="pill secondary" id="install-close" data-i18n="close">知道了</button></div>
+  </dialog>
+  <script type="module" src="/welcome/welcome.js"></script>
+</body>
+</html>

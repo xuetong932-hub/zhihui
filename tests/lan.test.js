@@ -69,6 +69,8 @@ test('the Android installer and its site verification file are served with their
     assert.equal(apk.statusCode, 200); assert.equal(apk.headers['content-type'], 'application/vnd.android.package-archive');
     const links = await get(app, '/.well-known/assetlinks.json', { Host: 'localhost' });
     assert.equal(links.statusCode, 200); assert.equal(links.headers['content-type'], 'application/json');
+    for (const path of ['/welcome', '/welcome/welcome.css', '/welcome/welcome.js']) assert.equal((await get(app, path, { Host: 'localhost' })).statusCode, 200, path);
+    assert.equal((await get(app, '/welcome', { Host: 'localhost', 'User-Agent': PHONE })).statusCode, 200, 'phones see the product page too, not the app redirect');
   } finally { app.close(); }
 });
 
