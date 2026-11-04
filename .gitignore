@@ -13,3 +13,6 @@ knowledge-review-claude-handoff-*.zip.sha256
 
 # Personal notes that may hold passwords
 密码.txt
+
+# Android signing key and its password (back these up; never commit). See docs/ANDROID_APP.md.
+android-signing/

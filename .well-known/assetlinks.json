@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.zhihui.app",
+        "sha256_cert_fingerprints": ["0D:82:77:D5:DC:14:C0:97:A0:5F:48:31:C4:91:81:DA:DC:3B:11:CC:7C:22:E6:16:7B:F7:CA:01:51:DF:3F:B7"]
+      }
+    }]

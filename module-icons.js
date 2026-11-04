@@ -23,6 +23,8 @@ const PATHS = {
   // First-run guide: ask by voice or by typing.
   mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/>',
   keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
+  // Phone "Me" page: download the Android app.
+  download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
 };
 const PRESET_ICONS = { coding: 'code', english: 'book', work: 'briefcase', life: 'house' };
 // colour is an SVG attribute, not inline CSS, so the page's style-src 'self' policy allows it.

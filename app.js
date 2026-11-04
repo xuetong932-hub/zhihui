@@ -199,6 +199,11 @@ function boot() {
       return `<button class="tab ${on ? 'active' : ''}" data-tab="${id}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}>${iconSvg(icon, 24)}<span class="tab-label">${label}</span></button>`;
     }).join('')}</nav>`;
   }
+  // The Android app download is offered in a phone browser on Android, not inside the installed app itself.
+  // The app reveals itself through the referrer on launch only, so that is remembered for the session.
+  try { if (document.referrer.startsWith('android-app://')) sessionStorage.setItem('knowledge-review.in-app', '1'); } catch { /* Then only display mode decides. */ }
+  const inAndroidApp = () => { try { return sessionStorage.getItem('knowledge-review.in-app') === '1'; } catch { return false; } };
+  const androidBrowser = () => /Android/i.test(navigator.userAgent) && !matchMedia('(display-mode: standalone)').matches && !inAndroidApp();
   function meView() {
     const zh = locale === 'zh', dark = window.knowledgeReviewTheme?.theme === 'dark';
     const row = (attrs, icon, label, value = '') => `<button class="me-row" ${attrs}><span class="me-icon">${icon}</span><span class="me-label">${label}</span>${value ? `<span class="me-value">${value}</span>` : ''}<span class="me-chevron" aria-hidden="true">›</span></button>`;
@@ -206,6 +211,7 @@ function boot() {
     return `<section class="me-head"><span class="me-avatar">${iconSvg('user', 28)}</span><div><h1>${esc(name)}</h1><p>${account?.local ? (zh ? '记录只保存在这台设备' : 'Records stay on this device') : (zh ? '学习记录保存在本机，可在账号中加密同步' : 'Records are kept here; encrypted sync is in Account')}</p></div></section>
       <div class="me-group"><h2>${zh ? '学习' : 'Learning'}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), zh ? `目标 ${goalOf(profile)} 张` : `Goal ${goalOf(profile)}`)}${row('id="background-open"', iconSvg('palette'), zh ? '背景' : 'Background')}${row('id="theme-toggle"', iconSvg('bulb'), zh ? '外观' : 'Appearance', dark ? (zh ? '黑夜' : 'Night') : (zh ? '白天' : 'Day'))}${row('id="language"', iconSvg('globe'), zh ? '语言' : 'Language', zh ? '中文' : 'English')}</div>
       <div class="me-group"><h2>${zh ? '账号与设备' : 'Account & device'}</h2>${account?.local ? row('data-signin', iconSvg('user'), zh ? '登录 / 注册' : 'Sign in / Register') : row('data-cloud', iconSvg('user'), zh ? '账号与同步' : 'Account & sync')}${row('data-device', iconSvg('camera'), zh ? '设备与提醒' : 'Device & reminders')}${account?.is_admin ? row('data-admin', iconSvg('chart'), zh ? '管理' : 'Admin') : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}${row('data-onboarding', iconSvg('compass'), zh ? '产品演示' : 'Product tour')}</div>
+      ${androidBrowser() ? `<div class="me-group"><h2>${zh ? '安卓 App' : 'Android app'}</h2><a class="me-row" href="/zhihui.apk" download="zhihui.apk"><span class="me-icon">${iconSvg('download')}</span><span class="me-label">${zh ? '下载安卓 App' : 'Download the Android app'}</span><span class="me-value">${zh ? '约 1 MB' : 'About 1 MB'}</span><span class="me-chevron" aria-hidden="true">›</span></a><p class="me-note">${zh ? '安装时手机会提示"未知来源应用"，选择仍然安装即可。App 打开的仍是知回网站，内容随网站自动更新。' : 'Your phone will warn about an app from an unknown source; choose to install anyway. The app opens the 知回 website, so it updates with the site.'}</p></div>` : ''}
       <p class="development-note">${t('preview')}</p>`;
   }
   // Daily goal: cards reviewed today against the goal, days in a row it was met, and the check-in image once reached.

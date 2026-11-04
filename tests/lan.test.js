@@ -62,6 +62,16 @@ test('public mode counts the no-account allowance per visitor, not per proxy', a
   } finally { app.close(); }
 });
 
+test('the Android installer and its site verification file are served with their types', async () => {
+  const app = await serve();
+  try {
+    const apk = await get(app, '/zhihui.apk', { Host: 'localhost' });
+    assert.equal(apk.statusCode, 200); assert.equal(apk.headers['content-type'], 'application/vnd.android.package-archive');
+    const links = await get(app, '/.well-known/assetlinks.json', { Host: 'localhost' });
+    assert.equal(links.statusCode, 200); assert.equal(links.headers['content-type'], 'application/json');
+  } finally { app.close(); }
+});
+
 test('only private IPv4 addresses count as the home network', () => {
   const interfaces = { wifi: [{ family: 'IPv4', address: '192.168.1.5', internal: false }, { family: 'IPv6', address: 'fe80::1', internal: false }],
     lo: [{ family: 'IPv4', address: '127.0.0.1', internal: true }], vpn: [{ family: 'IPv4', address: '172.20.0.3', internal: false }], wan: [{ family: 'IPv4', address: '8.8.8.8', internal: false }] };
