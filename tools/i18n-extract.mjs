@@ -49,7 +49,8 @@ for (const file of FILES) {
 for (const [file, name] of [['app.js', 'words'], ['chat-ui.js', 'copy'], ['modules.js', 'PRESET_NAMES'], ['background.js', 'words']]) {
   const src = readFileSync(root + file, 'utf8'), start = src.indexOf(`${name} = {`); if (start < 0) continue;
   const block = lang => { const i = src.indexOf(`${lang}: {`, start); let depth = 0; for (let j = i; j < src.length; j++) { if (src[j] === '{') depth++; else if (src[j] === '}' && --depth === 0) return src.slice(i, j); } return ''; };
-  const entries = text => { const out = {}; for (const m of text.matchAll(/(['"]?)([\w-]+)\1:\s*(?=['"`])/g)) { const v = literal(text, m.index + m[0].length); if (v) out[m[2]] = v.value; } return out; };
+  // Matches inside an earlier value (e.g. "…to this provider:") are text, not keys, so they are skipped.
+  const entries = text => { const out = {}; let after = 0; for (const m of text.matchAll(/(['"]?)([\w-]+)\1:\s*(?=['"`])/g)) { if (m.index < after) continue; const v = literal(text, m.index + m[0].length); if (v) { out[m[2]] = v.value; after = v.end; } } return out; };
   const zh = entries(block('zh')), en = entries(block('en'));
   for (const key of Object.keys(en)) add(zh[key], en[key], `${file}#${key}`);
 }

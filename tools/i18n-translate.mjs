@@ -9,7 +9,12 @@ import { toTraditional } from './zh-hant.mjs';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const LANGS = {
   'zh-TW': '繁體中文（台灣用語，例如「軟體」「資訊」「影片」）', ja: '日本語（です・ます調、アプリのUIとして自然に）', ko: '한국어（해요체/합니다체, 앱 UI로 자연스럽게）',
-  ms: 'Bahasa Melayu (Malaysia)', es: 'español (neutro, tú)', fr: 'français (vous)', pt: 'português do Brasil (você)', de: 'Deutsch (du)',
+  ms: 'Bahasa Melayu (Malaysia)', es: 'español (neutro, tú)', fr: 'français (vous)', pt: 'português do Brasil (você)', de: 'Deutsch (formell, Sie)',
+};
+// One word for "review" (复习, spaced review) per language, so the interface does not mix synonyms.
+const GLOSSARY = {
+  ms: { term: '"ulang kaji"', test: /ulang kaji/i }, es: { term: '"repaso" (noun) or "repasar" (verb)', test: /repas/i }, fr: { term: '"révision" (noun) or "réviser" (verb)', test: /révis/i },
+  pt: { term: '"revisão" (noun) or "revisar" (verb)', test: /revis/i }, de: { term: '"Wiederholung" (noun) or "wiederholen" (verb)', test: /wiederhol/i },
 };
 const key = process.env.ZHIPU_API_KEY || (() => { try { return JSON.parse(readFileSync(root + 'server.local.json', 'utf8')).ZHIPU_API_KEY; } catch { return ''; } })();
 if (!key) { console.error('No ZHIPU_API_KEY.'); process.exit(1); }
@@ -22,26 +27,37 @@ const SIMPLIFIED = /[们这来国说时会对过发问学习复图识网页关�
 // Japanese shares many simplified-looking kanji (学 会 来 点 数), so it is checked only against characters Japanese never uses.
 const SIMPLIFIED_ONLY_CN = /[复们这说时对过发问习复图识网页关现进还开见门间题记设语读认话让给经没确选择请据录类样边钮载链调务库谱导维态览账码统证错误输从个为么头动产业东两书买亲优伤侧储兴养决况净减处击则刚创删别剂剑剧劝办劳势华协单卖卫厅历压县变启员响团园围圆圣场坏块坚备够奖妇孙宁实审宪宾寻导层岁岛币师帐带帮库应废张归录彻忆总恶惊战扩扫扬拟拥换摄无显术杀杂权极构标栏树档梦检欢毕气汉泽洁测济浓涂渐满灭灵灾烦烧热爱环现电疗盐监盘矿码础确离种积稳竞笔简粮紧红约级纪纯纳纵纸练组细织终绍经绘给络绝统继续维绿缓编缘网罗职肠脑艺节药获营蓝虑补观规视览觉计订认讨让训议讯记讲许论设访证评识诉词译试诗诚话询该详语误说请诸读课谁调谈谢谱贝负贡财责贤败货质购贯贴贵费贸贺赏赛赢趋跃践轮软轻载较辅辆输边达过进远违连迟适选递逻遗邮释针钟钢钱铁银链销锁错键镇镜闭闻阅队阳阴阶际陆险隐难雾顶项顺须顾预领频颜额风飞饭馆驾验鱼鸟齐龙]/;
 const HAN = /[㐀-鿿]/g;
-const scriptOk = (code, zh, out) => {
+const scriptOk = (code, zh, out, en, strict) => {
   const text = out.replaceAll('知回', '');
   if (code === 'ko') return !/[\u3400-\u9fff]/.test(text);
   if (code === 'zh-TW') return !SIMPLIFIED.test(text);
   // Traditional-only forms Japanese never uses (日本語 has 説 数 体 対 会 国 学 図 処 伝 instead).
   if (code === 'ja' && /[們這說與數據體對從會來國學讓關應實當點邊雙聽讀觀寫雖經絕繼續聯腦營虛裝覽證譯轉遲釋錢鐵閱險隱驗齊擔擇圖團處傳變歡覺價舊號劃壓廣戰斷樣檢歷滿獨畫稱穩總聲藝觸]/.test(text)) return false;
   if (code === 'ja') return !(text === zh && /[\u3400-\u9fff]{3,}/.test(zh.replaceAll('知回', ''))) && !(text === zh && SIMPLIFIED.test(zh)) && !SIMPLIFIED_ONLY_CN.test(text);
-  return !/[㐀-鿿]/.test(text);
+  // Latin-script languages: no Chinese left, and a multi-word phrase returned unchanged was copied, not translated.
+  return !/[㐀-鿿]/.test(text) && !(strict && out.trim() === en.trim() && /[a-z]{3,}[\s,.]+[a-z]{3,}/i.test(out.replace(/<[^>]+>/g, '')));
 };
-const valid = (en, out, code) => typeof out === 'string' && out.trim() && placeholders(en) === placeholders(out) && tags(en) === tags(out) && (!en.includes('知回') || out.includes('知回')) && scriptOk(code, source[en], out);
+// The chosen form of address; a result in the other one is asked again.
+const WRONG_REGISTER = { de: /\b(du|dein\w*|dich|dir)\b/i, fr: /(^|[\s'’])(tu|toi|ton|ta|tes)\b/i, ms: /\bkamu\b/i };
+// strict: a new model result must also not copy the English and must use the glossary word; saved entries (including
+// hand corrections such as "Hong Kong, China") only need the format checks.
+const valid = (en, out, code, strict = true) => typeof out === 'string' && out.trim() && placeholders(en) === placeholders(out) && tags(en) === tags(out)
+  && (!en.includes('知回') || out.includes('知回')) && !out.includes('Knowledge Review') && scriptOk(code, source[en], out, en, strict)
+  && (!strict || !WRONG_REGISTER[code]?.test(out))
+  && !/(repasar|repaso|réviser|révision|revisar|revisão|wiederholen|Wiederholung) \/ (repasar|repaso|réviser|révision|revisar|revisão|wiederholen|Wiederholung)/i.test(out)
+  && !/\((noun|verb)\)/.test(out)
+  && (!strict || !GLOSSARY[code] || !source[en].includes('复习') || GLOSSARY[code].test.test(out));
 const readCatalog = code => { const file = `${root}i18n/${code}.js`; if (!existsSync(file)) return {}; return JSON.parse(readFileSync(file, 'utf8').replace(/^[\s\S]*?export default /, '').replace(/;\s*$/, '')); };
 const writeCatalog = (code, table) => {
-  const sorted = Object.fromEntries(Object.keys(source).filter(en => code === 'zh-TW' ? en in table : valid(en, table[en], code)).map(en => [en, table[en]]));
+  const sorted = Object.fromEntries(Object.keys(source).filter(en => code === 'zh-TW' ? en in table : valid(en, table[en], code, false)).map(en => [en, table[en]]));
   writeFileSync(`${root}i18n/${code}.js`, `// ${code} interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.\nexport default ${JSON.stringify(sorted, null, 1)};\n`);
 };
 async function ask(code, batch) {
   const items = batch.map(([en, zh], i) => ({ i, en, zh }));
   const system = `You translate the interface of 知回 (Knowledge Review), a learning app: ask AI questions, answers become knowledge cards, spaced review (FSRS).
 Translate each item's English "en" into ${LANGS[code]}. The Chinese "zh" is the original wording, for meaning only: never copy it, always write in the target language and script.
-Rules: keep every {placeholder} from "en" exactly, with the same names (they may differ from "zh"); keep HTML tags, attributes, URLs and line breaks; keep the product name 知回 unchanged; keep brand names (Google, Apple, Supabase, DeepSeek, Qwen, Bilibili, YouTube, Word, Markdown, JSON, PNG, FSRS) unchanged; keep it short like UI text; no explanations.
+Rules: keep every {placeholder} from "en" exactly, with the same names (they may differ from "zh"); keep HTML tags, attributes, URLs and line breaks; keep the product name 知回 unchanged; keep brand names (Google, Apple, Supabase, DeepSeek, Qwen, Bilibili, YouTube, Word, Markdown, JSON, PNG, FSRS) unchanged; the product name 知回 is also written "Knowledge Review" in English: always write it as 知回; keep it short like UI text; no explanations.${GLOSSARY[code] ? `
+Glossary: translate "review" (复习, spaced-repetition review) always with ${GLOSSARY[code].term}, in the right grammatical form; never other synonyms, never both words together.` : ''}
 Reply with one JSON object only: {"0": "...", "1": "...", ...} using the item numbers.`;
   const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },

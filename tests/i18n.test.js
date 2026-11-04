@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LOCALES, ENABLED, isLocale, detectLocale, translate, registerCatalog, intlLocale, speechLocale, isChineseLocale, localeName } from '../i18n.js';
+import { LOCALES, ENABLED, isLocale, detectLocale, translate, registerCatalog, loadCatalog, needsCatalog, intlLocale, speechLocale, isChineseLocale, localeName } from '../i18n.js';
 
 test('i18n: ten languages, existing zh/en codes kept, only finished ones offered', () => {
   assert.deepEqual(LOCALES.map(item => item.code), ['zh', 'zh-TW', 'en', 'ja', 'ko', 'ms', 'es', 'fr', 'pt', 'de']);
@@ -32,4 +32,13 @@ test('i18n: catalogs are keyed by the English text, missing entries fall back to
   assert.equal(translate('{n} 张待复习', '{n} cards due', { n: 3 }, 'de'), '3 Karten fällig');
   assert.equal(translate('{n} 张待复习', '{n} cards due', { n: 3 }, 'zh'), '3 张待复习');
   assert.equal(translate('保留 {x}', 'Keep {x}', {}, 'en'), 'Keep {x}', 'unknown placeholders stay as written');
+});
+
+test('i18n: a saved language loads its catalog once, so a reload keeps that language', async () => {
+  assert.equal(needsCatalog('zh'), false);
+  assert.equal(needsCatalog('en'), false);
+  assert.equal(needsCatalog('fr'), true, 'French needs its catalog before the first render');
+  await loadCatalog('fr');
+  assert.equal(needsCatalog('fr'), false);
+  assert.notEqual(translate('开始复习', 'Start review', undefined, 'fr'), 'Start review');
 });

@@ -14,8 +14,8 @@ export const LOCALES = [
   { code: 'pt', name: 'Português (Brasil)', intl: 'pt-BR', speech: 'pt-BR' },
   { code: 'de', name: 'Deutsch', intl: 'de', speech: 'de-DE' },
 ];
-// Languages offered in the picker. Others stay hidden until their catalog is complete.
-export const ENABLED = ['zh', 'zh-TW', 'en', 'ja', 'ko'];
+// Languages offered in the picker; a new one is added here once its catalog is complete.
+export const ENABLED = ['zh', 'zh-TW', 'en', 'ja', 'ko', 'ms', 'es', 'fr', 'pt', 'de'];
 export const LOCALE_CODES = LOCALES.map(item => item.code);
 export const isLocale = code => LOCALE_CODES.includes(code);
 const info = code => LOCALES.find(item => item.code === code) || LOCALES[2];
@@ -39,9 +39,13 @@ const catalogs = {};
 let current = 'zh';
 export const currentLocale = () => current;
 export function registerCatalog(code, table) { catalogs[code] = table; }
-// Loads a catalog before the first render in that language; Chinese and English need none.
+const tried = new Set();
+// True while a language still needs its catalog loaded (one attempt each; a failed load falls back to English).
+export const needsCatalog = code => isLocale(code) && code !== 'zh' && code !== 'en' && !catalogs[code] && !tried.has(code);
+// Loads a catalog for a language; Chinese and English need none.
 export async function loadCatalog(code) {
-  if (code === 'zh' || code === 'en' || catalogs[code] || !isLocale(code)) return;
+  if (!needsCatalog(code)) return;
+  tried.add(code);
   try { registerCatalog(code, (await import(`./i18n/${code}.js`)).default); } catch { /* Falls back to English text. */ }
 }
 export function setLocale(code) { current = isLocale(code) ? code : 'en'; if (globalThis.document) document.documentElement.lang = intlLocale(current); }

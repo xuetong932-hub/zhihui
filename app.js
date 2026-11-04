@@ -10,7 +10,7 @@ import { createAuth } from './auth.js';
 import { createAuthGate } from './auth-ui.js';
 import { escapeHtml as esc } from './chat-store.js';
 import { PRESET_MODULES as moduleIds, LEVELS as levels, MAX_CUSTOM_MODULES, isCustomModule, cleanModuleName, validModules, validDailyMinutes, newCustomModuleId, activeModuleIds, moduleLabel } from './modules.js';
-import { pick, intlLocale, currentLocale, isLocale, detectLocale, setLocale, loadCatalog, ENABLED, localeName } from './i18n.js';
+import { pick, intlLocale, currentLocale, isLocale, detectLocale, setLocale, loadCatalog, needsCatalog, ENABLED, localeName } from './i18n.js';
 const words = {
   zh: {
     brand: '知回', subtitle: '把好问题，变成记得住的知识。', language: 'English',
@@ -190,13 +190,13 @@ function boot() {
   // device and model settings move to the 我的 tab. The web layout is unchanged.
   const phone = document.documentElement.dataset.layout === 'mobile';
   const TABS = [
-    ['home', 'house', ['home', 'chat'], '首页', 'Home'], ['review', 'repeat', ['review'], '复习', 'Review'], ['library', 'book', ['library'], '知识库', 'Knowledge'],
-    ['discover', 'compass', ['discover', 'recommend', 'square'], '发现', 'Discover'], ['me', 'user', ['me', 'device', 'cloud', 'admin', 'model'], '我的', 'Me'],
+    ['home', 'house', ['home', 'chat'], () => pick('首页', 'Home')], ['review', 'repeat', ['review'], () => pick('复习', 'Review')], ['library', 'book', ['library'], () => pick('知识库', 'Knowledge')],
+    ['discover', 'compass', ['discover', 'recommend', 'square'], () => pick('发现', 'Discover')], ['me', 'user', ['me', 'device', 'cloud', 'admin', 'model'], () => pick('我的', 'Me')],
   ];
   // Icon on top, its name below in the current language only (Chinese or English, never both).
   function tabBar(locked) {
-    return `<nav class="tabbar" aria-label="${pick('主导航', 'Main')}">${TABS.map(([id, icon, pages, zh, en]) => {
-      const on = pages.includes(chat.page), label = pick(zh, en);
+    return `<nav class="tabbar" aria-label="${pick('主导航', 'Main')}">${TABS.map(([id, icon, pages, name]) => {
+      const on = pages.includes(chat.page), label = name();
       return `<button class="tab ${on ? 'active' : ''}" data-tab="${id}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}>${iconSvg(icon, 24)}<span class="tab-label">${label}</span></button>`;
     }).join('')}</nav>`;
   }
@@ -251,6 +251,8 @@ function boot() {
 
   function renderPage() {
     setLocale(locale);
+    // A saved language other than Chinese/English needs its catalog: load it, then render again in that language.
+    if (needsCatalog(locale)) loadCatalog(locale).then(render);
     document.title = t('brand');
     // The first-run guide is full-screen: no tab bar and no page navigation until it is finished or skipped.
     const inApp = Boolean(chat), locked = inApp ? chat.locked : gate.busy, guide = inApp && chat.page === 'onboarding', tabs = phone && inApp && profile && !editing && !guide;
