@@ -14,6 +14,7 @@ import {starterQuestions,starterCards,hasStarterPack,starterPackPanel} from './s
 import {createOnboarding,onboardingDone,markOnboardingDone,speechErrorText} from './onboarding.js';
 import {createTour,tourDone} from './tour.js';
 import {LOCAL_MODE_KEY} from './auth-ui.js';
+import { pick, intlLocale, speechLocale, currentLocale } from './i18n.js';
 
 const copy = {
   zh: {
@@ -47,7 +48,7 @@ const copy = {
     'error-free-limit': '今天的免费次数已用完，明天会恢复。复习可以先用“快速翻卡”；也可以在“模型设置”中填写自己的 Key。', 'error-free-limit-local': '本地模式今天的体验次数已用完。登录后每天可提问 20 次、复习判分 30 次。',
     'error-free-unavailable': '免费额度暂时不可用，请稍后再试；复习可以先用“快速翻卡”。', 'error-signin': '登录已过期，请重新登录后继续使用免费额度。',
     'error-free-unsupported': '这个功能不包含在免费额度内，请在“模型设置”中填写自己的 Key。',
-    freeName: '知回免费额度', freeLeft: (a, g, p) => `今天还可提问 ${a} 次、复习判分 ${g} 次、拍照识别 ${p} 次`, freeLocal: '本地模式每天提问 3 次、判分 5 次、拍照识别 3 次；登录后每天提问 20 次、判分 30 次、拍照识别 20 次。',
+    freeName: '知回免费额度', freeLeft: '今天还可提问 {a} 次、复习判分 {g} 次、拍照识别 {p} 次', freeLocal: '本地模式每天提问 3 次、判分 5 次、拍照识别 3 次；登录后每天提问 20 次、判分 30 次、拍照识别 20 次。',
     photo: '拍照提问', photoNotice: name => `照片会发送给${name}识别其中的文字，识别后不保存照片，只保留文字。继续吗？`, photoReading: '正在识别照片中的文字…', photoDone: '已识别。识别结果可以修改后再发送。',
     photoNeedsModel: '拍照提问需要先在“模型设置”中选择模型并确认数据发送说明。', 'error-vision-unsupported': '当前模型不支持拍照识别，请改用知回免费额度或千问。', 'error-no-text': '照片里没有识别到文字，请换一张更清晰的照片。',
     'error-large': '照片太大，请换一张或裁小后再试。', 'error-photo': '这张照片无法读取，请换一张。',
@@ -86,7 +87,7 @@ const copy = {
     'error-free-limit': 'Today’s free allowance is used up; it resets tomorrow. Review with quick flashcards, or add your own key in Model settings.', 'error-free-limit-local': 'Local mode’s trial uses for today are used up. Sign in for 20 questions and 30 gradings a day.',
     'error-free-unavailable': 'The free allowance is unavailable right now. Try later; quick flashcards still work.', 'error-signin': 'Your sign-in has expired. Sign in again to use the free allowance.',
     'error-free-unsupported': 'This feature is not part of the free allowance. Add your own key in Model settings.',
-    freeName: 'Free allowance', freeLeft: (a, g, p) => `${a} questions, ${g} gradings and ${p} photos left today`, freeLocal: 'Local mode: 3 questions, 5 gradings and 3 photos a day; signed in: 20, 30 and 20.',
+    freeName: 'Free allowance', freeLeft: '{a} questions, {g} gradings and {p} photos left today', freeLocal: 'Local mode: 3 questions, 5 gradings and 3 photos a day; signed in: 20, 30 and 20.',
     photo: 'Photo question', photoNotice: name => `The photo is sent to ${name} to read its text. The photo is not kept, only the text. Continue?`, photoReading: 'Reading the text in your photo…', photoDone: 'Text recognised. Edit it if needed, then send.',
     photoNeedsModel: 'Photo questions need a model: choose one in Model settings and confirm the sharing notice.', 'error-vision-unsupported': 'This model cannot read photos. Use the free allowance or Qwen.', 'error-no-text': 'No text was found in the photo. Try a clearer one.',
     'error-large': 'The photo is too large. Try another or crop it.', 'error-photo': 'This photo could not be read. Try another.',
@@ -125,7 +126,8 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   }
   let modelDraft, keyDraft = '', consentDraft = false, modelError = '', testMessage = '', testing = false;
   const selected = {}, inputs = {};
-  const t = key => copy[getLocale()][key] || copy[getLocale()]['error-generic'];
+  const word = (key, vars) => pick(copy.zh[key] ?? copy.zh['error-generic'], copy.en[key] ?? copy.en['error-generic'], vars);
+  const t = key => word(key);
   const moduleName = id => moduleLabel(getProfile(), id, getLocale());
   // Custom modules get their conversation list on first use; built-in lists always exist.
   const threadsOf = id => (chats.modules[id] ||= []);
@@ -213,27 +215,27 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   function nav() {
     const zh=getLocale()==='zh',item=(attr,label,current)=>`<button class="text-button ${current.includes(page)?'active':''}" ${attr} ${current.includes(page)?'aria-current="page"':''}>${label}</button>`;
     const inMore=['device','cloud','admin','model'].includes(page);
-    return `<nav class="app-nav" aria-label="${t('home')}">${item('data-chat-home',t('home'),['home','chat'])}${item('data-review',zh?'复习':'Review',['review'])}${item('data-library',zh?'知识库':'Knowledge',['library'])}${item('data-recommend',zh?'推荐':'For you',['recommend'])}${item('data-square',zh?'广场':'Square',['square'])}
-      <details class="nav-more"><summary class="text-button ${inMore?'active':''}">${zh?'更多':'More'} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span><span aria-hidden="true">▾</span></summary><div class="nav-menu">${item('data-device',zh?'设备':'Device',['device'])}${getAccount?.()?.local?`<button class="text-button" data-signin>${zh?'登录 / 注册':'Sign in / Register'}</button>`:item('data-cloud',zh?'账号':'Account',['cloud'])}${getAccount?.()?.is_admin?item('data-admin',zh?'管理':'Admin',['admin']):''}<button class="text-button" data-onboarding>${zh?'产品演示':'Product tour'}</button><button class="text-button" data-tour>${zh?'新手指引':'Guided tour'}</button>${item('data-model-settings',`${t('modelSettings')}<span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span>`,['model'])}</div></details></nav>`;
+    return `<nav class="app-nav" aria-label="${t('home')}">${item('data-chat-home',t('home'),['home','chat'])}${item('data-review',pick('复习', 'Review'),['review'])}${item('data-library',pick('知识库', 'Knowledge'),['library'])}${item('data-recommend',pick('推荐', 'For you'),['recommend'])}${item('data-square',pick('广场', 'Square'),['square'])}
+      <details class="nav-more"><summary class="text-button ${inMore?'active':''}">${pick('更多', 'More')} <span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span><span aria-hidden="true">▾</span></summary><div class="nav-menu">${item('data-device',pick('设备', 'Device'),['device'])}${getAccount?.()?.local?`<button class="text-button" data-signin>${pick('登录 / 注册', 'Sign in / Register')}</button>`:item('data-cloud',pick('账号', 'Account'),['cloud'])}${getAccount?.()?.is_admin?item('data-admin',pick('管理', 'Admin'),['admin']):''}<button class="text-button" data-onboarding>${pick('产品演示', 'Product tour')}</button><button class="text-button" data-tour>${pick('新手指引', 'Guided tour')}</button>${item('data-model-settings',`${t('modelSettings')}<span class="status-dot ${ready() ? 'ready' : ''}" aria-hidden="true"></span>`,['model'])}</div></details></nav>`;
   }
   // Phone layout: 推荐 and 广场 share one 发现 tab with a switch at the top.
   let discoverTab='recommend';
-  function discoverView(){const zh=getLocale()==='zh';return `<div class="segmented discover-switch" role="group" aria-label="${zh?'发现':'Discover'}">${[['recommend',zh?'推荐':'For you'],['square',zh?'广场':'Square']].map(([id,label])=>`<button type="button" class="${discoverTab===id?'active':''}" data-discover-tab="${id}" aria-pressed="${discoverTab===id}">${label}</button>`).join('')}</div>${discoverTab==='square'?discover.squareView():discover.recommendView()}`;}
+  function discoverView(){const zh=getLocale()==='zh';return `<div class="segmented discover-switch" role="group" aria-label="${pick('发现', 'Discover')}">${[['recommend',pick('推荐', 'For you')],['square',pick('广场', 'Square')]].map(([id,label])=>`<button type="button" class="${discoverTab===id?'active':''}" data-discover-tab="${id}" aria-pressed="${discoverTab===id}">${label}</button>`).join('')}</div>${discoverTab==='square'?discover.squareView():discover.recommendView()}`;}
   function view() { return page==='onboarding'?onboarding.view():page==='discover'?discoverView():page==='recommend'?discover.recommendView():page==='square'?discover.squareView():page==='admin'?admin.view():page==='cloud'?cloud.view():page==='device'?device.view():page === 'review' ? review.view() : page === 'library' ? library.view() : page === 'model' ? modelView() : chatView(); }
   function modelView() {
     const p = providers[modelDraft.provider];
-    return `<section class="intro model-intro"><div><span class="eyebrow">${t('modelSettings')}</span><h1>${t('modelTitle')}</h1><p>${isFree(modelDraft) ? (getLocale() === 'zh' ? '默认使用知回免费额度，不需要填写 Key；也可以改选服务商，使用自己的 Key。' : 'The free allowance is used by default with no key; you can switch to a provider with your own key.') : t('modelHint')}</p></div><a class="inline-link model-help-link" id="model-help-link" href="#model-config-guide" aria-haspopup="dialog">${getLocale()==='zh'?'配置说明':'Setup guide'} ↗</a></section>
+    return `<section class="intro model-intro"><div><span class="eyebrow">${t('modelSettings')}</span><h1>${t('modelTitle')}</h1><p>${isFree(modelDraft) ? (pick('默认使用知回免费额度，不需要填写 Key；也可以改选服务商，使用自己的 Key。', 'The free allowance is used by default with no key; you can switch to a provider with your own key.')) : t('modelHint')}</p></div><a class="inline-link model-help-link" id="model-help-link" href="#model-config-guide" aria-haspopup="dialog">${pick('配置说明', 'Setup guide')} ↗</a></section>
       <form id="model-form" class="panel model-form" novalidate><div class="form-grid">
         <label>${t('provider')}<select id="provider" ${testing ? 'disabled' : ''}>${Object.entries(providers).filter(([, value]) => !value.free || auth?.freeModel).map(([id, value]) => `<option value="${id}" ${id === modelDraft.provider ? 'selected' : ''}>${value.name}</option>`).join('')}</select></label>
         ${isFree(modelDraft) ? '' : `<label>${t('model')}<input id="model-name" type="text" maxlength="100" value="${esc(modelDraft.model)}" required ${testing ? 'disabled' : ''}></label>`}
       </div>
-      ${isFree(modelDraft) ? `<div class="free-settings"><p>${copy[getLocale()].freeHint}</p>${freeState ? `<p><strong>${copy[getLocale()].freeLeft(freeLeft('ask'), freeLeft('grade'), freeLeft('photo'))}</strong></p>` : ''}${freeState?.signedIn ? '' : `<p class="field-hint">${copy[getLocale()].freeLocal}</p>`}</div>
-      <div class="sharing-notice"><label class="check-row consent-row"><input id="model-consent" type="checkbox" ${consentDraft ? 'checked' : ''} ${testing ? 'disabled' : ''}><span>${copy[getLocale()].freeConsent}</span></label></div>` : `
+      ${isFree(modelDraft) ? `<div class="free-settings"><p>${word('freeHint')}</p>${freeState ? `<p><strong>${word('freeLeft', { a: freeLeft('ask'), g: freeLeft('grade'), p: freeLeft('photo') })}</strong></p>` : ''}${freeState?.signedIn ? '' : `<p class="field-hint">${word('freeLocal')}</p>`}</div>
+      <div class="sharing-notice"><label class="check-row consent-row"><input id="model-consent" type="checkbox" ${consentDraft ? 'checked' : ''} ${testing ? 'disabled' : ''}><span>${word('freeConsent')}</span></label></div>` : `
       ${modelDraft.provider !== 'deepseek' ? `<label class="field-label" for="workspace">${t('workspace')}${p.workspaceRequired ? ' *' : ''}</label><input id="workspace" type="text" maxlength="63" value="${esc(modelDraft.workspace)}" ${testing ? 'disabled' : ''}><p class="field-hint">${t('workspaceHint')}</p>` : ''}
       <label class="field-label" for="api-key">${t('key')}</label><input id="api-key" type="password" autocomplete="off" spellcheck="false" maxlength="512" required aria-describedby="key-hint" ${testing ? 'disabled' : ''}><p id="key-hint" class="field-hint">${t('keyHint')}</p>
       <a class="inline-link" href="${p.docs}" target="_blank" rel="noopener noreferrer">${t('docs')} ↗</a>
       <div class="model-search"><label class="check-row"><input id="web-search" type="checkbox" ${modelDraft.search ? 'checked' : ''} ${!p.search || testing ? 'disabled' : ''}>${t('search')}</label>${!p.search ? `<p class="field-hint">${t('searchUnavailable')}</p>` : ''}</div>
-      <div class="sharing-notice"><p>${t('cost')}</p><p>${getLocale()==='zh'?'回答后会额外调用一次模型整理知识：发送本条问答及当前模块最多 40 个已有知识标题，不额外联网。':'After each answer, an extra model call organizes knowledge using this Q&A and up to 40 titles in the original module, without additional search.'}</p><label class="check-row consent-row"><input id="model-consent" type="checkbox" ${consentDraft ? 'checked' : ''} ${testing ? 'disabled' : ''}><span>${t('consent')} <strong>${esc(p.name)}</strong></span></label></div>`}
+      <div class="sharing-notice"><p>${t('cost')}</p><p>${pick('回答后会额外调用一次模型整理知识：发送本条问答及当前模块最多 40 个已有知识标题，不额外联网。', 'After each answer, an extra model call organizes knowledge using this Q&A and up to 40 titles in the original module, without additional search.')}</p><label class="check-row consent-row"><input id="model-consent" type="checkbox" ${consentDraft ? 'checked' : ''} ${testing ? 'disabled' : ''}><span>${t('consent')} <strong>${esc(p.name)}</strong></span></label></div>`}
       <p class="error" id="model-error" role="alert">${esc(modelError)}</p><p class="verified" id="connection-status" role="status">${esc(testMessage)}</p>
       <div class="test-row"><button type="button" class="secondary-button" id="test-connection" ${testing ? 'disabled' : ''}>${t(testing ? 'testing' : 'test')}</button><p class="field-hint">${t('testHint')}</p></div>
       <div class="actions model-actions"><button type="button" class="text-button" id="forget-key" ${testing ? 'disabled' : ''}>${t('forget')}</button><button type="button" class="secondary-button" id="model-back" ${testing ? 'disabled' : ''}>${t('cancel')}</button><button type="submit" class="primary-button" ${testing ? 'disabled' : ''}>${t('save')}</button></div></form>`;
@@ -245,30 +247,30 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     const messages = current?.messages || [];
     const input = inputs[activeModule] || '';
     return `<section class="intro"><span class="eyebrow">${esc(moduleName(activeModule))}</span><h1>${t('chatTitle')}</h1><p>${t('chatHint')}</p></section>
-      <div class="module-tabs" role="group" aria-label="${getLocale() === 'zh' ? '学习模块' : 'Learning modules'}">${activeModuleIds(profile).map(id => `<button class="module-tab ${id === activeModule ? 'active' : ''}" data-switch-module="${id}" aria-pressed="${id === activeModule}" ${busy ? 'disabled' : ''}>${moduleIcon(profile, id, 16)}${esc(moduleName(id))}</button>`).join('')}</div>
+      <div class="module-tabs" role="group" aria-label="${pick('学习模块', 'Learning modules')}">${activeModuleIds(profile).map(id => `<button class="module-tab ${id === activeModule ? 'active' : ''}" data-switch-module="${id}" aria-pressed="${id === activeModule}" ${busy ? 'disabled' : ''}>${moduleIcon(profile, id, 16)}${esc(moduleName(id))}</button>`).join('')}</div>
       <section class="panel conversation-panel"><div class="chat-toolbar"><label class="thread-label" for="thread-select">${t('history')}</label><select id="thread-select" ${busy || !threads.length ? 'disabled' : ''}>${threads.length ? [...threads].reverse().map(item => `<option value="${esc(item.id)}" ${item.id === current?.id ? 'selected' : ''}>${esc(item.title || t('unnamed'))}</option>`).join('') : `<option>${t('unnamed')}</option>`}</select><button class="secondary-button" id="new-thread" ${busy ? 'disabled' : ''}>＋ ${t('fresh')}</button></div>
       ${isFree() ? freeBar() : `<div class="connection-bar"><span class="status-dot ${ready() ? 'ready' : ''}"></span><span>${t(ready() ? 'configured' : 'needsKey')} · ${esc(providers[config.provider].name)} · ${esc(config.model)}</span><button class="text-button" data-model-settings ${busy ? 'disabled' : ''}>${t('modelSettings')}</button></div>`}
       <div class="messages" aria-label="${t('history')}" aria-busy="${busy}">${messages.length ? messages.map((message, index) => messageView(message, index === messages.length - 1)).join('') : `<div class="empty-state"><div class="empty-icon" aria-hidden="true">?</div><h3>${t('empty')}</h3><p>${t('emptyHint')}</p>${starterChips(profile)}</div>`}</div>
       ${busy ? `<p class="pending-indicator" role="status">${t('sending')}</p>` : ''}
       <p class="error chat-notice" role="alert">${esc(notice || (corrupt ? t('corrupt') : ''))}</p>
-      <form id="question-form"><label class="field-label" for="question">${t('ask')}</label><textarea id="question" rows="4" ${photoStatus === t('photoDone') ? 'class="photo-text"' : ''} maxlength="8000" placeholder="${t('placeholder')}" ${busy ? 'disabled' : ''}>${esc(input)}</textarea><div class="composer-footer"><span class="muted">${t('privacy')}</span>${busy ? `<button type="button" id="stop-request" class="secondary-button">${t('stop')}</button>` : `<button type="button" id="photo-input" class="secondary-button" aria-label="${t('photo')}" ${photoBusy ? 'disabled' : ''}>📷 ${t('photo')}</button><input type="file" id="photo-file" accept="image/*" hidden><button type="button" id="voice-input" class="secondary-button">${getLocale()==='zh'?'语音输入':'Voice input'}</button><button type="submit" class="primary-button" ${photoBusy ? 'disabled' : ''}>${t('send')} →</button>`}</div>${photoStatus ? `<p class="verified photo-status" role="status">${esc(photoStatus)}</p>` : ''}<p class="field-hint">${getLocale()==='zh'?'语音由浏览器识别，可能使用浏览器服务商的云服务；点击后才请求权限。本 App 不保存录音，不支持时可用系统键盘语音输入。':'Speech recognition may use your browser provider’s cloud service. Permission is requested on click. No audio is stored by this app; use keyboard dictation if unsupported.'}</p></form>
+      <form id="question-form"><label class="field-label" for="question">${t('ask')}</label><textarea id="question" rows="4" ${photoStatus === t('photoDone') ? 'class="photo-text"' : ''} maxlength="8000" placeholder="${t('placeholder')}" ${busy ? 'disabled' : ''}>${esc(input)}</textarea><div class="composer-footer"><span class="muted">${t('privacy')}</span>${busy ? `<button type="button" id="stop-request" class="secondary-button">${t('stop')}</button>` : `<button type="button" id="photo-input" class="secondary-button" aria-label="${t('photo')}" ${photoBusy ? 'disabled' : ''}>📷 ${t('photo')}</button><input type="file" id="photo-file" accept="image/*" hidden><button type="button" id="voice-input" class="secondary-button">${pick('语音输入', 'Voice input')}</button><button type="submit" class="primary-button" ${photoBusy ? 'disabled' : ''}>${t('send')} →</button>`}</div>${photoStatus ? `<p class="verified photo-status" role="status">${esc(photoStatus)}</p>` : ''}<p class="field-hint">${pick('语音由浏览器识别，可能使用浏览器服务商的云服务；点击后才请求权限。本 App 不保存录音，不支持时可用系统键盘语音输入。', 'Speech recognition may use your browser provider’s cloud service. Permission is requested on click. No audio is stored by this app; use keyboard dictation if unsupported.')}</p></form>
       ${messages.at(-1)?.role === 'assistant' && !busy ? `<div class="followups"><button class="secondary-button" data-followup="simpler">${t('simpler')}</button><button class="secondary-button" data-followup="example">${t('example')}</button></div>` : ''}</section>`;
   }
   // Suggested questions for an empty conversation, matched to the module and the user's level; a tap fills the box.
   function starterChips(profile) {
     const list = starterQuestions(activeModule, profile.modules[activeModule]?.level || 'beginner', getLocale(), moduleName(activeModule));
-    return `<div class="starter-questions"><p class="field-hint">${getLocale() === 'zh' ? '不知道问什么？试试这些：' : 'Not sure what to ask? Try one:'}</p>${list.map(q => `<button type="button" class="starter-chip" data-starter-question="${esc(q)}" ${busy ? 'disabled' : ''}>${esc(q)}</button>`).join('')}</div>`;
+    return `<div class="starter-questions"><p class="field-hint">${pick('不知道问什么？试试这些：', 'Not sure what to ask? Try one:')}</p>${list.map(q => `<button type="button" class="starter-chip" data-starter-question="${esc(q)}" ${busy ? 'disabled' : ''}>${esc(q)}</button>`).join('')}</div>`;
   }
   // Free allowance bar: what is left today, the local-mode note, and the one-time consent to send questions to 智谱.
   function freeBar() {
-    const words = copy[getLocale()], left = freeState ? words.freeLeft(freeLeft('ask'), freeLeft('grade'), freeLeft('photo')) : '';
+    const left = freeState ? word('freeLeft', { a: freeLeft('ask'), g: freeLeft('grade'), p: freeLeft('photo') }) : '';
     if (!auth?.freeModel) return `<div class="connection-bar"><span class="status-dot"></span><span>${t('error-free-unavailable')}</span><button class="text-button" data-model-settings ${busy ? 'disabled' : ''}>${t('modelSettings')}</button></div>`;
-    return `<div class="connection-bar free-bar"><span class="status-dot ${ready() ? 'ready' : ''}"></span><span><strong>${words.freeName}</strong>${left ? ` · ${left}` : ''}</span><button class="text-button" data-model-settings ${busy ? 'disabled' : ''}>${t('modelSettings')}</button></div>
-      ${freeState && !freeState.signedIn ? `<p class="field-hint free-note">${words.freeLocal}</p>` : ''}
-      ${consent ? '' : `<div class="sharing-notice free-consent"><p>${words.freeConsent}</p><button class="primary-button" data-free-consent>${words.freeAgree}</button></div>`}`;
+    return `<div class="connection-bar free-bar"><span class="status-dot ${ready() ? 'ready' : ''}"></span><span><strong>${word('freeName')}</strong>${left ? ` · ${left}` : ''}</span><button class="text-button" data-model-settings ${busy ? 'disabled' : ''}>${t('modelSettings')}</button></div>
+      ${freeState && !freeState.signedIn ? `<p class="field-hint free-note">${word('freeLocal')}</p>` : ''}
+      ${consent ? '' : `<div class="sharing-notice free-consent"><p>${word('freeConsent')}</p><button class="primary-button" data-free-consent>${word('freeAgree')}</button></div>`}`;
   }
   function messageView(message, last) {
-    const date = new Intl.DateTimeFormat(getLocale() === 'zh' ? 'zh-CN' : 'en', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(message.createdAt));
+    const date = new Intl.DateTimeFormat(intlLocale(currentLocale()), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(message.createdAt));
     const assistant = message.role === 'assistant';
     return `<article class="message ${assistant ? 'assistant-message' : 'user-message'}"><div class="message-meta"><strong>${t(assistant ? 'assistant' : 'you')}</strong><time datetime="${esc(message.createdAt)}">${date}</time>${assistant ? `<span>${esc(message.model || '')}</span>` : ''}</div><div class="message-content">${assistant ? renderAnswer(message.content) : `<div class="user-text">${esc(message.content)}</div>`}</div>
       ${assistant ? `<div class="answer-meta"><span class="muted">${t(message.searchStatus === 'sources-returned' ? 'searchOn' : message.searchStatus === 'no-sources' ? 'searchMissing' : 'searchOff')}</span>${message.truncated ? `<p class="answer-warning">${t('truncated')}</p>` : ''}<details><summary>${t('sources')}${message.sources?.length ? ` (${message.sources.length})` : ''}</summary>${message.sources?.length ? `<ul class="source-list">${message.sources.map(source => `<li><a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${esc(source.title)}</a></li>`).join('')}</ul>` : `<p>${t(message.searchStatus === 'off' ? 'searchOff' : 'noSources')}</p>`}</details></div>` : message.status === 'failed' || message.status === 'cancelled' ? `<div class="failure-row"><span>${t(message.status === 'cancelled' ? 'stopped' : 'failed')}${message.error ? ` · ${errorText(message.error)}` : ''}</span><button class="text-button" data-retry="${esc(message.id)}" ${busy ? 'disabled' : ''}>${t(last ? 'retry' : 'restore')}</button></div>` : ''}</article>`;
@@ -389,19 +391,19 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
         if (!ready()) { notice = t('photoNeedsModel'); refresh(); return; }
         if (!VISION.includes(config.provider)) { notice = errorText('vision-unsupported'); refresh(); return; }
         let seen = false; try { seen = localStorage.getItem(PHOTO_NOTICE_KEY) === '1'; } catch { /* Ask this time. */ }
-        if (!seen) { const name = isFree() ? (getLocale() === 'zh' ? '智谱 AI' : 'Zhipu AI') : providers[config.provider].name; if (!confirm(t('photoNotice')(name))) return; try { localStorage.setItem(PHOTO_NOTICE_KEY, '1'); } catch { /* Asks again next time. */ } }
+        if (!seen) { const name = isFree() ? (pick('智谱 AI', 'Zhipu AI')) : providers[config.provider].name; if (!confirm(t('photoNotice')(name))) return; try { localStorage.setItem(PHOTO_NOTICE_KEY, '1'); } catch { /* Asks again next time. */ } }
         photoFile.click();
       };
       photoFile.onchange = () => { const file = photoFile.files[0]; photoFile.value = ''; if (file) recognizePhoto(file); };
     }    const voice=document.querySelector('#voice-input');if(voice)voice.onclick=()=>{
       if(recognition){recognition.stop();return;}
       const Speech=window.SpeechRecognition||window.webkitSpeechRecognition;
-      if(!Speech){notice=getLocale()==='zh'?'浏览器未提供语音识别，请用系统键盘语音输入。':'Speech recognition is unavailable. Use keyboard dictation.';refresh();return;}
-      const module=activeModule;recognition=new Speech();recognition.lang=getLocale()==='zh'?'zh-CN':'en-US';recognition.interimResults=false;
+      if(!Speech){notice=pick('浏览器未提供语音识别，请用系统键盘语音输入。', 'Speech recognition is unavailable. Use keyboard dictation.');refresh();return;}
+      const module=activeModule;recognition=new Speech();recognition.lang=speechLocale(currentLocale());recognition.interimResults=false;
       // Append to the draft as it is now, so text typed while dictating is kept.
       recognition.onresult=event=>{const transcript=newTranscript(event.results,event.resultIndex);if(!transcript)return;inputs[module]=appendDraft(inputs[module],transcript,' ');const field=document.querySelector('#question');if(page==='chat'&&activeModule===module&&field)field.value=inputs[module];};
-      recognition.onerror=event=>{notice=speechErrorText(event.error,getLocale()==='zh');};
-      recognition.onend=()=>{recognition=null;refresh();};try{recognition.start();voice.textContent=getLocale()==='zh'?'停止语音':'Stop dictation';}catch{recognition=null;notice=getLocale()==='zh'?'无法启动语音识别。':'Could not start dictation.';refresh();}
+      recognition.onerror=event=>{notice=speechErrorText(event.error);};
+      recognition.onend=()=>{recognition=null;refresh();};try{recognition.start();voice.textContent=pick('停止语音', 'Stop dictation');}catch{recognition=null;notice=pick('无法启动语音识别。', 'Could not start dictation.');refresh();}
     };
     document.querySelectorAll('[data-switch-module]').forEach(button => { button.onclick = () => openModule(button.dataset.switchModule); });
     // The module's draft stays in the box when switching or starting conversations.
@@ -446,7 +448,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
       saveChats();
       const answer=current.messages.at(-1);
       try { await library.ingest({id:answer.id,threadId:current.id,sourceModule:sentModule,question:user.content,answer:answer.content,createdAt:user.createdAt,sources:answer.sources||[]}); }
-      catch { notice=getLocale()==='zh'?'回答已保存，知识提炼未完成。':'Answer saved; knowledge extraction incomplete.'; }
+      catch { notice=pick('回答已保存，知识提炼未完成。', 'Answer saved; knowledge extraction incomplete.'); }
     } catch (error) {
       user.status = error.code === 'cancelled' ? 'cancelled' : 'failed';
       if (error.code === 'cancelled') delete user.error;

@@ -1,3 +1,4 @@
+import { pick } from './i18n.js';
 // Guided tour ("新手指引"): dims the page, rings one part of the home screen at a time and explains it in a small card
 // with Back / Next (n/total) and a close button. Shown once per device after the first-run guide, and replayable.
 // Each step lists candidate selectors (desktop top bar, phone tab bar); the first visible one is used and steps whose
@@ -18,7 +19,7 @@ const findTarget = targets => { for (const selector of targets) { const element 
 
 export function createTour({ locale }) {
   let steps = [], index = 0, layer = null, ring = null, card = null;
-  const tr = (zh, en) => locale() === 'zh' ? zh : en;
+  const tr = (zh, en, vars) => pick(zh, en, vars);
   function close() {
     markDone();
     window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); document.removeEventListener('keydown', onKey, true);
@@ -53,7 +54,7 @@ export function createTour({ locale }) {
     card.innerHTML = `<button type="button" class="tour-close" aria-label="${tr('关闭新手指引', 'Close the guide')}">×</button>
       <p id="tour-text">${tr(step.zh, step.en)}</p>
       <div class="tour-actions">${index > 0 ? `<button type="button" class="text-button tour-back">${tr('上一步', 'Back')}</button>` : '<span></span>'}
-        <button type="button" class="primary-button tour-next">${last ? tr('开始使用', 'Get started') : tr(`下一步（${index + 1}/${steps.length}）`, `Next (${index + 1}/${steps.length})`)}</button></div>`;
+        <button type="button" class="primary-button tour-next">${last ? tr('开始使用', 'Get started') : tr('下一步（{v0}/{v1}）', 'Next ({v0}/{v1})', { v0: index + 1, v1: steps.length })}</button></div>`;
     card.querySelector('.tour-close').onclick = close;
     card.querySelector('.tour-next').onclick = () => go(index + 1);
     const back = card.querySelector('.tour-back'); if (back) back.onclick = () => go(index - 1);

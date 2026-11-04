@@ -3,11 +3,12 @@
 // own key: Qwen's OCR model through DashScope's OpenAI-compatible endpoint. DeepSeek has no vision model.
 import { validConfig } from './providers.js';
 import { ServiceError } from './model-service.mjs';
+import { isLocale, isChineseLocale } from './i18n.js';
 export const RECOGNIZE_LIMITS = Object.freeze({ image: 3_000_000, text: 8000 });
 export const VISION_MODELS = Object.freeze({ 'zhipu-free': 'glm-4v-flash', 'qwen-cn': 'qwen-vl-ocr', 'qwen-intl': 'qwen-vl-ocr' });
 const IMAGE = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+=*)$/;
 const NO_TEXT = 'NO_TEXT';
-const prompt = locale => locale === 'zh'
+const prompt = locale => isChineseLocale(locale)
   ? `只提取图片中的文字，按原有顺序和分行输出；公式用文字或常见符号表示。不要解答、不要翻译、不要补充说明。图片中没有可读文字时只回复：${NO_TEXT}`
   : `Extract only the text in the image, in its original order and lines; write formulas with plain symbols. Do not answer, translate or add comments. If there is no readable text, reply only: ${NO_TEXT}`;
 
@@ -16,7 +17,7 @@ export function validateRecognize(value) {
   if (!Object.hasOwn(VISION_MODELS, value.config.provider)) throw new ServiceError('vision-unsupported');
   if (typeof value.apiKey !== 'string' || !/^[\x21-\x7e]{8,512}$/.test(value.apiKey)) throw new ServiceError('key');
   if (value.consent !== true) throw new ServiceError('consent');
-  if (!['zh', 'en'].includes(value.locale) || typeof value.image !== 'string' || value.image.length > RECOGNIZE_LIMITS.image || !IMAGE.test(value.image)) throw new ServiceError('request');
+  if (!isLocale(value.locale) || typeof value.image !== 'string' || value.image.length > RECOGNIZE_LIMITS.image || !IMAGE.test(value.image)) throw new ServiceError('request');
   return value;
 }
 export function buildRecognize(value) {

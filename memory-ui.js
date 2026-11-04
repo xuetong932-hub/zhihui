@@ -12,9 +12,10 @@ import { latestReview } from './review-store.js';
 import { buildDocx, DOCX_TYPE } from './docx.js';
 import { googleToken, uploadAsGoogleDoc } from './google-docs.js';
 import { escapeHtml as e, renderAnswer } from './chat-store.js';
+import { pick, intlLocale, currentLocale } from './i18n.js';
 // Library panels: forgetting curve, knowledge graph and export of reviewed knowledge (Word download, Google Docs).
 export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, modules, googleClientId, refresh, relate, expand, updateCard = () => false, openTab }) {
-  const text = (zh, en) => locale() === 'zh' ? zh : en;
+  const text = (zh, en, vars) => pick(zh, en, vars);
   let exportModule = '', scope = 'reviewed', message = '', busy = false, docLink = '';
   // Graph and mind map state. Model results (semantic relations, mind map expansions) are saved on this device.
   // theme null = follow the app's day/night mode until the user picks one in the graph toolbar.
@@ -53,8 +54,8 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
   }
   const relatedTitles = (card, list) => { const byId = new Map(list.map(item => [item.id, item.title])); return relationsFor(list).filter(p => p.a === card.id || p.b === card.id).map(p => `${byId.get(p.a === card.id ? p.b : p.a)}${p.label ? `（${p.label}）` : ''}`); };
   const ratingName0 = rating => ({ wrong: text('答错', 'Missed'), unclear: text('还不懂', 'Unclear'), guessed: text('猜对', 'Guessed'), understood: text('理解', 'Understood'), mastered: text('掌握', 'Mastered') })[rating] || text('未复习', 'Not reviewed');
-  const labels = () => ({ locale: locale() === 'zh' ? 'zh-CN' : 'en', x: text('日期', 'Date'), y: text('估计记忆保持率', 'Estimated retention'), today: text('今天', 'Today'), todayDue: text('今天复习', 'Review today'), graph: text('知识图谱', 'Knowledge graph'),
-    filled: text('实心：今天需要复习', 'Filled: review today'), hollow: text('空心：之后复习（画在复习日期上）', 'Hollow: review later (on its date)'), dueCount: n => text(`今天 ${n} 个`, `today ${n}`), rating: ratingName0,
+  const labels = () => ({ locale: intlLocale(currentLocale()), x: text('日期', 'Date'), y: text('估计记忆保持率', 'Estimated retention'), today: text('今天', 'Today'), todayDue: text('今天复习', 'Review today'), graph: text('知识图谱', 'Knowledge graph'),
+    filled: text('实心：今天需要复习', 'Filled: review today'), hollow: text('空心：之后复习（画在复习日期上）', 'Hollow: review later (on its date)'), dueCount: n => text('今天 {n} 个', 'today {n}', { n }), rating: ratingName0,
     module: text('模块', 'Module'), last: text('上次复习', 'Last review'), estimate: text('估计保持率', 'Estimated retention'), next: text('下次复习', 'Next review'), asked: text('提问次数', 'Times asked') });
   const points = () => memoryPoints(cards(), reviews(), dueIds());
   const styles = () => moduleStyles([...new Set([...modules(), ...cards().map(card => card.module)])]);
@@ -68,15 +69,15 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
   }
   // Layout: title and date, one heading per module, then each card with explanation, example and review status.
   function documentBlocks(list) {
-    const data = reviews(), date = new Date().toLocaleDateString(locale() === 'zh' ? 'zh-CN' : 'en');
-    const blocks = [{ style: 'Title', text: text('知回 · 我的知识整理', 'Knowledge Review · My notes') }, { style: 'Meta', text: text(`导出于 ${date} · 共 ${list.length} 个知识点`, `Exported ${date} · ${list.length} ideas`) }];
+    const data = reviews(), date = new Date().toLocaleDateString(intlLocale(currentLocale()));
+    const blocks = [{ style: 'Title', text: text('知回 · 我的知识整理', 'Knowledge Review · My notes') }, { style: 'Meta', text: text('导出于 {date} · 共 {v0} 个知识点', 'Exported {date} · {v0} ideas', { date, v0: list.length }) }];
     for (const id of [...new Set(list.map(card => card.module))]) {
       blocks.push({ style: 'Heading1', text: moduleName(id) });
       for (const card of list.filter(item => item.module === id)) {
         const last = latestReview(data, card.id);
         blocks.push({ style: 'Heading2', text: card.title }, { style: 'Normal', text: card.summary });
         if (card.example) blocks.push({ style: 'Normal', text: `${text('生活例子：', 'Example: ')}${card.example}` });
-        blocks.push({ style: 'Meta', text: [card.category, `${text('最近复习', 'Last review')}: ${last ? `${ratingName(last.rating)} · ${new Date(last.at).toLocaleDateString(locale() === 'zh' ? 'zh-CN' : 'en')}` : ratingName(null)}`, `${text('提问', 'Asked')} ${card.origins.length} ${text('次', 'times')}`].filter(Boolean).join(' · ') });
+        blocks.push({ style: 'Meta', text: [card.category, `${text('最近复习', 'Last review')}: ${last ? `${ratingName(last.rating)} · ${new Date(last.at).toLocaleDateString(intlLocale(currentLocale()))}` : ratingName(null)}`, `${text('提问', 'Asked')} ${card.origins.length} ${text('次', 'times')}`].filter(Boolean).join(' · ') });
       }
     }
     return blocks;
@@ -84,7 +85,7 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
   const fileName = () => `knowledge-review-${new Date().toISOString().slice(0, 10)}`;
   function view(tab) {
     const list = points(), style = styles(), dueModules = [...new Set(list.filter(p => p.today).map(p => p.module))];
-    const summary = dueModules.length ? text(`今天需要复习：${dueModules.map(id => `${moduleName(id)} ${list.filter(p => p.today && p.module === id).length} 个`).join('、')}。`, `Review today: ${dueModules.map(id => `${moduleName(id)} ${list.filter(p => p.today && p.module === id).length}`).join(', ')}.`) : text('今天没有需要复习的知识。', 'Nothing to review today.');
+    const summary = dueModules.length ? text('今天需要复习：{v0}。', 'Review today: {v1}.', { v0: dueModules.map(id => `${moduleName(id)} ${list.filter(p => p.today && p.module === id).length} 个`).join('、'), v1: dueModules.map(id => `${moduleName(id)} ${list.filter(p => p.today && p.module === id).length}`).join(', ') }) : text('今天没有需要复习的知识。', 'Nothing to review today.');
     const empty = `<p>${text('还没有可显示的知识点。', 'No ideas to show yet.')}</p>`;
     if (tab === 'curve' && curveFocus) return curveDetail(list, style);
     if (tab === 'curve') return `<section class="panel"><h2>${text('遗忘曲线', 'Forgetting curve')}</h2><p><strong>${e(summary)}</strong></p><p>${text('每条线是一个模块的平均记忆保持率：随时间下降，复习后回升。虚线是“今天”。实心点是今天要复习的知识，空心点是之后要复习的知识，画在它的复习日期上。把鼠标停在点上（手机上点一下）可查看详情。', 'Each line is a module’s average retention: it falls over time and rises after reviews. The dashed line is today. Filled points are ideas to review today; hollow points come later, on their review date. Hover a point (tap on a phone) for details.')}</p><p class="viz-hint">${text('双击一条曲线（或下方图例里的模块）查看这个模块的详情。', 'Double-click a line (or a module in the legend) to open that module.')}</p>${list.length ? curveSvg(list, moduleCurves(cards(), reviews()), style, moduleName, labels()) + legend(style, moduleName, list, labels()) : empty}<p class="field-hint">${text('保持率由复习安排所用的 FSRS 记忆模型估算（到期时约 90%），使用默认参数，不是根据你个人的长期学习数据校准的结果。', 'Retention comes from the FSRS memory model used for review scheduling (about 90% when due), with default parameters, not calibrated on your own long-term data.')}</p></section>`;
@@ -97,7 +98,7 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
         <div class="graph-toolbar"><div class="segmented" role="group" aria-label="${text('外观', 'Appearance')}"><button data-graph-theme="light" class="${graphTheme() === 'light' ? 'active' : ''}">${text('浅色', 'Light')}</button><button data-graph-theme="dark" class="${graphTheme() === 'dark' ? 'active' : ''}">${text('深色星空', 'Dark')}</button></div>
           <div class="segmented" role="group" aria-label="${text('连线关系', 'Connections')}"><button data-graph-relations="basic" class="${relationMode === 'basic' ? 'active' : ''}">${text('基础关系', 'Basic')}</button><button data-graph-relations="semantic" class="${relationMode === 'semantic' ? 'active' : ''}">${text('语义关系', 'Semantic')}</button></div>
           ${relationMode === 'semantic' ? `<button class="secondary-button" id="graph-analyze" ${busy ? 'disabled' : ''}>${semantic.at ? text('重新分析关联', 'Analyze again') : text('分析关联（调用模型）', 'Analyze relations (uses model)')}</button>` : ''}<button class="text-button" id="graph-reset">${text('重新排布', 'Reset layout')}</button></div>
-        <p class="field-hint">${relationMode === 'basic' ? text('基础关系：同一模块中分类相同，或来自同一次对话的知识点相连。不调用模型。', 'Basic: ideas sharing a category in a module, or from the same conversation, are linked. No model call.') : semantic.at ? text(`语义关系：由模型于 ${new Date(semantic.at).toLocaleString(locale() === 'zh' ? 'zh-CN' : 'en')} 分析，共 ${semantic.pairs.length} 条，连线上标注关系。模型可能判断错误。`, `Semantic: analysed by the model at ${new Date(semantic.at).toLocaleString('en')}, ${semantic.pairs.length} links labelled with the relation. The model can be wrong.`) : text('语义关系：点击“分析关联”，将知识点标题（最多 60 个）发送给已配置的模型来找出概念之间的关系。会产生模型费用，结果只保存在本机。', 'Semantic: click Analyze to send up to 60 idea titles to your configured model to find conceptual relations. This uses model credit; results stay on this device.')}</p>
+        <p class="field-hint">${relationMode === 'basic' ? text('基础关系：同一模块中分类相同，或来自同一次对话的知识点相连。不调用模型。', 'Basic: ideas sharing a category in a module, or from the same conversation, are linked. No model call.') : semantic.at ? text('语义关系：由模型于 {v0} 分析，共 {v1} 条，连线上标注关系。模型可能判断错误。', 'Semantic: analysed by the model at {v2}, {v1} links labelled with the relation. The model can be wrong.', { v0: new Date(semantic.at).toLocaleString(intlLocale(currentLocale())), v1: semantic.pairs.length, v2: new Date(semantic.at).toLocaleString('en') }) : text('语义关系：点击“分析关联”，将知识点标题（最多 60 个）发送给已配置的模型来找出概念之间的关系。会产生模型费用，结果只保存在本机。', 'Semantic: click Analyze to send up to 60 idea titles to your configured model to find conceptual relations. This uses model credit; results stay on this device.')}</p>
         ${shown.length ? `<div id="graph-host"></div>` : empty}${graphFocus && shown.length > 1 ? linksEditor(shown) : ''}<p class="verified" role="status">${busy ? text('正在分析…', 'Analysing…') : ''}</p><p class="error" role="alert">${e(graphMessage)}</p></section>`;
     }
     if (tab === 'mindmap') {
@@ -112,14 +113,14 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
         ${node ? `<div class="viz-editor"><label class="field-label" for="mm-input">${isRoot ? text('修改中心主题', 'Edit the centre') : text('修改节点', 'Edit node')}</label><div class="viz-editor-row"><input id="mm-input" type="text" maxlength="200" value="${e(node.label)}"><button class="primary-button" id="mm-save">${text('保存', 'Save')}</button></div>
           <div class="viz-editor-row"><button class="secondary-button" id="mm-add">＋ ${text('添加子节点', 'Add child')}</button><button class="text-button danger-text" id="mm-delete" ${isRoot ? 'disabled' : ''}>${text('删除', 'Delete')}</button><button class="text-button" id="mm-cancel">${text('取消', 'Cancel')}</button></div></div>` : ''}
         ${card && mindmapFocus === null ? `<div class="library-controls"><label>${text('知识点', 'Idea')}<select id="mindmap-card">${list.map(item => `<option value="${item.id}" ${item.id === card.id ? 'selected' : ''}>${e(moduleName(item.module))} · ${e(item.title)}</option>`).join('')}</select></label><button class="secondary-button" id="mindmap-expand" ${busy ? 'disabled' : ''}>${expansion ? text('重新用模型展开', 'Expand again with model') : text('用模型展开（调用模型）', 'Expand with model (uses model)')}</button></div>
-        <p class="field-hint">${expansion ? text(`带 ✦ 的分支由模型于 ${new Date(expansion.generatedAt).toLocaleString('zh-CN')} 生成，仅供参考，可能有误。`, `Branches marked ✦ were generated by the model at ${new Date(expansion.generatedAt).toLocaleString('en')}; they may be wrong.`) : text('默认只使用这张卡片已有的内容，不调用模型。“用模型展开”会把这张卡片的标题、解释和例子发给已配置的模型，补充前置知识、子概念、常见误区和延伸应用，会产生费用。', 'By default only this card’s own content is used. Expand sends the card’s title, explanation and example to your model to add prerequisites, sub-concepts, misconceptions and applications; this uses model credit.')}</p>
+        <p class="field-hint">${expansion ? text('带 ✦ 的分支由模型于 {v0} 生成，仅供参考，可能有误。', 'Branches marked ✦ were generated by the model at {v1}; they may be wrong.', { v0: new Date(expansion.generatedAt).toLocaleString('zh-CN'), v1: new Date(expansion.generatedAt).toLocaleString('en') }) : text('默认只使用这张卡片已有的内容，不调用模型。“用模型展开”会把这张卡片的标题、解释和例子发给已配置的模型，补充前置知识、子概念、常见误区和延伸应用，会产生费用。', 'By default only this card’s own content is used. Expand sends the card’s title, explanation and example to your model to add prerequisites, sub-concepts, misconceptions and applications; this uses model credit.')}</p>
         ${edited ? `<p class="field-hint">${text('这张思维导图已手动修改，模型展开只会追加新分支，不会覆盖你的修改。', 'This mind map was edited by hand; model expansion only adds new branches and never overwrites your edits.')} <button class="text-button" id="mm-reset">${text('恢复自动生成', 'Restore generated version')}</button></p>` : ''}` : ''}
         ${card ? mindmapSvg(tree, collapsed, { focus: mindmapFocus, selected: mindmapSelected }) : empty}<p class="verified" role="status">${busy ? text('正在展开…', 'Expanding…') : ''}</p><p class="error" role="alert">${e(mindmapMessage)}</p></section>`;
     }
     const chosen = selectedCards();
     return `<section class="panel"><h2>${text('导出复习好的知识', 'Export reviewed knowledge')}</h2><p>${text('选择范围后下载 Word 文档，或直接写入在线文档。只有你点击按钮时才会生成或发送。', 'Choose what to include, then download a Word document or send it to an online document. Nothing is generated or sent until you click.')}</p>
       <div class="library-controls"><label>${text('模块', 'Module')}<select id="export-module"><option value="">${text('全部', 'All')}</option>${modules().map(id => `<option value="${id}" ${id === exportModule ? 'selected' : ''}>${e(moduleName(id))}</option>`).join('')}</select></label><label>${text('范围', 'Include')}<select id="export-scope"><option value="reviewed" ${scope === 'reviewed' ? 'selected' : ''}>${text('已复习过的知识', 'Reviewed ideas')}</option><option value="stable" ${scope === 'stable' ? 'selected' : ''}>${text('已理解或掌握的知识', 'Understood or mastered')}</option><option value="all" ${scope === 'all' ? 'selected' : ''}>${text('全部知识点', 'All ideas')}</option></select></label></div>
-      <p class="muted">${text(`将包含 ${chosen.length} 个知识点。`, `${chosen.length} ideas will be included.`)}</p>
+      <p class="muted">${text('将包含 {v0} 个知识点。', '{v0} ideas will be included.', { v0: chosen.length })}</p>
       <div class="followups"><button class="primary-button" id="export-word" ${busy || !chosen.length ? 'disabled' : ''}>${text('下载 Word 文档', 'Download Word document')}</button><button class="secondary-button" id="export-google" ${busy || !chosen.length || !googleClientId() ? 'disabled' : ''}>${text('保存到 Google 文档', 'Save to Google Docs')}</button></div>
       <p class="field-hint">${googleClientId() ? text('将打开 Google 授权窗口，只请求“创建和访问本应用建立的文件”权限，上传后转换为 Google 文档。', 'A Google sign-in window opens asking only to create and access files this app makes; the upload is converted to a Google Doc.') : text('Google 文档：服务器尚未配置 GOOGLE_CLIENT_ID，暂不可用（见 cloud-setup.md）。', 'Google Docs: the server has no GOOGLE_CLIENT_ID configured yet (see cloud-setup.md).')}</p>
       <p class="field-hint">${text('飞书云文档：直接写入需要飞书开放平台应用的 App ID 和 Secret，目前未接通。可先下载 Word，再在飞书云文档中选择“导入”。', 'Feishu Docs: writing directly needs a Feishu Open Platform app (App ID and Secret) and is not connected yet. Download the Word file and use Import in Feishu Docs.')}</p>
@@ -144,12 +145,12 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
   function linksEditor(list) {
     const titles = new Map(list.map(card => [card.id, card.title])), pairs = relationsFor(list);
     const options = list.map(card => `<option value="${e(card.id)}">${e(card.title)}</option>`).join('');
-    return `<details class="viz-editor graph-links-editor" ${linksOpen ? 'open' : ''}><summary>${text(`编辑连线（${pairs.length} 条）`, `Edit links (${pairs.length})`)}</summary>
+    return `<details class="viz-editor graph-links-editor" ${linksOpen ? 'open' : ''}><summary>${text('编辑连线（{v0} 条）', 'Edit links ({v0})', { v0: pairs.length })}</summary>
       <div class="viz-editor-row"><select id="link-a" aria-label="${text('知识点 A', 'Idea A')}">${options}</select><select id="link-b" aria-label="${text('知识点 B', 'Idea B')}">${options}</select><button class="secondary-button" id="link-add">${text('添加连线', 'Add link')}</button></div>
       <ul class="link-list">${pairs.map(p => `<li><span>${e(titles.get(p.a))} — ${e(titles.get(p.b))}${p.label ? ` <em>${e(p.label)}</em>` : ''}${p.custom ? ` <span class="pill">${text('手动', 'Manual')}</span>` : ''}</span><button class="text-button" data-link-remove="${e(pairKey(p.a, p.b))}">${text('删除', 'Remove')}</button></li>`).join('')}</ul></details>`;
   }
   const backButton = id => `<button class="secondary-button viz-back" id="${id}">← ${text('返回', 'Back')}</button>`;
-  const dateText = value => new Date(value).toLocaleDateString(locale() === 'zh' ? 'zh-CN' : 'en');
+  const dateText = value => new Date(value).toLocaleDateString(intlLocale(currentLocale()));
   // One module's curve, enlarged, with every idea in it: last and next review, estimated retention, quick actions.
   function curveDetail(allPoints, style) {
     const module = curveFocus, points = allPoints.filter(p => p.module === module), byId = new Map(points.map(p => [p.id, p])), data = reviews(), curve = moduleCurves(cards(), reviews()).get(module);
@@ -159,11 +160,11 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
         <div class="curve-row-meta"><span>${text('上次', 'Last')}：${last ? `${dateText(last.at)} · ${ratingName(last.rating)}` : ratingName(null)}</span><span>${text('下次', 'Next')}：${paused ? '—' : p ? (p.today ? text('今天', 'Today') : p.nextDue) : text('60 天后', 'In 60+ days')}</span><span>${text('保持率', 'Retention')}：${p ? `${Math.round(p.retention)}%` : '—'}</span></div>
         <div class="curve-row-actions"><button class="text-button" data-curve-important="${e(card.id)}">${card.important ? text('取消重点', 'Unmark') : text('标为重点', 'Mark important')}</button><button class="text-button" data-curve-pause="${e(card.id)}">${paused ? text('恢复复习', 'Resume') : text('暂停复习', 'Pause')}</button></div></li>`; }).join('');
     return `<section class="panel"><div class="viz-head">${backButton('curve-back')}<h2>${text('遗忘曲线', 'Forgetting curve')} · ${e(moduleName(module))}</h2></div>
-      <p><strong>${text(`共 ${list.length} 个知识点，今天需要复习 ${points.filter(p => p.today).length} 个。`, `${list.length} ideas, ${points.filter(p => p.today).length} due today.`)}</strong></p>
+      <p><strong>${text('共 {v0} 个知识点，今天需要复习 {v1} 个。', '{v0} ideas, {v1} due today.', { v0: list.length, v1: points.filter(p => p.today).length })}</strong></p>
       ${points.length && curve ? `<div class="curve-zoom">${curveSvg(points, new Map([[module, curve]]), style, moduleName, labels())}</div>` : ''}
       ${list.length ? `<ul class="curve-list">${rows}</ul>` : `<p>${text('这个模块还没有知识点。', 'No ideas in this module yet.')}</p>`}<p class="error" role="alert">${e(graphMessage)}</p></section>`;
   }
-  const mindmapLabels = () => ({ locale: locale() === 'zh' ? 'zh-CN' : 'en', points: text('核心要点', 'Key points'), example: text('生活例子', 'Example'), belongs: text('模块与分类', 'Module & category'), related: text('相关知识', 'Related ideas'), questions: text('原始提问', 'Questions asked'), history: text('复习记录', 'Review history'), rating: ratingName,
+  const mindmapLabels = () => ({ locale: intlLocale(currentLocale()), points: text('核心要点', 'Key points'), example: text('生活例子', 'Example'), belongs: text('模块与分类', 'Module & category'), related: text('相关知识', 'Related ideas'), questions: text('原始提问', 'Questions asked'), history: text('复习记录', 'Review history'), rating: ratingName,
     ai: { prerequisites: text('前置知识', 'Prerequisites'), subconcepts: text('子概念', 'Sub-concepts'), misconceptions: text('常见误区', 'Misconceptions'), applications: text('延伸应用', 'Applications') } });
   const modelError = error => error?.message === 'key' ? text('请先在“模型设置”中配置 Key 并确认发送说明。', 'Configure your model key and sharing notice in Model settings first.') : text('模型请求未完成，请检查 Key 和网络后重试。', 'The model request did not finish. Check your key and network, then retry.');
   function bindGraph() {
@@ -186,9 +187,9 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
     document.querySelectorAll('[data-link-remove]').forEach(button => { button.onclick = () => { const key = button.dataset.linkRemove; writeGraphEdits(edits => { edits.added = edits.added.filter(p => pairKey(p.a, p.b) !== key); if (!edits.removed.includes(key)) edits.removed.push(key); }); refresh(); }; });
     if (host) {
       const list = graphCards(), today = dueIds(), style = moduleStyles([...new Set([...modules(), ...list.map(card => card.module)])]), data = reviews();
-      const nodes = [...new Set(list.map(card => card.module))].map(id => ({ id: `hub:${id}`, label: moduleName(id), kind: 'hub', module: id, color: style.get(id).color, size: 3, detail: [['strong', moduleName(id)], ['span', text(`${list.filter(card => card.module === id).length} 个知识点`, `${list.filter(card => card.module === id).length} ideas`)]] }))
+      const nodes = [...new Set(list.map(card => card.module))].map(id => ({ id: `hub:${id}`, label: moduleName(id), kind: 'hub', module: id, color: style.get(id).color, size: 3, detail: [['strong', moduleName(id)], ['span', text('{v0} 个知识点', '{v0} ideas', { v0: list.filter(card => card.module === id).length })]] }))
         .concat(list.slice(0, 160).map(card => { const last = latestReview(data, card.id); return { id: card.id, label: card.title.replace(/^示例：/, ''), kind: 'card', module: card.module, color: style.get(card.module).color, size: card.origins.length, today: today.has(card.id),
-          detail: [['strong', card.title], ['span', `${text('模块', 'Module')}：${moduleName(card.module)}${card.category ? ` · ${card.category}` : ''}`], ['span', `${text('上次复习', 'Last review')}：${last ? `${new Date(last.at).toLocaleDateString(locale() === 'zh' ? 'zh-CN' : 'en')} · ${ratingName(last.rating)}` : ratingName(null)}`], ['span', today.has(card.id) ? text('今天需要复习', 'Review today') : text('今天不用复习', 'Not due today')], ['span', text('点一下打开思维导图 · 双击修改标题', 'Tap to open its mind map · double-click to rename')]] }; }));
+          detail: [['strong', card.title], ['span', `${text('模块', 'Module')}：${moduleName(card.module)}${card.category ? ` · ${card.category}` : ''}`], ['span', `${text('上次复习', 'Last review')}：${last ? `${new Date(last.at).toLocaleDateString(intlLocale(currentLocale()))} · ${ratingName(last.rating)}` : ratingName(null)}`], ['span', today.has(card.id) ? text('今天需要复习', 'Review today') : text('今天不用复习', 'Not due today')], ['span', text('点一下打开思维导图 · 双击修改标题', 'Tap to open its mind map · double-click to rename')]] }; }));
       const links = list.slice(0, 160).map(card => ({ source: `hub:${card.module}`, target: card.id, kind: 'spoke' })).concat(relationsFor(list).map(p => ({ source: p.a, target: p.b, kind: 'relation', label: p.label })));
       const positions = positionsFor(scopeKey);
       const graph = mountGraph(host, { nodes, links, theme: graphTheme(), positions,

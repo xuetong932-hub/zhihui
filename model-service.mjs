@@ -1,5 +1,6 @@
 import { providers, validConfig, safeSourceUrl } from './providers.js';
 import { isCustomModule, validModuleName } from './modules.js';
+import { isLocale } from './i18n.js';
 export class ServiceError extends Error {
   constructor(code, status = 400) { super(code); this.code = code; this.status = status; }
 }
@@ -11,7 +12,7 @@ export function validateRequest(value) {
   if (value.consent !== true) throw new ServiceError('consent');
   // Custom modules carry their user-given name, validated as a short single line.
   const knownModule = Object.hasOwn(modules, value.module) || (isCustomModule(value.module) && validModuleName(value.moduleName));
-  if (!knownModule || !Object.hasOwn(levels, value.level) || !['zh', 'en'].includes(value.locale) || (value.brief !== undefined && typeof value.brief !== 'boolean')) throw new ServiceError('request');
+  if (!knownModule || !Object.hasOwn(levels, value.level) || !isLocale(value.locale) || (value.brief !== undefined && typeof value.brief !== 'boolean')) throw new ServiceError('request');
   if (!Array.isArray(value.messages) || value.messages.length < 1 || value.messages.length > 21) throw new ServiceError('request');
   let size = 0;
   for (const [index, message] of value.messages.entries()) {
@@ -27,9 +28,11 @@ export const moduleTopic = (module, moduleName) => modules[module] || `用户自
 // flow quickly, so it replaces the four-heading format instead of adding a conflicting rule on top of it.
 const FORMAT = '回答使用四个清晰小标题：直接回答、分步骤解释、生活例子、简短总结（英文时使用相应英文标题）。简短追问可以适当精简，但保留关键解释。解释推导步骤，不输出内部思维链。';
 const BRIEF = '这是新用户第一次提问：只用两三句话、总共约 150 字（英文约 80 词）回答。先一句话直接回答，再给一个贴近生活的例子。不要使用任何小标题、列表或加粗标签，不要分段总结，不输出内部思维链。';
+// The answer language when the question gives no clue: the interface language.
+const LANGUAGE_NAMES = { zh: '简体中文', 'zh-TW': '繁体中文', en: '英文', ja: '日语', ko: '韩语', ms: '马来语', es: '西班牙语', fr: '法语', pt: '巴西葡萄牙语', de: '德语' };
 export function systemPrompt({ module, moduleName, level, locale, config, brief }) {
   return `你是帮助成年人理解和运用知识的学习助手。当前模块：${moduleTopic(module, moduleName)}。当前基础：${levels[level]}
-优先跟随用户本次提问使用的语言；没有明确语言线索时使用${locale === 'zh' ? '中文' : '英文'}。界面语言不限制学习语言。
+优先跟随用户本次提问使用的语言；没有明确语言线索时使用${LANGUAGE_NAMES[locale] || '英文'}。界面语言不限制学习语言。
 ${brief ? BRIEF : FORMAT}
 给出贴近日常生活且不误导的具体例子。区分事实、假设与建议，不确定时明确说不确定，不编造事实、引用、来源或声称完成了未进行的检索。
 ${config.search ? '本次请求启用了服务商联网搜索。只有实际获取检索结果时才能说已联网核查；没有结果时明确说明。正文默认不列出来源链接，应用会单独展示服务商返回的来源。' : '本次未启用联网搜索，不能声称已联网或保证时效信息；涉及实时内容时明确说明无法核实。'}

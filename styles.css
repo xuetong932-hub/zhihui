@@ -326,3 +326,14 @@ footer{color:var(--stone);border-top:1px solid var(--hairline-soft);margin-top:4
 .tour-actions .primary-button{white-space:nowrap}
 [data-theme="dark"] .tour-card,[data-theme="dark"] .tour-card::before{background:#1f2326;color:#e8ece9}
 [data-theme="dark"] .tour-ring{box-shadow:0 0 0 3px #e8ece9,0 0 0 9999px rgba(0,0,0,.68)}
+
+/* Interface language picker (app.js openLanguageDialog). */
+.language-dialog{width:min(360px,calc(100% - 32px));padding:22px;border:0;border-radius:12px;background:var(--canvas,#fff);color:inherit;box-shadow:rgba(0,0,0,.18) 0 18px 48px}
+.language-dialog::backdrop{background:rgba(10,10,10,.45)}
+.language-dialog h2{margin:0 0 14px;font-size:18px}
+.language-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.language-option{min-height:44px;padding:8px 12px;border:1px solid var(--line,#e5e5e5);border-radius:9999px;background:transparent;color:inherit;font:inherit;cursor:pointer;text-align:center}
+.language-option:hover{border-color:#30694f}
+.language-option.active{background:#30694f;border-color:#30694f;color:#fff}
+.language-dialog .actions{display:flex;justify-content:flex-end}
+[data-theme="dark"] .language-dialog{background:#1f2326;color:#e8ece9}

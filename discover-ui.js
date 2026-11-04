@@ -4,6 +4,7 @@
 import { escapeHtml as e } from './chat-store.js';
 import { moduleIcon } from './module-icons.js';
 import { curatedItems } from './recommend-data.js';
+import { pick, isChineseLocale, currentLocale } from './i18n.js';
 const REGION_KEY = 'knowledge-review.recommend-region.v1';
 const q = encodeURIComponent;
 // Search targets per region and kind. Each builds a plain search URL; nothing is fetched by the app itself.
@@ -20,7 +21,7 @@ export const SOURCES = {
   },
 };
 // Region: the user's own choice on this device, else the account's region (Chinese mainland → cn), else the UI language.
-export function defaultRegion(accountRegion, locale) { return accountRegion ? (accountRegion === 'CN' ? 'cn' : 'global') : (locale === 'zh' ? 'cn' : 'global'); }
+export function defaultRegion(accountRegion, locale) { return accountRegion ? (accountRegion === 'CN' ? 'cn' : 'global') : (isChineseLocale(locale) ? 'cn' : 'global'); }
 // Keywords: titles of the most recent active cards (newest first, unique), else the names of enabled modules.
 export function recommendKeywords(cards, moduleNames, limit = 6) {
   const titles = [...new Set(cards.filter(card => card.status === 'active').sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(card => card.title.trim().slice(0, 40)).filter(Boolean))];
@@ -28,7 +29,7 @@ export function recommendKeywords(cards, moduleNames, limit = 6) {
 }
 
 export function createDiscoverUI({ locale, cards, profile, modules, account, refresh: refreshView }) {
-  const tr = (zh, en) => locale() === 'zh' ? zh : en;
+  const tr = (zh, en, vars) => pick(zh, en, vars);
   let region = null, keyword = '', topic = '';
   const readRegion = () => { try { const saved = localStorage.getItem(REGION_KEY); return saved === 'cn' || saved === 'global' ? saved : null; } catch { return null; } };
   const currentRegion = () => region || readRegion() || defaultRegion(account()?.region, locale());
@@ -56,7 +57,7 @@ export function createDiscoverUI({ locale, cards, profile, modules, account, ref
       const picks = curatedItems(current, kind.key, area);
       return `<section class="panel discover-column"><div class="section-heading"><h2><span class="discover-glyph" aria-hidden="true">${kind.icon}</span>${tr(kind.zh, kind.en)}</h2></div>
       ${picks.length ? picks.map(item).join('') : `<p class="muted">${tr('这个模块还没有精选资源，可以用下面的搜索。', 'No picks for this module yet; use the searches below.')}</p>`}
-      <div class="search-links"><span class="field-hint">${tr('搜索更多：', 'Search more:')}</span>${keyword ? sources[kind.key].map(source => `<a class="search-link" href="${e(source.url(keyword))}" target="_blank" rel="noopener noreferrer">${tr(`在 ${source.name} 搜索「${e(keyword)}」`, `Search ${source.name} for “${e(keyword)}”`)} <span aria-hidden="true">↗</span></a>`).join('') : ''}</div></section>`;
+      <div class="search-links"><span class="field-hint">${tr('搜索更多：', 'Search more:')}</span>${keyword ? sources[kind.key].map(source => `<a class="search-link" href="${e(source.url(keyword))}" target="_blank" rel="noopener noreferrer">${tr('在 {v0} 搜索「{v1}」', 'Search {v0} for “{v1}”', { v0: source.name, v1: e(keyword) })} <span aria-hidden="true">↗</span></a>`).join('') : ''}</div></section>`;
     };
     return `<section class="intro"><span class="eyebrow">${tr('推荐', 'For you')}</span><h1>${tr('学完之后，去哪里看更多？', 'Where to go next')}</h1><p>${tr('每个模块精选了知名、可靠的博主、书籍和论文，链接均已人工核对。也可以按你最近学的内容搜索更多。', 'Well-known, reliable creators, books and papers picked for each module, with every link checked by hand. You can also search for more based on what you learned.')}</p></section>
       <div class="discover-toolbar"><div class="segmented" role="group" aria-label="${tr('地区', 'Region')}">${[['cn', tr('中国区', 'China')], ['global', tr('海外', 'International')]].map(([id, label]) => `<button type="button" class="${area === id ? 'active' : ''}" data-region="${id}" aria-pressed="${area === id}">${label}</button>`).join('')}</div>

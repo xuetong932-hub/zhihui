@@ -1,3 +1,4 @@
+import { translate } from './i18n.js';
 // Learning modules: four built-in presets plus user-defined custom modules stored in the profile.
 // Deleting a module archives it (hidden, records kept, restorable); built-in modules always keep their entry,
 // and a custom module without records is removed outright. Shared by the browser and the local server.
@@ -22,8 +23,8 @@ export function newCustomModuleId(random = () => crypto.getRandomValues(new Uint
   return `c-${[...random()].map(byte => 'abcdefghijklmnopqrstuvwxyz0123456789'[byte % 36]).join('')}`;
 }
 export function moduleLabel(profile, id, locale) {
-  if (isPresetModule(id)) return PRESET_NAMES[locale === 'zh' ? 'zh' : 'en'][id];
-  return profile?.modules?.[id]?.name || (locale === 'zh' ? '已删除的模块' : 'Deleted module');
+  if (isPresetModule(id)) return translate(PRESET_NAMES.zh[id], PRESET_NAMES.en[id], undefined, locale);
+  return profile?.modules?.[id]?.name || translate('已删除的模块', 'Deleted module', undefined, locale);
 }
 export const isActiveModule = (profile, id) => Boolean(profile?.modules?.[id]?.enabled && !profile.modules[id].archived);
 // Modules shown in the app, in settings order (presets first, then custom modules in the order added).

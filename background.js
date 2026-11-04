@@ -1,3 +1,4 @@
+import { pick } from './i18n.js';
 // Page background: none, a built-in photo or the user's own image, shown under the page with adjustable opacity and blur.
 // Kept per device like day/night: the choice in localStorage, an uploaded image (resized to ≤1920px JPEG) in IndexedDB.
 // Nothing here is synced, exported or sent to a server. Cards and text keep their solid surfaces, so text stays readable.
@@ -81,13 +82,13 @@ const esc = value => String(value).replace(/[&<>"']/g, char => `&#${char.charCod
 
 // The dialog changes the background live and remembers each change right away, like the day/night switch.
 export async function openBackgroundDialog(locale) {
-  const w = words[locale === 'zh' ? 'zh' : 'en'], dialog = document.createElement('dialog'); dialog.className = 'bg-dialog';
+  const w = words[pick('zh', 'en')], dialog = document.createElement('dialog'); dialog.className = 'bg-dialog';
   const stored = await getImage(); if (stored && !objectUrl) objectUrl = URL.createObjectURL(stored);
   let message = '', busy = false, hasImage = Boolean(stored);
   const tile = (choice, label, image) => `<button type="button" class="bg-tile ${state.choice === choice ? 'active' : ''}" data-bg="${choice}" aria-pressed="${state.choice === choice}">${image ? `<img src="${image}" alt="" loading="lazy">` : '<span class="bg-empty"></span>'}<span class="bg-label">${esc(label)}</span></button>`;
   const draw = () => {
     dialog.innerHTML = `<form method="dialog" class="bg-panel"><div class="section-heading"><h2>${w.title}</h2><button class="text-button" value="done">${w.done}</button></div>
-      <div class="bg-grid">${tile('none', w.none, '')}${PRESET_BACKGROUNDS.map(item => tile(`preset:${item.id}`, item[locale === 'zh' ? 'zh' : 'en'], `/backgrounds/${item.id}-thumb.jpg`)).join('')}${hasImage ? tile('custom', w.mine, objectUrl) : ''}</div>
+      <div class="bg-grid">${tile('none', w.none, '')}${PRESET_BACKGROUNDS.map(item => tile(`preset:${item.id}`, item[pick('zh', 'en')], `/backgrounds/${item.id}-thumb.jpg`)).join('')}${hasImage ? tile('custom', w.mine, objectUrl) : ''}</div>
       <div class="bg-upload"><label class="secondary-button bg-upload-button">${busy ? w.busy : `＋ ${w.upload}`}<input type="file" accept="image/*" hidden ${busy ? 'disabled' : ''}></label>${hasImage ? `<button type="button" class="text-button" data-remove>${w.remove}</button>` : ''}</div>
       <p class="field-hint">${w.hint}</p>${message ? `<p class="error" role="alert">${message}</p>` : ''}
       ${state.choice === 'none' ? '' : `<div class="bg-layout"><div><span class="bg-field">${w.fit}</span><div class="segmented bg-fit">${FITS.map(fit => `<button type="button" class="${state.fit === fit ? 'active' : ''}" data-fit="${fit}" aria-pressed="${state.fit === fit}" title="${w[`${fit}Hint`]}">${w[fit]}</button>`).join('')}</div><p class="field-hint">${w[`${state.fit}Hint`]}</p></div>
@@ -100,8 +101,8 @@ export async function openBackgroundDialog(locale) {
     dialog.querySelectorAll('[data-bg]').forEach(button => { button.onclick = async () => { state = { ...state, choice: button.dataset.bg }; write(state); await apply(); draw(); }; });
     const slider = (selector, key, unit) => { const input = dialog.querySelector(selector); input.oninput = () => { state = { ...state, [key]: Number(input.value) }; input.nextElementSibling.textContent = `${input.value}${unit}`; write(state); apply(); }; };
     slider('[data-opacity]', 'opacity', '%'); slider('[data-blur]', 'blur', 'px');
-    const pick = (attribute, key) => dialog.querySelectorAll(`[data-${attribute}]`).forEach(button => { button.onclick = () => { state = { ...state, [key]: button.dataset[key] }; write(state); apply(); draw(); }; });
-    pick('fit', 'fit'); pick('position', 'position');
+    const bindChoice = (attribute, key) => dialog.querySelectorAll(`[data-${attribute}]`).forEach(button => { button.onclick = () => { state = { ...state, [key]: button.dataset[key] }; write(state); apply(); draw(); }; });
+    bindChoice('fit', 'fit'); bindChoice('position', 'position');
     // Compare the image's proportions with the window so the user knows whether Fill will crop.
     const ratioNote = dialog.querySelector('[data-ratio]'), current = layer().style.backgroundImage.match(/url\("(.+)"\)/)?.[1];
     if (ratioNote && current) { const probe = new Image(); probe.onload = () => {

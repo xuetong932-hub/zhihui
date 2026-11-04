@@ -1,12 +1,13 @@
 import {REGIONS,registrationErrors,validEmail,validPhone,validConfig} from './auth.js';
 import {ownership,readOwner,sameOwner,PROFILE_KEY,bindOwner,setAsideLocalData,likelyDuplicate,summarizeSnapshot,readLocalSnapshot,MAX_BACKUPS,LAST_LOGIN_KEY} from './local-space.js';
 import {escapeHtml as esc} from './chat-store.js';
+import { pick } from './i18n.js';
 // Sign-in gate shown before the app. Stages: loading, unconfigured, signin, signup, code, register, denied, error, local.
 // Sign-up asks for username, email, phone, country or region and birthday; the birthday is sent once for the
 // server's adult check and then cleared from memory.
 export const LOCAL_MODE_KEY='knowledge-review.local-mode.v1';
 export function createAuthGate({auth,locale,refresh,onReady}){
-  const tr=(zh,en)=>locale()==='zh'?zh:en;
+  const tr = (zh, en, vars) => pick(zh, en, vars);
   let stage='loading',busy=false,message='',errors={},codeFor='signin',otp='',acct=null,deleteConsent=false;
   let devConfig={url:'',publicKey:''};
   // Admin password stays in memory only until the sign-in attempt finishes.
@@ -78,10 +79,10 @@ export function createAuthGate({auth,locale,refresh,onReady}){
   }
   function localView(){
     const owner=readOwner(localStorage),other=ownership(localStorage,account())==='other';
-    let counts='';try{const s=summarizeSnapshot(readLocalSnapshot(localStorage));counts=tr(`（对话 ${s.threads} 个、知识卡片 ${s.cards} 张、复习记录 ${s.reviews} 条）`,` (${s.threads} conversations, ${s.cards} cards, ${s.reviews} review records)`);}catch{/* Counts are optional. */}
+    let counts='';try{const s=summarizeSnapshot(readLocalSnapshot(localStorage));counts=tr('（对话 {v0} 个、知识卡片 {v1} 张、复习记录 {v2} 条）', ' ({v0} conversations, {v1} cards, {v2} review records)', { v0: s.threads, v1: s.cards, v2: s.reviews });}catch{/* Counts are optional. */}
     const duplicate=other&&likelyDuplicate(owner,account(),auth.user?.created_at)?`<p>${tr('你的账号是刚刚创建的，可能用了与之前不同的登录方式。','Your account was just created; you may have used a different sign-in method than before.')}</p>`:'';
-    return header(tr('这台设备上的学习记录','Learning records on this device'),other?tr(`这些记录${counts}属于账号「${esc(owner.label||'另一个账号')}」。为保护对方隐私，需先把它们移入本机备份，然后继续使用你的账号。只有原账号登录后才能换回这些记录。`,`These records${counts} belong to the account “${esc(owner.label||'another account')}”. To protect that person’s privacy they must be moved into a local backup before you continue. Only the original account can swap them back.`):tr(`这些记录${counts}还没有关联任何账号。它们是你的吗？`,`These records${counts} are not linked to any account. Are they yours?`))
-      +`<section class="panel">${duplicate}<p>${tr(`本机最多保留 ${MAX_BACKUPS} 份备份，更早的会被移除。如果这些记录还没上传到云端，请先退出，用原账号登录并同步。`,`This device keeps at most ${MAX_BACKUPS} backups; older ones are removed. If these records were never uploaded, sign out and sync them from the original account first.`)}</p>
+    return header(tr('这台设备上的学习记录','Learning records on this device'),other?tr('这些记录{counts}属于账号「{v0}」。为保护对方隐私，需先把它们移入本机备份，然后继续使用你的账号。只有原账号登录后才能换回这些记录。', 'These records{counts} belong to the account “{v1}”. To protect that person’s privacy they must be moved into a local backup before you continue. Only the original account can swap them back.', { counts, v0: esc(owner.label||'另一个账号'), v1: esc(owner.label||'another account') }):tr('这些记录{counts}还没有关联任何账号。它们是你的吗？', 'These records{counts} are not linked to any account. Are they yours?', { counts }))
+      +`<section class="panel">${duplicate}<p>${tr('本机最多保留 {MAX_BACKUPS} 份备份，更早的会被移除。如果这些记录还没上传到云端，请先退出，用原账号登录并同步。', 'This device keeps at most {MAX_BACKUPS} backups; older ones are removed. If these records were never uploaded, sign out and sync them from the original account first.', { MAX_BACKUPS })}</p>
       <div class="followups">${other?'':`<button class="primary-button" id="local-claim">${tr('是我的，关联到当前账号','Yes, link them to my account')}</button>`}<button class="${other?'primary':'secondary'}-button" id="local-aside">${other?tr('移入本机备份并继续','Move to local backup and continue'):tr('不是我的，移入本机备份','Not mine, move to local backup')}</button><button class="text-button" id="auth-signout">${tr('退出登录','Sign out')}</button></div>${status()}</section>`;
   }
   function view(){
@@ -100,7 +101,7 @@ export function createAuthGate({auth,locale,refresh,onReady}){
         <div class="actions"><button class="text-button" id="go-signin">${tr('已有账号？登录','Have an account? Sign in')}</button><button class="primary-button" id="signup-send">${tr('发送验证码','Send code')}</button></div>${status()}</section>`;
     if(stage==='admin')return header(tr('管理员登录','Administrator sign-in'),tr('输入管理员用户名和密码，无需验证码或注册信息。','Enter the administrator username and password. No code or registration details needed.'))
       +`<section class="panel auth-panel"><label class="field-label" for="admin-username">${tr('用户名','Username')}</label><input id="admin-username" type="text" autocomplete="username" maxlength="40" value="${esc(adminForm.username)}"><label class="field-label" for="admin-password">${tr('密码','Password')}</label><input id="admin-password" type="password" autocomplete="current-password"><div class="actions"><button class="text-button" id="go-signin">${tr('返回验证码登录','Back to code sign-in')}</button><button class="primary-button" id="admin-signin">${tr('登录','Sign in')}</button></div>${status()}</section>`;
-    if(stage==='code')return header(tr('输入验证码','Enter the code'),tr(`验证码已发送到 ${esc(codeFor==='signup'?(form.method==='email'?form.email:form.phone):form.identifier)}。`,`A code was sent to ${esc(codeFor==='signup'?(form.method==='email'?form.email:form.phone):form.identifier)}.`))
+    if(stage==='code')return header(tr('输入验证码','Enter the code'),tr('验证码已发送到 {v0}。', 'A code was sent to {v0}.', { v0: esc(codeFor==='signup'?(form.method==='email'?form.email:form.phone):form.identifier) }))
       +`<section class="panel auth-panel"><label class="field-label" for="auth-code">${tr('验证码','Code')}</label><input id="auth-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" value="${esc(otp)}"><div class="actions"><button class="text-button" id="code-back">${tr('返回修改','Go back')}</button><button class="primary-button" id="code-verify">${codeFor==='signup'?tr('验证并完成注册','Verify and register'):tr('验证并登录','Verify and sign in')}</button></div>${status()}</section>`;
     if(stage==='register')return header(tr('完善注册信息','Finish registering'),tr('这个账号还没有完成注册。补充以下信息后即可使用。','This account has not finished registering. Add the details below to continue.'))
       +`<section class="panel auth-panel">${fields({lockedMethod:auth.user?.phone&&!auth.user?.email?'phone':'email'})}${privacy()}<div class="actions"><button class="text-button" id="auth-signout">${tr('退出登录','Sign out')}</button><button class="primary-button" id="register-submit">${tr('完成注册','Finish registering')}</button></div>${status()}</section>`;

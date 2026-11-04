@@ -2,13 +2,14 @@ import {REVIEW_KEY,emptyReviews,loadReviews,reviewQueue,recordReview,suggestedLe
 import {localDay} from './knowledge-store.js';
 const CELEBRATED_KEY='knowledge-review.celebrated-day';
 import {escapeHtml as e,renderAnswer} from './chat-store.js';
+import { pick } from './i18n.js';
 // Answer modes: 'flip' (quick flashcard: recall, show the card, rate yourself; no model call), 'text' (explain in your
 // own words, graded by the model) and 'choice' (model-written multiple choice). Until the user picks one, flip is used
 // whenever no model is available (no key, or the free allowance is used up), otherwise text.
 export function createReviewUI({locale,profile,cards,markWeak,call,refresh,adaptLevel,modules=()=>[],openModule=()=>{},goHome=()=>{},canUseModel=()=>true,onShare=null}){
   // This visit's results, used by the completion popup.
   const session={reviewed:0,correct:0,unclear:0,guessed:0};
-  const tr=(zh,en)=>locale()==='zh'?zh:en;
+  const tr = (zh, en, vars) => pick(zh, en, vars);
   let data=emptyReviews(),snapshot=null,error='',blocked=false,busy=false,extra=false,mode='text',modeChosen=false,revealed=false,current=null,question=null,answer='',grade=null;
   const pickMode=()=>{if(!modeChosen)mode=canUseModel()?'text':'flip';};
   function load(){
@@ -24,14 +25,14 @@ export function createReviewUI({locale,profile,cards,markWeak,call,refresh,adapt
   async function begin(){pickMode();current=queue()[0]||null;question=null;grade=null;answer='';revealed=false;error='';if(current&&mode==='choice'){question=await request('question');}startedAt=Date.now();refresh();}
   function planText(){
     const plan=dailyPlan(data,profile()),used=Math.round(plan.used/60);
-    return tr(`今天已复习约 ${used} 分钟。每天分批安排约 ${plan.dayItems} 道题（按你最近的答题用时估算），积压内容会分几天补上；当天答错的题不受限制。可以跳过，也可以用“自主加练”继续。`,`About ${used} minutes reviewed today. Review is batched at about ${plan.dayItems} items a day (estimated from your recent answer time), so backlogs spread over several days; same-day retries are not limited. Skip anytime, or continue with Extra practice.`);
+    return tr('今天已复习约 {used} 分钟。每天分批安排约 {v0} 道题（按你最近的答题用时估算），积压内容会分几天补上；当天答错的题不受限制。可以跳过，也可以用“自主加练”继续。', 'About {used} minutes reviewed today. Review is batched at about {v0} items a day (estimated from your recent answer time), so backlogs spread over several days; same-day retries are not limited. Skip anytime, or continue with Extra practice.', { used, v0: plan.dayItems });
   }
   function view(){
     if(!current)pickMode();
     const count=queue().length,flip=mode==='flip';
     return `<section class="intro"><span class="eyebrow">${tr('今日复习','Today’s review')}</span><h1>${tr('一次，只弄懂一个知识点。','One idea at a time.')}</h1><p>${new Date().getDay()===0?tr('周日回顾：本周知识与历史薄弱点。你仍可自由提问。','Sunday recap: this week’s ideas and older weak points. New questions remain available.'):tr('先从上次学习的新内容开始，再穿插到期和薄弱的旧知识；未答对的约 10 分钟后再练。','Start with what you learned last time, then older due and weak ideas. Missed items return in about 10 minutes.')}</p></section>
       <section class="panel review-session ${current?'answering':''}"><div class="review-setup"><div class="section-heading"><h2>${count} ${tr('项可安排','available')}</h2><button class="text-button" id="review-extra">${tr('自主加练（含未到期知识）','Extra practice (including not-yet-due ideas)')}</button></div><p>${planText()}</p><label>${tr('答题方式','Answer mode')}<select id="review-mode" ${busy||current?'disabled':''}><option value="flip" ${flip?'selected':''}>${tr('快速翻卡（不用模型）','Quick flashcards (no model)')}</option><option value="text" ${mode==='text'?'selected':''}>${tr('文字回答','Written answer')}</option><option value="choice" ${mode==='choice'?'selected':''}>${tr('选择题','Multiple choice')}</option></select></label></div>
-      ${!current?`<div class="empty-state"><h3>${count?tr('准备好了吗？','Ready to start?'):tr('当前计划已完成，或暂未到复习时间','Plan complete, or nothing is due yet')}</h3><p>${tr('新知识默认从次日开始复习。未理解的内容约 10 分钟后再练，并进入后续跨天复习。','New knowledge starts tomorrow. Difficult ideas return in about 10 minutes and on later days.')}</p>${count?`<button id="review-start" class="primary-button">${tr('开始复习','Start review')}</button>`:''}</div>`:`<article class="review-card"><div class="review-progress"><span>${tr(`还剩 ${count} 题`,`${count} left`)}</span><span>${flip?tr('快速翻卡','Flashcards'):mode==='choice'?tr('选择题','Multiple choice'):tr('文字回答','Written answer')}</span></div><span class="eyebrow">${e(current.category)}</span><h3>${e(flip?tr('回想：','Recall: ')+current.title:mode==='choice'?question?.question||tr('准备题目','Preparing a question'):tr('请用自己的话解释：','Explain in your own words:')+current.title)}</h3>
+      ${!current?`<div class="empty-state"><h3>${count?tr('准备好了吗？','Ready to start?'):tr('当前计划已完成，或暂未到复习时间','Plan complete, or nothing is due yet')}</h3><p>${tr('新知识默认从次日开始复习。未理解的内容约 10 分钟后再练，并进入后续跨天复习。','New knowledge starts tomorrow. Difficult ideas return in about 10 minutes and on later days.')}</p>${count?`<button id="review-start" class="primary-button">${tr('开始复习','Start review')}</button>`:''}</div>`:`<article class="review-card"><div class="review-progress"><span>${tr('还剩 {count} 题', '{count} left', { count })}</span><span>${flip?tr('快速翻卡','Flashcards'):mode==='choice'?tr('选择题','Multiple choice'):tr('文字回答','Written answer')}</span></div><span class="eyebrow">${e(current.category)}</span><h3>${e(flip?tr('回想：','Recall: ')+current.title:mode==='choice'?question?.question||tr('准备题目','Preparing a question'):tr('请用自己的话解释：','Explain in your own words:')+current.title)}</h3>
       ${flip?(revealed?`<div class="flip-answer"><div class="message-content">${renderAnswer(current.summary)}</div>${current.example?`<p class="flip-example"><strong>${tr('例子','Example')}</strong> ${e(current.example)}</p>`:''}</div><p class="field-hint">${tr('和你想到的对比一下，按实际情况选择。','Compare with what you recalled and rate honestly.')}</p><div class="followups review-bar rating-bar flip-rating">${[['wrong','忘了','Forgot'],['unclear','模糊','Fuzzy'],['understood','记得','Got it'],['mastered','很熟','Easy']].map(([id,zh,en])=>`<button class="${id==='understood'?'primary-button':'secondary-button'}" data-review-rating="${id}" ${busy?'disabled':''}>${tr(zh,en)}</button>`).join('')}</div>`
         :`<p class="flip-hint">${tr('先在心里回想它的意思和一个例子，想好了再翻开答案。','Recall what it means and an example, then reveal the answer.')}</p><div class="actions review-bar"><button class="secondary-button" id="review-skip">${tr('跳过本题','Skip this item')}</button><button class="primary-button" id="review-reveal">${tr('显示答案','Show answer')}</button></div>`):`
       ${mode==='choice'&&question?`<div class="choice-options">${question.options.map((option,index)=>`<label class="check-row"><input type="radio" name="review-option" value="${index}" ${String(index)===answer?'checked':''} ${grade||busy?'disabled':''}><span>${e(option)}</span></label>`).join('')}</div>`:mode==='text'?`<label class="field-label" for="review-answer">${tr('你的理解','Your understanding')}</label><textarea id="review-answer" maxlength="4000" ${grade||busy?'disabled':''}>${e(answer)}</textarea>`:''}
@@ -48,10 +49,10 @@ export function createReviewUI({locale,profile,cards,markWeak,call,refresh,adapt
     const dialog=document.createElement('dialog');dialog.className='celebrate-dialog';
     dialog.innerHTML=`<div class="confetti" aria-hidden="true">${Array.from({length:28},(_,i)=>`<i style="--x:${(i*37)%100}%;--d:${(i%7)*0.12}s;--c:${['#2f6fb0','#c0392b','#2e7d4f','#d68910','#7b4fa6'][i%5]}"></i>`).join('')}</div>
       <p class="celebrate-eyebrow">${tr('今日复习','Today’s review')}</p><h2>${tr('通关！','Level complete!')}</h2>
-      <div class="celebrate-stars" aria-label="${tr(`${stars} 颗星`,`${stars} stars`)}">${[1,2,3].map(n=>`<span class="${n<=stars?'on':''}" style="--n:${n}">★</span>`).join('')}</div>
+      <div class="celebrate-stars" aria-label="${tr('{stars} 颗星', '{stars} stars', { stars })}">${[1,2,3].map(n=>`<span class="${n<=stars?'on':''}" style="--n:${n}">★</span>`).join('')}</div>
       <div class="celebrate-stats"><div><strong>${session.reviewed}</strong><span>${tr('复习','Reviewed')}</span></div><div><strong>${session.correct}</strong><span>${tr('答对','Correct')}</span></div><div><strong>${session.unclear}</strong><span>${tr('还不懂','Unclear')}</span></div></div>
-      <p class="celebrate-streak">${streak>1?tr(`已连续复习 ${streak} 天 🔥`,`${streak}-day streak 🔥`):tr('今天开始连续复习 🔥','Your streak starts today 🔥')}</p>
-      ${pending?`<p class="celebrate-note">${tr(`还有 ${pending} 题约 10 分钟后再练一次。`,`${pending} missed ideas come back in about 10 minutes.`)}</p>`:''}
+      <p class="celebrate-streak">${streak>1?tr('已连续复习 {streak} 天 🔥', '{streak}-day streak 🔥', { streak }):tr('今天开始连续复习 🔥','Your streak starts today 🔥')}</p>
+      ${pending?`<p class="celebrate-note">${tr('还有 {pending} 题约 10 分钟后再练一次。', '{pending} missed ideas come back in about 10 minutes.', { pending })}</p>`:''}
       <h3>${tr('接下来，想问点什么？','What would you like to ask next?')}</h3>
       <div class="celebrate-modules">${modules().map(item=>`<button class="secondary-button" data-celebrate-module="${e(item.id)}">${e(item.name)} →</button>`).join('')}</div>
       ${onShare?`<button class="primary-button celebrate-share" data-celebrate="share">${tr('生成打卡图','Make check-in image')}</button>`:''}

@@ -5,6 +5,7 @@
 import { starterQuestions } from './starter-content.js';
 import { iconSvg } from './module-icons.js';
 import { escapeHtml as e, renderAnswer } from './chat-store.js';
+import { pick, translate, currentLocale } from './i18n.js';
 export const ONBOARDING_KEY = 'knowledge-review.onboarding.v1';
 export const onboardingDone = () => { try { return localStorage.getItem(ONBOARDING_KEY) === '1'; } catch { return true; } };
 // The browser's speech-recognition error codes, explained for the user (shared with the question page).
@@ -18,8 +19,10 @@ export function speechErrorText(code, zh) {
   }[code];
   if (code === 'aborted') return '';
   // Phones on the home-network address (plain http) never get the microphone, whatever the permission says.
-  if ((code === 'not-allowed' || code === 'service-not-allowed') && globalThis.isSecureContext === false) return zh ? '语音输入需要 HTTPS 网址，局域网地址（http）下手机浏览器不允许使用麦克风，请改用文字输入。' : 'Voice input needs an HTTPS address. On the home-network (http) address, phone browsers block the microphone. Please type instead.';
-  return words ? words[zh ? 0 : 1] : (zh ? '语音识别没有完成，请重试或改用文字输入。' : 'Speech recognition did not finish. Try again or type instead.');
+  if ((code === 'not-allowed' || code === 'service-not-allowed') && globalThis.isSecureContext === false) return pick('语音输入需要 HTTPS 网址，局域网地址（http）下手机浏览器不允许使用麦克风，请改用文字输入。', 'Voice input needs an HTTPS address. On the home-network (http) address, phone browsers block the microphone. Please type instead.');
+  // zh (true/false) forces Chinese or English; without it the current interface language is used.
+  const locale = zh === undefined ? currentLocale() : zh ? 'zh' : 'en';
+  return words ? translate(words[0], words[1], undefined, locale) : (translate('语音识别没有完成，请重试或改用文字输入。', 'Speech recognition did not finish. Try again or type instead.', undefined, locale));
 }
 export const markOnboardingDone = () => { try { localStorage.setItem(ONBOARDING_KEY, '1'); } catch { /* Shown again next time. */ } };
 
@@ -48,7 +51,7 @@ const TOUR = {
 // deps: locale(), modules() [{id, name}], level(id), freeOffered(), needsConsent(), giveConsent(), canAsk(),
 // ask(module, text) → Promise<{answer, card} | {error}>, finish(), refresh()
 export function createOnboarding(deps) {
-  const zh = () => deps.locale() === 'zh', tr = (a, b) => zh() ? a : b;
+  const zh = () => deps.locale() === 'zh', tr = (a, b, vars) => pick(a, b, vars);
   let step = 'choose', mode = 'text', module = '', text = '', result = null, error = '', busy = false, listening = false, recognition = null, agreed = false;
   const Speech = () => window.SpeechRecognition || window.webkitSpeechRecognition;
   const reset = () => { step = 'choose'; mode = 'text'; module = ''; text = ''; result = null; error = ''; busy = false; stopVoice(); };
@@ -108,7 +111,7 @@ export function createOnboarding(deps) {
     const Recognition = Speech(); if (!Recognition) return;
     recognition = new Recognition(); recognition.lang = zh() ? 'zh-CN' : 'en-US'; recognition.interimResults = true; recognition.continuous = false;
     recognition.onresult = event => { text = [...event.results].map(item => item[0].transcript).join(''); const box = document.querySelector('[data-onb-text]'); if (box) box.value = text; const send = document.querySelector('[data-onb-send]'); if (send) send.disabled = !text.trim() || (deps.needsConsent() && !agreed); };
-    recognition.onerror = event => { error = speechErrorText(event.error, zh()); listening = false; deps.refresh(); };
+    recognition.onerror = event => { error = speechErrorText(event.error); listening = false; deps.refresh(); };
     recognition.onend = () => { listening = false; recognition = null; deps.refresh(); };
     try { recognition.start(); listening = true; error = ''; } catch { listening = false; }
     deps.refresh();
