@@ -14,7 +14,7 @@ img{display:block}
 [data-theme="dark"] .glow{background:radial-gradient(circle,rgba(95,174,134,.16),rgba(95,174,134,0) 65%)}
 
 .top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:24px;max-width:1160px;margin:0 auto;padding:14px 24px;background:color-mix(in srgb,var(--canvas) 86%,transparent);backdrop-filter:blur(10px)}
-.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:var(--ink);text-decoration:none}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0;white-space:nowrap;font-weight:700;font-size:18px;color:var(--ink);text-decoration:none}
 .brand img{border-radius:7px}
 .top-links{display:flex;gap:22px;margin-right:auto}
 .top-links a{color:var(--steel);text-decoration:none;font-size:14px}
@@ -22,12 +22,14 @@ img{display:block}
 .top-actions{display:flex;align-items:center;gap:8px}
 .icon-button{min-width:36px;height:36px;border:1px solid var(--hairline);border-radius:9999px;background:var(--canvas);color:var(--steel);font:600 13px var(--font);cursor:pointer}
 .icon-button:hover{color:var(--ink)}
+.lang-select{height:36px;max-width:150px;padding:0 10px;border:1px solid var(--hairline);border-radius:9999px;background:var(--canvas);color:var(--steel);font:600 13px var(--font);cursor:pointer}
+.lang-select:hover,.lang-select:focus-visible{color:var(--ink)}
 
 .pill{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:10px 22px;border-radius:9999px;border:1px solid var(--hairline);background:var(--canvas);color:var(--ink);font:500 15px var(--font);text-decoration:none;cursor:pointer;transition:transform .2s,box-shadow .2s,background .2s}
 .pill:hover{box-shadow:rgba(0,0,0,.08) 0 4px 12px}
 .pill.primary{background:var(--brand);border-color:var(--brand);color:#fff}
 .pill.primary:hover{background:var(--brand-deep);box-shadow:rgba(48,105,79,.25) 0 8px 24px}
-.pill.small{min-height:36px;padding:6px 16px;font-size:14px}
+.pill.small{min-height:36px;padding:6px 16px;font-size:14px;white-space:nowrap}
 .pill:disabled{cursor:default;color:var(--stone);background:var(--surface)}
 
 main{position:relative;z-index:1;max-width:1160px;margin:0 auto;padding:0 24px}
@@ -156,6 +158,7 @@ h3{margin:0 0 6px;font-size:18px;color:var(--ink)}
   .top{gap:10px;padding:10px 16px}
   .top-links{display:none}
   .top-actions{margin-left:auto}
+  .lang-select{max-width:120px}
   main{padding:0 16px}
   section{padding:48px 0}
   h1{font-size:38px;letter-spacing:-1px}
@@ -166,6 +169,8 @@ h3{margin:0 0 6px;font-size:18px;color:var(--ink)}
   .demo-body{min-height:0}
   .numbers strong{font-size:32px}
 }
+/* Phones: the hero's own Start button sits right below, so the header keeps only language and theme. */
+@media (max-width:480px){.top-actions .pill.small{display:none}}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   .reveal{opacity:1;transform:none;transition:none}

@@ -6,7 +6,7 @@
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('..', import.meta.url));
-const FILES = readdirSync(root).filter(name => /\.(js|mjs)$/.test(name) && !['sw.js', 'i18n.js'].includes(name));
+const FILES = [...readdirSync(root).filter(name => /\.(js|mjs)$/.test(name) && !['sw.js', 'i18n.js'].includes(name)), 'welcome/welcome.js'];
 
 // A JS string literal ('…', "…" or `…` without ${}) starting at i → { value, end } or null.
 function literal(src, i) {
@@ -41,7 +41,8 @@ for (const file of FILES) {
   for (const m of src.matchAll(/\[\s*(?=['"`])/g)) {
     const a = literal(src, m.index + m[0].length); if (!a || !/[㐀-鿿]/.test(a.value)) continue;
     let k = a.end; while (/\s/.test(src[k])) k++; if (src[k] !== ',') continue;
-    const b = literal(src, k + 1); if (!b || /[㐀-鿿]/.test(b.value)) continue;
+    // The English half may name the product 知回 but contains no other Chinese.
+    const b = literal(src, k + 1); if (!b || /[㐀-鿿]/.test(b.value.replaceAll('知回', ''))) continue;
     let e = b.end; while (/\s/.test(src[e])) e++; if (src[e] === ']') add(a.value, b.value, file);
   }
 }

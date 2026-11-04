@@ -29,13 +29,15 @@ const SIMPLIFIED_ONLY_CN = /[复们这说时对过发问习复图识网页关现
 const HAN = /[㐀-鿿]/g;
 const scriptOk = (code, zh, out, en, strict) => {
   const text = out.replaceAll('知回', '');
+  // Any language: a multi-word phrase returned unchanged was copied, not translated.
+  if (strict && out.trim() === en.trim() && /[a-z]{3,}[\s,.]+[a-z]{3,}/i.test(out.replace(/<[^>]+>/g, ''))) return false;
   if (code === 'ko') return !/[\u3400-\u9fff]/.test(text);
   if (code === 'zh-TW') return !SIMPLIFIED.test(text);
   // Traditional-only forms Japanese never uses (日本語 has 説 数 体 対 会 国 学 図 処 伝 instead).
   if (code === 'ja' && /[們這說與數據體對從會來國學讓關應實當點邊雙聽讀觀寫雖經絕繼續聯腦營虛裝覽證譯轉遲釋錢鐵閱險隱驗齊擔擇圖團處傳變歡覺價舊號劃壓廣戰斷樣檢歷滿獨畫稱穩總聲藝觸]/.test(text)) return false;
   if (code === 'ja') return !(text === zh && /[\u3400-\u9fff]{3,}/.test(zh.replaceAll('知回', ''))) && !(text === zh && SIMPLIFIED.test(zh)) && !SIMPLIFIED_ONLY_CN.test(text);
-  // Latin-script languages: no Chinese left, and a multi-word phrase returned unchanged was copied, not translated.
-  return !/[㐀-鿿]/.test(text) && !(strict && out.trim() === en.trim() && /[a-z]{3,}[\s,.]+[a-z]{3,}/i.test(out.replace(/<[^>]+>/g, '')));
+  // Latin-script languages: no Chinese left.
+  return !/[㐀-鿿]/.test(text);
 };
 // The chosen form of address; a result in the other one is asked again.
 const WRONG_REGISTER = { de: /\b(du|dein\w*|dich|dir)\b/i, fr: /(^|[\s'’])(tu|toi|ton|ta|tes)\b/i, ms: /\bkamu\b/i };
