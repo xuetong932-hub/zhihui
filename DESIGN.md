@@ -1,7 +1,7 @@
 ---
 version: 1
 name: knowledge-review-design
-description: 知回 / Knowledge Review design system — reading-first, calm and precise. Adapted from the Mintlify analysis in VoltAgent/awesome-design-md (MIT); 知回 keeps its own name, its green accent and system fonts, and is not affiliated with Mintlify.
+description: 知回 / KnowBack design system — reading-first, calm and precise. Adapted from the Mintlify analysis in VoltAgent/awesome-design-md (MIT); 知回 keeps its own name, its green accent and system fonts, and is not affiliated with Mintlify.
 
 colors:
   brand: "#30694f"          # 知回 green — primary CTA, focus, active states (never body text or large fills)

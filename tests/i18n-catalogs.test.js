@@ -35,3 +35,16 @@ test('Traditional Chinese has no simplified characters left by the converter', a
     assert.deepEqual(left, [], `zh-TW: simplified characters in "${en.slice(0, 40)}"`);
   }
 });
+
+test('product name: 知回 in Chinese, KnowBack in English and every other language', async () => {
+  for (const en of Object.keys(source)) assert.ok(!en.includes('知回') && !en.includes('Knowledge Review'), `English text names the product KnowBack: "${en.slice(0, 40)}"`);
+  for (const code of ENABLED.filter(code => !['zh', 'zh-TW', 'en'].includes(code))) {
+    const catalog = (await import(new URL(`i18n/${code}.js`, root))).default;
+    for (const [en, text] of Object.entries(catalog)) {
+      assert.ok(!text.includes('知回') && !text.includes('Knowledge Review'), `${code}: "${en.slice(0, 40)}" uses KnowBack`);
+      if (en.includes('KnowBack')) assert.ok(text.includes('KnowBack'), `${code}: "${en.slice(0, 40)}" keeps the name`);
+    }
+  }
+  const zhTW = (await import(new URL('i18n/zh-TW.js', root))).default;
+  assert.ok(Object.values(zhTW).every(text => !text.includes('KnowBack')), 'Traditional Chinese keeps 知回');
+});

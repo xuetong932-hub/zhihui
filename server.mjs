@@ -199,8 +199,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const publicOrigin = (process.env.PUBLIC_ORIGIN || process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/$/, '');
   if (publicOrigin && !/^https:\/\/[a-z0-9.-]+$/i.test(publicOrigin)) { console.error('PUBLIC_ORIGIN must look like https://example.com (no path).'); process.exit(1); }
   createApp({ lanHosts, publicOrigin }).listen(port, lan || publicOrigin ? '0.0.0.0' : '127.0.0.1', () => {
-    if (publicOrigin) { console.log(`Knowledge Review (public): ${publicOrigin}`); return; }
-    console.log(`Knowledge Review: http://127.0.0.1:${port}`);
+    if (publicOrigin) { console.log(`KnowBack (public): ${publicOrigin}`); return; }
+    console.log(`KnowBack: http://127.0.0.1:${port}`);
     if (!lan) return;
     if (!lanHosts.length) console.log('Home-network mode is on, but this computer has no private network address. Connect to Wi-Fi and restart.');
     for (const ip of lanHosts) console.log(`On a phone on the same Wi-Fi: http://${ip}:${port}`);

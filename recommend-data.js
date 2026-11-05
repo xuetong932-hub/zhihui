@@ -54,7 +54,7 @@ export const CURATED = {
     },
     papers: [
       { name: 'How Large a Vocabulary Is Needed for Reading and Listening? (Nation, 2006)', url: 'https://doi.org/10.3138/cmlr.63.1.59', zh: '读懂和听懂英语分别需要多少词汇量。', en: 'How many words you need to read and to listen in English.' },
-      { name: 'Distributed Practice in Verbal Recall Tasks (Cepeda et al., 2006)', url: 'https://doi.org/10.1037/0033-2909.132.3.354', zh: '间隔复习效果的大型综述，也是知回复习方式的依据。', en: 'Major review of spaced practice, the basis of how 知回 schedules reviews.' },
+      { name: 'Distributed Practice in Verbal Recall Tasks (Cepeda et al., 2006)', url: 'https://doi.org/10.1037/0033-2909.132.3.354', zh: '间隔复习效果的大型综述，也是知回复习方式的依据。', en: 'Major review of spaced practice, the basis of how KnowBack schedules reviews.' },
       { name: 'Principles and Practice in Second Language Acquisition (Krashen)', url: 'https://www.sdkrashen.com/content/books/principles_and_practice.pdf', zh: '"可理解输入"理论的原著，作者官网免费提供。', en: 'The original "comprehensible input" theory, free on the author\'s site.' },
     ],
   },

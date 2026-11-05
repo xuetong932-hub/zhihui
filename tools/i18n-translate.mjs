@@ -1,5 +1,6 @@
 // Fills i18n/<code>.js with machine translations of i18n/source.json, using the free 智谱 GLM-4-Flash model.
-// Only missing entries are sent. Each result must keep the same {placeholders}, HTML tags and the name 知回, or it is
+// Only missing entries are sent. Each result must keep the same {placeholders}, HTML tags and the product name KnowBack
+// (知回 in Chinese text, never in other languages), or it is
 // retried and finally left out (the app then shows English for it). Translations still need a native speaker's review.
 // The key comes from ZHIPU_API_KEY or the gitignored server.local.json and is never printed.
 // Usage: node tools/i18n-translate.mjs <code> [<code>...]
@@ -44,7 +45,7 @@ const WRONG_REGISTER = { de: /\b(du|dein\w*|dich|dir)\b/i, fr: /(^|[\s'’])(tu|
 // strict: a new model result must also not copy the English and must use the glossary word; saved entries (including
 // hand corrections such as "Hong Kong, China") only need the format checks.
 const valid = (en, out, code, strict = true) => typeof out === 'string' && out.trim() && placeholders(en) === placeholders(out) && tags(en) === tags(out)
-  && (!en.includes('知回') || out.includes('知回')) && !out.includes('Knowledge Review') && scriptOk(code, source[en], out, en, strict)
+  && (!en.includes('KnowBack') || out.includes('KnowBack')) && !out.includes('知回') && !out.includes('Knowledge Review') && scriptOk(code, source[en], out, en, strict)
   && (!strict || !WRONG_REGISTER[code]?.test(out))
   && !/(repasar|repaso|réviser|révision|revisar|revisão|wiederholen|Wiederholung) \/ (repasar|repaso|réviser|révision|revisar|revisão|wiederholen|Wiederholung)/i.test(out)
   && !/\((noun|verb)\)/.test(out)
@@ -56,9 +57,9 @@ const writeCatalog = (code, table) => {
 };
 async function ask(code, batch) {
   const items = batch.map(([en, zh], i) => ({ i, en, zh }));
-  const system = `You translate the interface of 知回 (Knowledge Review), a learning app: ask AI questions, answers become knowledge cards, spaced review (FSRS).
+  const system = `You translate the interface of KnowBack (知回 in Chinese), a learning app: ask AI questions, answers become knowledge cards, spaced review (FSRS).
 Translate each item's English "en" into ${LANGS[code]}. The Chinese "zh" is the original wording, for meaning only: never copy it, always write in the target language and script.
-Rules: keep every {placeholder} from "en" exactly, with the same names (they may differ from "zh"); keep HTML tags, attributes, URLs and line breaks; keep the product name 知回 unchanged; keep brand names (Google, Apple, Supabase, DeepSeek, Qwen, Bilibili, YouTube, Word, Markdown, JSON, PNG, FSRS) unchanged; the product name 知回 is also written "Knowledge Review" in English: always write it as 知回; keep it short like UI text; no explanations.${GLOSSARY[code] ? `
+Rules: keep every {placeholder} from "en" exactly, with the same names (they may differ from "zh"); keep HTML tags, attributes, URLs and line breaks; the product name is KnowBack: keep it unchanged, and write KnowBack wherever the Chinese "zh" says 知回 (never write 知回); keep brand names (Google, Apple, Supabase, DeepSeek, Qwen, Bilibili, YouTube, Word, Markdown, JSON, PNG, FSRS) unchanged; the product name 知回 is also written "Knowledge Review" in English: always write it as 知回; keep it short like UI text; no explanations.${GLOSSARY[code] ? `
 Glossary: translate "review" (复习, spaced-repetition review) always with ${GLOSSARY[code].term}, in the right grammatical form; never other synonyms, never both words together.` : ''}
 Reply with one JSON object only: {"0": "...", "1": "...", ...} using the item numbers.`;
   const response = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {

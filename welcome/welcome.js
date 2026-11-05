@@ -18,28 +18,28 @@ const tr = (zh, en, vars) => translate(zh, en, vars, lang);
 const pair = ([zh, en], vars) => tr(zh, en, vars);
 
 const TEXT = {
-  navHow: ['怎么用', 'How it works'], navFeatures: ['功能', 'Features'], navDownload: ['下载', 'Download'], navFaq: ['常见问题', 'FAQ'], openApp: ['在线使用', 'Open the app'],
+  brand: ['知回', 'KnowBack'], navHow: ['怎么用', 'How it works'], navFeatures: ['功能', 'Features'], navDownload: ['下载', 'Download'], navFaq: ['常见问题', 'FAQ'], openApp: ['在线使用', 'Open the app'],
   badge: ['免费额度 · 无需自备 Key · 本地优先', 'Free allowance · No key needed · Local first'], title1: ['问一个问题，', 'Ask a question,'], title2: ['就记住它。', 'and remember it.'],
-  lead: ['知回把你问 AI 的每一个问题，自动整理成知识卡片；再按遗忘曲线，在你快要忘记之前提醒你复习。学过的东西，真正留下来。', '知回 turns every question you ask AI into a knowledge card, then reminds you to review it just before you would forget. What you learn finally stays.'],
+  lead: ['知回把你问 AI 的每一个问题，自动整理成知识卡片；再按遗忘曲线，在你快要忘记之前提醒你复习。学过的东西，真正留下来。', 'KnowBack turns every question you ask AI into a knowledge card, then reminds you to review it just before you would forget. What you learn finally stays.'],
   chip1: ['提问即笔记', 'Questions become notes'], chip2: ['FSRS 遗忘曲线复习', 'FSRS forgetting-curve review'], chip3: ['知识图谱与思维导图', 'Knowledge graph & mind maps'],
   ctaStart: ['立即开始', 'Start now'], ctaDesktop: ['安装到电脑', 'Install on computer'], ctaAndroid: ['下载安卓 App', 'Download Android app'],
   fine: ['网页版、电脑和安卓都能用，数据默认只存在你的设备上。', 'Works on the web, on computers and on Android. Your data stays on your device by default.'],
-  demoTitle: ['知回 · 演示', '知回 · Demo'], demoTag: ['演示，不调用模型', 'Demo, no model call'], demoHint: ['选一个问题试试：', 'Pick a question to try:'],
+  demoTitle: ['知回 · 演示', 'KnowBack · Demo'], demoTag: ['演示，不调用模型', 'Demo, no model call'], demoHint: ['选一个问题试试：', 'Pick a question to try:'],
   howEyebrow: ['三步', 'Three steps'], howTitle: ['从一个问题，到一张记得住的卡片', 'From one question to a card you remember'],
   step1: ['提问', 'Ask'], step1d: ['打字、说话或拍照提问。按编程、英语、工作、生活分模块记录。', 'Type, speak or photograph a question. Coding, English, work and life each keep their own records.'],
   step2: ['自动成卡', 'It becomes a card'], step2d: ['回答后自动提炼成一张知识卡片：标题、要点和例子，不用自己做笔记。', 'Each answer is condensed into a knowledge card with a title, key points and an example. No note-taking needed.'],
   step3: ['按时复习', 'Review on time'], step3d: ['FSRS 算法算出每张卡片快要忘记的时候，提醒你复习，越记越牢。', 'FSRS works out when each card is about to fade and reminds you then, so it sticks a little longer each time.'],
   curveTitle: ['遗忘曲线：复习让记忆留得更久', 'Forgetting curve: reviews make memories last'], curveNote: ['按 FSRS-5 默认参数计算。把鼠标移到图上看看第几天还记得多少。', 'Computed with FSRS-5 default parameters. Move over the chart to see how much is left on each day.'],
-  legendNo: ['不复习', 'No review'], legendYes: ['按知回复习', 'Reviewing with 知回'],
+  legendNo: ['不复习', 'No review'], legendYes: ['按知回复习', 'Reviewing with KnowBack'],
   featEyebrow: ['核心功能', 'Core features'], featTitle: ['学过的，都帮你留着', 'Everything you learn, kept for you'],
   num1: ['个学习模块', 'learning modules'], num2: ['条人工核对的推荐资源', 'hand-checked recommended resources'], num3: ['复习算法', 'review algorithm'], num4: ['次每日免费提问（登录后）', 'free questions a day (signed in)'],
-  dlEyebrow: ['下载与安装', 'Download & install'], dlTitle: ['在你常用的设备上打开知回', 'Open 知回 on the devices you use'],
+  dlEyebrow: ['下载与安装', 'Download & install'], dlTitle: ['在你常用的设备上打开知回', 'Open KnowBack on the devices you use'],
   dlWeb: ['网页版', 'Web'], dlWebD: ['打开即用，电脑和手机浏览器都可以。', 'Opens right away in any browser, on computers and phones.'], dlWebBtn: ['在线使用', 'Open the app'],
   dlDesk: ['电脑（Windows / Mac）', 'Computer (Windows / Mac)'], dlDeskD: ['在 Chrome 或 Edge 中安装为独立窗口应用，开始菜单和任务栏里都有图标，自动更新。', 'Install from Chrome or Edge as its own app window, with an icon in the Start menu and taskbar. Updates itself.'], dlDeskBtn: ['安装到电脑（浏览器应用）', 'Install on computer (browser app)'],
   dlAndroid: ['安卓手机', 'Android phone'], dlAndroidD: ['下载安装包（约 1 MB），全屏打开。安装时选择"仍然安装"。', 'Download the installer (about 1 MB); it opens full screen. Choose "Install anyway" when asked.'], dlAndroidBtn: ['下载 APK', 'Download APK'],
-  dlIos: ['iPhone / iPad', 'iPhone / iPad'], dlIosD: ['用 Safari 打开知回，点分享按钮，选"添加到主屏幕"。', 'Open 知回 in Safari, tap Share, then "Add to Home Screen".'], dlIosBtn: ['用 Safari 打开', 'Open in Safari'],
+  dlIos: ['iPhone / iPad', 'iPhone / iPad'], dlIosD: ['用 Safari 打开知回，点分享按钮，选"添加到主屏幕"。', 'Open KnowBack in Safari, tap Share, then "Add to Home Screen".'], dlIosBtn: ['用 Safari 打开', 'Open in Safari'],
   faqEyebrow: ['常见问题', 'FAQ'], faqTitle: ['你可能想知道', 'You might want to know'],
-  finalTitle: ['下一个问题，就从知回开始问。', 'Ask your next question in 知回.'], footNote: ['学习记录默认保存在你的设备上', 'Your learning records stay on your device by default'],
+  finalTitle: ['下一个问题，就从知回开始问。', 'Ask your next question in KnowBack.'], footNote: ['学习记录默认保存在你的设备上', 'Your learning records stay on your device by default'],
   instTitle: ['安装到电脑', 'Install on computer'], close: ['知道了', 'Got it'],
 };
 const t = key => TEXT[key] ? pair(TEXT[key]) : key;
@@ -112,7 +112,7 @@ function drawCurve() {
   const show = day => {
     svg.querySelector('#cursor-line').setAttribute('x1', x(day)); svg.querySelector('#cursor-line').setAttribute('x2', x(day));
     const vars = { day: Math.round(day), without: Math.round(retention(day, 1.2) * 100), with: Math.round(withReview(day) * 100) };
-    readout.textContent = tr('第 {day} 天：不复习还记得约 {without}%，按知回复习约 {with}%', 'Day {day}: about {without}% left without review, about {with}% with 知回', vars);
+    readout.textContent = tr('第 {day} 天：不复习还记得约 {without}%，按知回复习约 {with}%', 'Day {day}: about {without}% left without review, about {with}% with KnowBack', vars);
   };
   svg.onpointermove = event => { const box = svg.getBoundingClientRect(), px = (event.clientX - box.left) / box.width * W; show(Math.min(DAYS, Math.max(0, (px - PAD.l) / (W - PAD.l - PAD.r) * DAYS))); };
   show(10);
@@ -131,7 +131,7 @@ const FEATURES = [
 const FAQ = [
   { q: ['收费吗？', 'Does it cost anything?'], a: ['不收费。登录后每天有 20 次免费提问和 30 次免费复习评分；不登录也能在本机使用，每天 3 次免费提问。也可以填自己的模型 Key，不受次数限制。', 'No. Signed in, you get 20 free questions and 30 free review gradings a day; without an account you can still use it on this device with 3 free questions a day. You can also add your own model key with no limit.'] },
   { q: ['我的数据存在哪里？', 'Where is my data stored?'], a: ['默认保存在你自己的浏览器或手机里，离线也能复习。只有你在"账号"页主动加密上传时，才会把加密后的内容存到云端，口令只有你知道。', 'In your own browser or phone by default, and reviews work offline. Only when you choose encrypted upload on the Account page is an encrypted copy stored in the cloud, and only you know the passphrase.'] },
-  { q: ['需要自己准备 AI Key 吗？', 'Do I need my own AI key?'], a: ['不需要。知回自带免费额度，开箱即可提问；想要更多次数或换模型，可以在"模型设置"里填自己的 Key。', 'No. 知回 comes with a free allowance. For more questions or another model, add your own key in Model settings.'] },
+  { q: ['需要自己准备 AI Key 吗？', 'Do I need my own AI key?'], a: ['不需要。知回自带免费额度，开箱即可提问；想要更多次数或换模型，可以在"模型设置"里填自己的 Key。', 'No. KnowBack comes with a free allowance. For more questions or another model, add your own key in Model settings.'] },
   { q: ['支持哪些设备？', 'Which devices are supported?'], a: ['电脑和手机浏览器都能直接用；电脑可以在 Chrome 或 Edge 中安装成独立窗口；安卓可以下载 App；iPhone 用 Safari 添加到主屏幕。', 'Any modern browser on computers and phones. On a computer, install it from Chrome or Edge as its own window; on Android, download the app; on iPhone, add it to the Home Screen from Safari.'] },
   { q: ['"安装到电脑"和普通软件有什么不同？', 'How is "install on computer" different from regular software?'], a: ['它由浏览器安装，打开后是独立窗口，有自己的图标，内容随网站自动更新。它不是 .exe 安装包，不需要管理员权限。', 'The browser installs it as its own window with its own icon, and it updates with the website. It is not an .exe installer and needs no admin rights.'] },
 ];
@@ -152,10 +152,10 @@ async function applyLanguage() {
   select.setAttribute('aria-label', tr('界面语言', 'Interface language'));
   document.documentElement.lang = intlLocale(lang);
   document.querySelectorAll('[data-i18n]').forEach(element => { element.textContent = t(element.dataset.i18n); });
-  document.title = tr('知回 · 提问即笔记，遗忘前复习', '知回 · Questions become notes, reviewed before you forget');
-  document.querySelector('meta[name="description"]')?.setAttribute('content', tr('知回：提问即笔记，遗忘前复习。AI 回答自动整理成知识卡片，按 FSRS 遗忘曲线安排复习。', '知回: questions become notes, reviewed before you forget. AI answers become knowledge cards, scheduled for review on the FSRS forgetting curve.'));
+  document.title = tr('知回 · 提问即笔记，遗忘前复习', 'KnowBack · Questions become notes, reviewed before you forget');
+  document.querySelector('meta[name="description"]')?.setAttribute('content', tr('知回：提问即笔记，遗忘前复习。AI 回答自动整理成知识卡片，按 FSRS 遗忘曲线安排复习。', 'KnowBack: questions become notes, reviewed before you forget. AI answers become knowledge cards, scheduled for review on the FSRS forgetting curve.'));
   document.getElementById('curve').setAttribute('aria-label', tr('遗忘曲线对比', 'Forgetting curve comparison'));
-  document.getElementById('numbers').setAttribute('aria-label', tr('知回的数字', '知回 in numbers'));
+  document.getElementById('numbers').setAttribute('aria-label', tr('知回的数字', 'KnowBack in numbers'));
   renderQuestions(); renderLists(); drawCurve(); playDemo(demoIndex); updateInstall(); updateTheme();
 }
 select.onchange = () => { if (!isLocale(select.value)) return; lang = select.value; try { localStorage.setItem(LANG_KEY, lang); } catch { /* This visit only. */ } applyLanguage(); };
@@ -174,7 +174,7 @@ function installSteps() {
   const ua = navigator.userAgent, safari = /Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua), firefox = /Firefox/.test(ua);
   if (safari) return tr('<ol><li>Mac 上的 Safari：点菜单栏"文件"。</li><li>选"添加到程序坞"，确认名称后添加。</li></ol>', '<ol><li>In Safari on a Mac, open the File menu.</li><li>Choose "Add to Dock" and confirm.</li></ol>');
   if (firefox) return tr('<p>Firefox 不支持把网站安装成应用。请用 Chrome 或 Edge 打开这个页面再安装，或直接<a href="/">在线使用</a>。</p>', '<p>Firefox cannot install websites as apps. Open this page in Chrome or Edge to install, or just <a href="/">use it online</a>.</p>');
-  return tr('<ol><li>用 Chrome 或 Edge 打开知回。</li><li>点地址栏右侧的"安装"图标（电脑加箭头），或在右上角菜单中选"应用 → 安装知回"。</li><li>安装后，开始菜单和任务栏里会出现知回图标。</li></ol>', '<ol><li>Open 知回 in Chrome or Edge.</li><li>Click the install icon at the right of the address bar, or choose "Apps → Install 知回" in the top-right menu.</li><li>知回 then appears in the Start menu and taskbar.</li></ol>');
+  return tr('<ol><li>用 Chrome 或 Edge 打开知回。</li><li>点地址栏右侧的"安装"图标（电脑加箭头），或在右上角菜单中选"应用 → 安装知回"。</li><li>安装后，开始菜单和任务栏里会出现知回图标。</li></ol>', '<ol><li>Open KnowBack in Chrome or Edge.</li><li>Click the install icon at the right of the address bar, or choose "Apps → Install KnowBack" in the top-right menu.</li><li>KnowBack then appears in the Start menu and taskbar.</li></ol>');
 }
 document.addEventListener('click', async event => {
   const button = event.target.closest('[data-install]'); if (!button || button.disabled) return;

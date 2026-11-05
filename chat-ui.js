@@ -93,7 +93,7 @@ const copy = {
     photoNeedsModel: 'Photo questions need a model: choose one in Model settings and confirm the sharing notice.', 'error-vision-unsupported': 'This model cannot read photos. Use the free allowance or Qwen.', 'error-no-text': 'No text was found in the photo. Try a clearer one.',
     'error-large': 'The photo is too large. Try another or crop it.', 'error-photo': 'This photo could not be read. Try another.',
     freeConsent: 'With the free allowance, your question and recent conversation are sent to Zhipu AI (GLM-4-Flash).', freeAgree: 'Agree and start',
-    freeHint: 'Provided by Knowledge Review; no key needed. Semantic relations and mind map expansion are not included.',
+    freeHint: 'Provided by KnowBack; no key needed. Semantic relations and mind map expansion are not included.',
     records: 'messages', open: 'Ask a question', back: 'Back to home', networkLabel: 'Web search', privacy: 'Conversations stay in this browser.',
   },
 };

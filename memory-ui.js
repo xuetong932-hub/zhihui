@@ -70,7 +70,7 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
   // Layout: title and date, one heading per module, then each card with explanation, example and review status.
   function documentBlocks(list) {
     const data = reviews(), date = new Date().toLocaleDateString(intlLocale(currentLocale()));
-    const blocks = [{ style: 'Title', text: text('知回 · 我的知识整理', 'Knowledge Review · My notes') }, { style: 'Meta', text: text('导出于 {date} · 共 {v0} 个知识点', 'Exported {date} · {v0} ideas', { date, v0: list.length }) }];
+    const blocks = [{ style: 'Title', text: text('知回 · 我的知识整理', 'KnowBack · My notes') }, { style: 'Meta', text: text('导出于 {date} · 共 {v0} 个知识点', 'Exported {date} · {v0} ideas', { date, v0: list.length }) }];
     for (const id of [...new Set(list.map(card => card.module))]) {
       blocks.push({ style: 'Heading1', text: moduleName(id) });
       for (const card of list.filter(item => item.module === id)) {
@@ -274,13 +274,13 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
     document.querySelector('#export-module').onchange = event => { exportModule = event.target.value; docLink = ''; refresh(); };
     document.querySelector('#export-scope').onchange = event => { scope = event.target.value; docLink = ''; refresh(); };
     document.querySelector('#export-word').onclick = () => {
-      const bytes = buildDocx(documentBlocks(selectedCards()), { title: text('知回 · 我的知识整理', 'Knowledge Review · My notes') });
+      const bytes = buildDocx(documentBlocks(selectedCards()), { title: text('知回 · 我的知识整理', 'KnowBack · My notes') });
       const url = URL.createObjectURL(new Blob([bytes], { type: DOCX_TYPE })), a = document.createElement('a');
       a.href = url; a.download = `${fileName()}.docx`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
     document.querySelector('#export-google').onclick = async () => {
       if (busy) return; busy = true; message = ''; docLink = ''; refresh();
-      try { const token = await googleToken(googleClientId()); const bytes = buildDocx(documentBlocks(selectedCards())); docLink = await uploadAsGoogleDoc(token, text('知回 · 我的知识整理', 'Knowledge Review notes'), bytes); }
+      try { const token = await googleToken(googleClientId()); const bytes = buildDocx(documentBlocks(selectedCards())); docLink = await uploadAsGoogleDoc(token, text('知回 · 我的知识整理', 'KnowBack notes'), bytes); }
       catch (error) { message = error.code === 'closed' ? text('授权窗口已关闭，未上传。', 'The sign-in window was closed. Nothing was uploaded.') : error.code === 'popup' ? text('浏览器阻止了授权窗口，请允许弹出窗口后重试。', 'The browser blocked the sign-in window. Allow pop-ups and try again.') : text('上传到 Google 文档未完成，请稍后重试。', 'Uploading to Google Docs did not finish. Try again later.'); }
       finally { busy = false; refresh(); }
     };

@@ -28,8 +28,8 @@ export function reminderCalendar({ time, locale, url, now = new Date() }) {
   const [hh, mm] = /^\d{2}:\d{2}$/.test(time) ? time.split(':') : ['19', '00'], zh = ['zh', 'zh-TW', 'ja', 'ko'].includes(locale) /* wide script: shorter lines */;
   const date = localDay(now).replaceAll('-', ''), stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
   const text = value => value.replace(/[\\,;]/g, char => `\\${char}`).replace(/\n/g, '\\n');
-  const summary = pick('知回 · 每日复习', 'Knowledge Review · Daily review'), body = pick('花几分钟巩固今天的知识：{url}', 'Spend a few minutes reviewing: {url}', { url });
-  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Knowledge Review//Daily reminder//EN', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT',
+  const summary = pick('知回 · 每日复习', 'KnowBack · Daily review'), body = pick('花几分钟巩固今天的知识：{url}', 'Spend a few minutes reviewing: {url}', { url });
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//KnowBack//Daily reminder//EN', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT',
     `UID:daily-review-${date}${hh}${mm}@knowledge-review`, `DTSTAMP:${stamp}`, `DTSTART:${date}T${hh}${mm}00`, 'DURATION:PT10M', 'RRULE:FREQ=DAILY',
     `SUMMARY:${text(summary)}`, `DESCRIPTION:${text(body)}`, `URL:${url}`,
     'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${text(summary)}`, 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR', ''].join('\r\n');
@@ -44,7 +44,7 @@ export function drawShareCard(canvas, data, { locale, showTitles = false } = {})
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = 'rgba(255,255,255,.08)'; [[900, 160, 260], [120, 1300, 320], [980, 1180, 140]].forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); });
   ctx.fillStyle = '#fff'; ctx.textBaseline = 'alphabetic';
-  ctx.font = font(44, 700); ctx.fillText(pick('↗ 知回', '↗ Knowledge Review'), 90, 150);
+  ctx.font = font(44, 700); ctx.fillText(pick('↗ 知回', '↗ KnowBack'), 90, 150);
   ctx.globalAlpha = 0.85; ctx.font = font(36); ctx.fillText(data.date, 90, 215); ctx.globalAlpha = 1;
   // Progress ring with today's count against the goal.
   const cx = W / 2, cy = 560, r = 230, progress = Math.min(1, data.goal ? data.done / data.goal : 0);
@@ -78,11 +78,11 @@ export function openShareDialog({ locale, data }) {
       if (!blob) return; if (url) URL.revokeObjectURL(url); url = URL.createObjectURL(blob);
       const img = dialog.querySelector('.share-preview'); if (img) img.src = url;
       dialog.querySelector('[data-share]').onclick = async () => {
-        const file = new File([blob], pick('知回打卡.png', 'knowledge-review-check-in.png'), { type: 'image/png' });
-        try { if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: pick('知回打卡', 'Knowledge Review check-in') }); return; } } catch { return; /* Cancelled. */ }
+        const file = new File([blob], pick('知回打卡.png', 'knowback-check-in.png'), { type: 'image/png' });
+        try { if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: pick('知回打卡', 'KnowBack check-in') }); return; } } catch { return; /* Cancelled. */ }
         save();
       };
-      const save = () => { const link = document.createElement('a'); link.href = url; link.download = pick('知回打卡.png', 'knowledge-review-check-in.png'); document.body.append(link); link.click(); link.remove(); };
+      const save = () => { const link = document.createElement('a'); link.href = url; link.download = pick('知回打卡.png', 'knowback-check-in.png'); document.body.append(link); link.click(); link.remove(); };
       dialog.querySelector('[data-save]').onclick = save;
     }, 'image/png');
   };

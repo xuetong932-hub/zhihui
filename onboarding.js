@@ -61,14 +61,14 @@ export function createOnboarding(deps) {
   const currentModule = () => { const list = deps.modules(); if (!list.some(item => item.id === module)) module = list[0]?.id || ''; return module; };
 
   function header(title, sub) {
-    return `<div class="onb-top"><span class="eyebrow">${tr('欢迎来到知回', 'Welcome to Knowledge Review')}</span><button class="text-button onb-skip" data-onb-skip>${tr('跳过', 'Skip')}</button></div><h1>${title}</h1>${sub ? `<p class="onb-sub">${sub}</p>` : ''}`;
+    return `<div class="onb-top"><span class="eyebrow">${tr('欢迎来到知回', 'Welcome to KnowBack')}</span><button class="text-button onb-skip" data-onb-skip>${tr('跳过', 'Skip')}</button></div><h1>${title}</h1>${sub ? `<p class="onb-sub">${sub}</p>` : ''}`;
   }
   function moduleTabs() {
     return `<div class="module-tabs onb-modules" role="group" aria-label="${tr('学习模块', 'Learning modules')}">${deps.modules().map(item => `<button class="module-tab ${item.id === currentModule() ? 'active' : ''}" data-onb-module="${e(item.id)}" aria-pressed="${item.id === currentModule()}">${item.icon}${e(item.name)}</button>`).join('')}</div>`;
   }
   const consentBox = () => deps.needsConsent() ? `<label class="check-row onb-consent"><input type="checkbox" data-onb-consent ${agreed ? 'checked' : ''}>${tr('我同意把问题发送给智谱 AI（知回免费额度）处理', 'I agree to send my question to Zhipu AI (the free allowance)')}</label>` : '';
   function chooseView() {
-    return `${header(tr('先来问一个问题吧', 'Start with one question'), tr('知回会回答你，并把答案整理成记得住的知识。选一种提问方式：', 'Knowledge Review answers it and turns it into something you remember. Choose how to ask:'))}
+    return `${header(tr('先来问一个问题吧', 'Start with one question'), tr('知回会回答你，并把答案整理成记得住的知识。选一种提问方式：', 'KnowBack answers it and turns it into something you remember. Choose how to ask:'))}
       <div class="onb-choices"><button class="onb-choice" data-onb-mode="voice">${iconSvg('mic', 40)}<strong>${tr('语音提问', 'Ask by voice')}</strong><span>${tr('按下话筒，直接说出你的问题', 'Tap the mic and say your question')}</span></button>
       <button class="onb-choice" data-onb-mode="text">${iconSvg('keyboard', 40)}<strong>${tr('文字提问', 'Ask by typing')}</strong><span>${tr('从示例问题里选一个，或自己输入', 'Pick an example or type your own')}</span></button></div>`;
   }
@@ -87,12 +87,12 @@ export function createOnboarding(deps) {
   }
   function answerView() {
     const card = result.card, words = TOUR.map(item => [item.icon, pick(item.title.zh, item.title.en), pick(item.body.zh, item.body.en)]);
-    return `${header(tr('这就是知回', 'This is Knowledge Review'), '')}
+    return `${header(tr('这就是知回', 'This is KnowBack'), '')}
       <div class="onb-chat"><div class="message user-message"><div class="message-content"><div class="user-text">${e(result.question)}</div></div></div>
         <div class="message assistant-message">${result.sample ? `<span class="pill">${tr('示例回答', 'Sample answer')}</span>` : ''}<div class="message-content">${renderAnswer(result.answer)}</div></div>
         <div class="message assistant-message onb-tour"><h3>${tr('知回接下来会帮你：', 'What happens next:')}</h3>
           <ol>${words.map(([icon, title, body], i) => `<li><span class="onb-tour-icon">${iconSvg(icon, 22)}</span><div><strong>${title}</strong><p>${body}</p>${i === 0 && card ? `<div class="onb-card"><span class="eyebrow">${tr('刚整理出的知识卡片', 'Your first card')}</span><strong>${e(card.title)}</strong><p>${e(card.summary.slice(0, 120))}${card.summary.length > 120 ? '…' : ''}</p></div>` : ''}${i === 1 && card ? `<p class="onb-when">${tr('这张卡片明天会出现在你的复习里。', 'This card will appear in your review tomorrow.')}</p>` : ''}</div></li>`).join('')}</ol></div></div>
-      <div class="onb-actions"><button class="secondary-button" data-onb-again>${tr('再问一个', 'Ask another')}</button><button class="primary-button" data-onb-finish>${tr('进入知回', 'Start using Knowledge Review')} →</button></div>`;
+      <div class="onb-actions"><button class="secondary-button" data-onb-again>${tr('再问一个', 'Ask another')}</button><button class="primary-button" data-onb-finish>${tr('进入知回', 'Start using KnowBack')} →</button></div>`;
   }
   function view() { return `<section class="onboarding">${step === 'choose' ? chooseView() : step === 'ask' ? askView() : answerView()}</section>`; }
 

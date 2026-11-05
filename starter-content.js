@@ -201,7 +201,7 @@ const esc = value => String(value).replace(/[&<>"']/g, char => `&#${char.charCod
 export function starterPackPanel({ modules, locale, added = 0, dismissible = false }) {
   if (added) return `<section class="panel starter-pack"><span class="eyebrow">${pick('入门卡片包', 'Starter cards')}</span><h3>${pick('已添加 {added} 张入门卡片', '{added} starter cards added', { added })}</h3><p>${pick('现在就可以练一练；之后它们会和你自己的卡片一样，按时安排复习。', 'Practise them now; after that they are scheduled like your own cards.')}</p><button class="primary-button" data-starter-practise>${pick('现在练一练', 'Practise now')} →</button></section>`;
   if (!modules.length) return '';
-  return `<section class="panel starter-pack"><span class="eyebrow">${pick('入门卡片包', 'Starter cards')}</span><h3>${pick('先领取入门卡片，马上体验复习', 'Add starter cards and try a review now')}</h3><p>${pick('每个模块 6 张由知回编写的基础知识卡片，不调用模型。添加后可以随时修改或删除。', 'Six basic cards per module, written for Knowledge Review; no model needed. Edit or delete them any time.')}</p>
+  return `<section class="panel starter-pack"><span class="eyebrow">${pick('入门卡片包', 'Starter cards')}</span><h3>${pick('先领取入门卡片，马上体验复习', 'Add starter cards and try a review now')}</h3><p>${pick('每个模块 6 张由知回编写的基础知识卡片，不调用模型。添加后可以随时修改或删除。', 'Six basic cards per module, written for KnowBack; no model needed. Edit or delete them any time.')}</p>
     <div class="starter-pack-modules">${modules.map(item => `<button class="secondary-button" data-starter-add="${esc(item.id)}">＋ ${esc(item.name)}</button>`).join('')}${modules.length > 1 ? `<button class="primary-button" data-starter-add="all">${pick('全部添加', 'Add all')}</button>` : ''}</div>
     ${dismissible ? `<button class="text-button starter-dismiss" data-starter-dismiss>${pick('以后再说', 'Not now')}</button>` : ''}</section>`;
 }

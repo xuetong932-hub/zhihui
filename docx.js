@@ -26,7 +26,7 @@ function paragraph({ style = 'Normal', text = '' }) {
   return `<w:p><w:pPr><w:pStyle w:val="${style}"/></w:pPr>${runs}</w:p>`;
 }
 const style = (id, name, size, { bold = false, color = '202B38', after = 120, before = 0 } = {}) => `<w:style w:type="paragraph" w:styleId="${id}"><w:name w:val="${name}"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:before="${before}" w:after="${after}"/>${id.startsWith('Heading') ? `<w:outlineLvl w:val="${Number(id.slice(-1)) - 1}"/>` : ''}</w:pPr><w:rPr>${bold ? '<w:b/>' : ''}<w:color w:val="${color}"/><w:sz w:val="${size}"/></w:rPr></w:style>`;
-export function buildDocx(blocks, { title = 'Knowledge Review' } = {}) {
+export function buildDocx(blocks, { title = 'KnowBack' } = {}) {
   const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
   const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${NS}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Microsoft YaHei"/><w:sz w:val="22"/><w:lang w:val="en-US" w:eastAsia="zh-CN"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="320" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>${style('Title', 'Title', 40, { bold: true, color: '30694F', after: 240 })}${style('Heading1', 'heading 1', 30, { bold: true, color: '30694F', before: 360, after: 160 })}${style('Heading2', 'heading 2', 25, { bold: true, before: 240, after: 80 })}${style('Meta', 'Meta', 18, { color: '6C7784', after: 160 })}</w:styles>`;
   const body = blocks.map(paragraph).join('');
