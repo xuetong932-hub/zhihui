@@ -6,7 +6,7 @@ export const DEVICE_CONFIG_KEY='knowledge-review.cloud.v1';
 export const AGE_POLICY_VERSION='2026-11';
 export const REGIONS=['CN','HK','MO','TW','SG','MY','US','GB','CA','AU','JP','KR','OTHER'];
 // Server error messages the client may show (translated); anything else stays generic.
-const KNOWN_ERRORS=['username_taken','already_registered','denied','invalid_registration','not_admin'];
+const KNOWN_ERRORS=['username_taken','already_registered','denied','invalid_registration','not_admin','not_eligible','rate_limited','invalid_square','not_found'];
 // Auth service error codes (error_code) that the sign-in page explains; the provider's own message is never shown.
 const AUTH_ERROR_CODES=['sms_send_failed','email_send_failed'];
 
@@ -109,6 +109,18 @@ export function createAuth({fetchImpl=(...args)=>fetch(...args),storage=localSto
     register:({username,email,phone,region,birthdate})=>api('/rest/v1/rpc/complete_registration','POST',{username,email:email||null,phone:phone||null,region,birthdate,policy_version:AGE_POLICY_VERSION}),
     adminUsers:(search='')=>api('/rest/v1/rpc/admin_list_users','POST',{search,max_rows:500}),
     deleteAccount:()=>api('/rest/v1/rpc/delete_own_account','POST',{}),
+    // Learning square (cloud-schema.sql square_*): reading works without signing in; the server checks every write.
+    square:{
+      feed:(beforeAt=null)=>api('/rest/v1/rpc/square_feed','POST',{before_at:beforeAt,max_rows:20}),
+      comments:post=>api('/rest/v1/rpc/square_comments','POST',{post}),
+      post:({body,lang,module=null})=>api('/rest/v1/rpc/square_post','POST',{body,lang,module}),
+      comment:({post,body,lang})=>api('/rest/v1/rpc/square_comment','POST',{post,body,lang}),
+      like:(post,liked)=>api('/rest/v1/rpc/square_like','POST',{post,liked}),
+      remove:(kind,target)=>api('/rest/v1/rpc/square_delete','POST',{kind,target}),
+      report:(kind,target,reason='')=>api('/rest/v1/rpc/square_report','POST',{kind,target,reason}),
+      adminReports:()=>api('/rest/v1/rpc/admin_square_reports','POST',{}),
+      moderate:(kind,target,action)=>api('/rest/v1/rpc/admin_square_moderate','POST',{kind,target,action}),
+    },
     async signOut(){try{if(session)await request('/auth/v1/logout',{method:'POST'});}catch{/* Local sign-out still proceeds. */}finally{save(null);}},
   };
 }

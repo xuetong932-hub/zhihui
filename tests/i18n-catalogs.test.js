@@ -26,3 +26,12 @@ test('every offered language has a catalog that covers the interface and keeps p
     }
   }
 });
+
+test('Traditional Chinese has no simplified characters left by the converter', async () => {
+  const { SIMPLIFIED_CHARS } = await import(new URL('tools/zh-hant.mjs', root));
+  const catalog = (await import(new URL('i18n/zh-TW.js', root))).default;
+  for (const [en, text] of Object.entries(catalog)) {
+    const left = [...text.replaceAll('知回', '')].filter(char => SIMPLIFIED_CHARS.has(char) && !'制著'.includes(char));
+    assert.deepEqual(left, [], `zh-TW: simplified characters in "${en.slice(0, 40)}"`);
+  }
+});

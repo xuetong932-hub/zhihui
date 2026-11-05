@@ -27,6 +27,82 @@ export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedA
     const [y, m, d] = birthdate.split('-').map(Number), [cy, cm, cd] = latestDate();
     let age = cy - y; if (cm < m || (cm === m && cd < d)) age--; return age >= 18;
   }
+  // Learning square, mirroring the square_* functions in cloud-schema.sql (rules, limits, auto-hide after 3 reports).
+  const posts = new Map(), comments = new Map(), likes = new Set(), reports = new Map();
+  let lastStamp = 0;
+  const stamp = () => { lastStamp = Math.max(now().getTime(), lastStamp + 1); return new Date(lastStamp).toISOString(); };
+  const LANGS = ['zh', 'zh-TW', 'en', 'ja', 'ko', 'ms', 'es', 'fr', 'pt', 'de'];
+  const canWrite = id => Boolean(id) && (admins.has(id) || (eligibility.get(id) === 'adult' && profiles.has(id)));
+  const nameOf = id => profiles.get(id)?.username || '知回';
+  const recent = (list, id, hours = 1) => list.filter(item => (item.author ?? item.reporter) === id && now().getTime() - Date.parse(item.created_at) < hours * 3600000).length;
+  const postJson = (p, id) => ({ id: p.id, body: p.body, lang: p.lang, module: p.module, created_at: p.created_at, author_name: nameOf(p.author),
+    like_count: [...likes].filter(key => key.startsWith(`${p.id}|`)).length, comment_count: [...comments.values()].filter(c => c.post_id === p.id && !c.hidden).length,
+    liked: Boolean(id) && likes.has(`${p.id}|${id}`), mine: p.author === id, can_delete: p.author === id || admins.has(id) });
+  const commentJson = (c, id) => ({ id: c.id, post_id: c.post_id, body: c.body, lang: c.lang, created_at: c.created_at, author_name: nameOf(c.author), mine: c.author === id, can_delete: c.author === id || admins.has(id) });
+  const reportCount = (kind, target) => [...reports.keys()].filter(key => key.startsWith(`${kind}|${target}|`)).length;
+  const clearReports = (kind, target) => { for (const key of [...reports.keys()]) if (key.startsWith(`${kind}|${target}|`)) reports.delete(key); };
+  const square = {
+    square_feed: (id, { before_at: before = null, max_rows: max = 20 }) => [200, [...posts.values()].filter(p => !p.hidden && (!before || p.created_at < before))
+      .sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, Math.min(Math.max(Number(max) || 20, 1), 50)).map(p => postJson(p, id))],
+    square_comments: (id, { post }) => [200, [...comments.values()].filter(c => c.post_id === post && !c.hidden).sort((a, b) => a.created_at.localeCompare(b.created_at)).slice(0, 200).map(c => commentJson(c, id))],
+    square_post(id, { body, lang, module = null }) {
+      if (!canWrite(id)) return [400, 'not_eligible'];
+      if (recent([...posts.values()], id) >= 10) return [400, 'rate_limited'];
+      const text = typeof body === 'string' ? body.trim() : '';
+      if (!text || text.length > 1000 || !LANGS.includes(lang) || (module && !['coding', 'english', 'work', 'life'].includes(module))) return [400, 'invalid_square'];
+      const p = { id: randomUUID(), author: id, body: text, lang, module: module || null, hidden: false, created_at: stamp() }; posts.set(p.id, p);
+      return [200, postJson(p, id)];
+    },
+    square_comment(id, { post, body, lang }) {
+      if (!canWrite(id)) return [400, 'not_eligible'];
+      if (!posts.get(post) || posts.get(post).hidden) return [400, 'not_found'];
+      if (recent([...comments.values()], id) >= 60) return [400, 'rate_limited'];
+      const text = typeof body === 'string' ? body.trim() : '';
+      if (!text || text.length > 500 || !LANGS.includes(lang)) return [400, 'invalid_square'];
+      const c = { id: randomUUID(), post_id: post, author: id, body: text, lang, hidden: false, created_at: stamp() }; comments.set(c.id, c);
+      return [200, commentJson(c, id)];
+    },
+    square_like(id, { post, liked }) {
+      if (!canWrite(id)) return [400, 'not_eligible'];
+      if (!posts.get(post) || posts.get(post).hidden) return [400, 'not_found'];
+      if (liked) likes.add(`${post}|${id}`); else likes.delete(`${post}|${id}`);
+      return [200, { liked: Boolean(liked), like_count: [...likes].filter(key => key.startsWith(`${post}|`)).length }];
+    },
+    square_delete(id, { kind, target }) {
+      const store = kind === 'post' ? posts : kind === 'comment' ? comments : null;
+      if (!store) return [400, 'invalid_square'];
+      const item = store.get(target); if (!item || (item.author !== id && !admins.has(id))) return [400, 'not_found'];
+      store.delete(target); if (kind === 'post') { for (const [key, c] of comments) if (c.post_id === target) comments.delete(key); for (const key of [...likes]) if (key.startsWith(`${target}|`)) likes.delete(key); }
+      clearReports(kind, target); return [200, null];
+    },
+    square_report(id, { kind, target, reason = '' }) {
+      if (!canWrite(id)) return [400, 'not_eligible'];
+      const store = kind === 'post' ? posts : kind === 'comment' ? comments : null;
+      if (!store) return [400, 'invalid_square'];
+      if (!store.get(target)) return [400, 'not_found'];
+      if (recent([...reports.values()], id) >= 30) return [400, 'rate_limited'];
+      const key = `${kind}|${target}|${id}`; if (!reports.has(key)) reports.set(key, { reporter: id, reason: String(reason || '').slice(0, 200), created_at: stamp() });
+      if (reportCount(kind, target) >= 3) store.get(target).hidden = true;
+      return [200, null];
+    },
+    admin_square_reports(id) {
+      if (!admins.has(id)) return [400, 'not_admin'];
+      const items = [...[...posts.values()].map(p => ['post', p]), ...[...comments.values()].map(c => ['comment', c])]
+        .filter(([kind, item]) => item.hidden || reportCount(kind, item.id) > 0)
+        .map(([kind, item]) => { const own = [...reports.entries()].filter(([key]) => key.startsWith(`${kind}|${item.id}|`)).map(([, r]) => r);
+          return { kind, id: item.id, body: item.body, author_name: nameOf(item.author), created_at: item.created_at, hidden: item.hidden, reports: own.length, reasons: own.map(r => r.reason).filter(Boolean), reported_at: own.map(r => r.created_at).sort().at(-1) || item.created_at }; })
+        .sort((a, b) => b.reported_at.localeCompare(a.reported_at));
+      return [200, items];
+    },
+    admin_square_moderate(id, { kind, target, action }) {
+      if (!admins.has(id)) return [400, 'not_admin'];
+      const store = kind === 'post' ? posts : kind === 'comment' ? comments : null;
+      if (!store || !['hide', 'restore', 'delete'].includes(action)) return [400, 'invalid_square'];
+      if (action === 'delete') store.delete(target); else if (store.get(target)) store.get(target).hidden = action === 'hide';
+      if (action !== 'hide') clearReports(kind, target);
+      return [200, null];
+    },
+  };
   const maskEmail = value => value ? `${value.split('@')[0].slice(0, 2)}***@${value.split('@')[1]}` : null;
   const maskPhone = value => value ? (value.length > 7 ? `${value.slice(0, 3)}***${value.slice(-4)}` : '***') : null;
   const rpc = {
@@ -53,14 +129,15 @@ export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedA
     // Mirrors public.free_quota in cloud-schema.sql: 20 questions and 30 gradings per account per China day.
     free_quota(id, { action, kind = 'ask' }) {
       if (eligibility.get(id) !== 'adult' && !admins.has(id)) return [403, 'not_eligible'];
-      if (!['status', 'consume', 'refund'].includes(action) || !['ask', 'grade', 'photo'].includes(kind)) return [400, 'invalid_request'];
-      const day = new Date(now().getTime() + 8 * 3600000).toISOString().slice(0, 10), key = `${id}|${day}`, limits = { ask: 20, grade: 30, photo: 20 };
-      const used = freeUsage.get(key) || { ask: 0, grade: 0, photo: 0 }; let allowed = true;
+      if (!['status', 'consume', 'refund'].includes(action) || !['ask', 'grade', 'photo', 'translate'].includes(kind)) return [400, 'invalid_request'];
+      const day = new Date(now().getTime() + 8 * 3600000).toISOString().slice(0, 10), key = `${id}|${day}`, limits = { ask: 20, grade: 30, photo: 20, translate: 50 };
+      const used = freeUsage.get(key) || { ask: 0, grade: 0, photo: 0, translate: 0 }; let allowed = true;
       if (action === 'consume') { allowed = used[kind] < limits[kind]; if (allowed) used[kind]++; }
       if (action === 'refund' && used[kind] > 0) used[kind]--;
       freeUsage.set(key, used);
-      return [200, { allowed, ask_used: used.ask, ask_limit: limits.ask, grade_used: used.grade, grade_limit: limits.grade, photo_used: used.photo, photo_limit: limits.photo }];
+      return [200, { allowed, ask_used: used.ask, ask_limit: limits.ask, grade_used: used.grade, grade_limit: limits.grade, photo_used: used.photo, photo_limit: limits.photo, translate_used: used.translate, translate_limit: limits.translate }];
     },
+    ...square,
     delete_own_account(id) { users.delete(id); profiles.delete(id); eligibility.delete(id); admins.delete(id); snapshots.delete(id); return [200, null]; },
   };
   async function route(request, response, path) {
@@ -97,9 +174,10 @@ export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedA
     // Public auth settings, as the real service reports them; options.oauth lists providers switched on.
     if (sub === '/auth/v1/settings' && method === 'GET') { send(response, 200, { external: { email: true, phone: true, google: oauth.includes('google'), apple: oauth.includes('apple') } }); return true; }
     if (sub.startsWith('/auth/v1/authorize')) { fail(response, 400, 'OAuth is not available in the test service'); return true; }
-    const id = caller(request);
+    const id = caller(request), name = sub.match(/^\/rest\/v1\/rpc\/([a-z_]+)$/)?.[1];
+    // Reading the square is open to everyone (the public key alone), like the anon grant in cloud-schema.sql.
+    if (['square_feed', 'square_comments'].includes(name) && method === 'POST') { const [status, data] = square[name](id && users.has(id) ? id : null, await body(request)); send(response, status, data); return true; }
     if (!id || !users.has(id)) { fail(response, 401, 'JWT expired or invalid'); return true; }
-    const name = sub.match(/^\/rest\/v1\/rpc\/([a-z_]+)$/)?.[1];
     if (name && method === 'POST' && rpc[name]) { const [status, data] = rpc[name](id, await body(request)); if (status >= 400) fail(response, status, data); else send(response, status, data); return true; }
     if (sub === '/rest/v1/learning_snapshots') {
       // Row-level rule from cloud-schema.sql: own row only, and only after the age gate passed.
@@ -110,5 +188,5 @@ export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedA
     }
     fail(response, 404, 'Not found'); return true;
   }
-  return { route, users, profiles, eligibility, admins };
+  return { route, users, profiles, eligibility, admins, posts, comments };
 }

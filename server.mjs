@@ -8,10 +8,11 @@ import { extractKnowledge, relateKnowledge, expandMindmap } from './knowledge-se
 import { reviewTask } from './review-service.mjs';
 import { createFreeQuota, FREE_PROVIDER, FREE_KIND, FREE_UNSUPPORTED } from './free-quota.mjs';
 import { recognizeImage } from './recognize-service.mjs';
+import { translateText, validateTranslate } from './translate-service.mjs';
 
 const files = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
-  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','module-icons.js','background.js','discover-ui.js','recommend-data.js','starter-content.js','habit.js','fsrs.js','onboarding.js','tour.js','i18n.js','theme.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','graph-view.js','mindmap.js','viz-edit.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
+  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','module-icons.js','background.js','discover-ui.js','recommend-data.js','starter-content.js','habit.js','fsrs.js','onboarding.js','tour.js', 'square-ui.js','i18n.js','theme.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','graph-view.js','mindmap.js','viz-edit.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
   ['/manifest.webmanifest',['manifest.webmanifest','application/manifest+json']],['/icon.svg',['icon.svg','image/svg+xml']],
   // PNG icons for installing to a phone (Android app package, home screen); made from icon.svg.
   ...['icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png'].map(name => [`/${name}`, [name, 'image/png']]),
@@ -69,7 +70,7 @@ export function privateAddresses(interfaces = networkInterfaces()) {
 }
 // Phone browsers opening the start page are sent to the phone layout; "/?desktop" keeps the desktop page.
 const PHONE_AGENT = /Android.+Mobile|iPhone|iPod|Windows Phone|HarmonyOS.+Mobile/i;
-export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask, relationCaller = relateKnowledge, mindmapCaller = expandMindmap, recognizeCaller = recognizeImage, publicConfig = () => publicConfigFromEnv(), extraRoute,
+export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask, relationCaller = relateKnowledge, mindmapCaller = expandMindmap, recognizeCaller = recognizeImage, translateCaller = translateText, publicConfig = () => publicConfigFromEnv(), extraRoute,
   freeModelKey = (process.env.ZHIPU_API_KEY || '').trim(), freeQuota = createFreeQuota(), lanHosts = [], publicOrigin = '' } = {}) {
   // Public mode: served at one HTTPS address behind the host's proxy (e.g. Render), which terminates TLS.
   const publicHost = publicOrigin ? new URL(publicOrigin).hostname : '';
@@ -105,6 +106,33 @@ export function createApp({ modelCaller = callModel, knowledgeCaller = extractKn
     }
     // Test servers mount extra routes (the fake account service); production passes none.
     if (extraRoute && await extraRoute(request, response, path)) return;
+    // Learning square translation with the free model: 50 a day per account, or per network without one (also for a
+    // signed-in account that has not finished registration). A failed call does not use up the allowance.
+    if (path === '/api/translate') {
+      if (request.method !== 'POST') { json(response, 405, { error: 'method' }); return; }
+      if (activeRequests >= 4) { json(response, 429, { error: 'busy' }); return; }
+      activeRequests++;
+      const controller = new AbortController();
+      response.on('close', () => { if (!response.writableEnded) controller.abort(); });
+      let charged = null;
+      try {
+        if (!freeModelKey) throw new ServiceError('free-unavailable', 503);
+        const input = validateTranslate(await readJson(request)), ip = clientIp(request), account = publicConfig(host);
+        if (!freeQuota.burst(ip)) throw new ServiceError('rate', 429);
+        let token = bearer(request), state;
+        try { state = await freeQuota.use({ token, ip, action: 'consume', kind: 'translate', account }); }
+        catch (error) { if (!(error instanceof ServiceError) || error.code !== 'signin' || !token) throw error; token = ''; state = await freeQuota.use({ token, ip, action: 'consume', kind: 'translate', account }); }
+        if (!state.allowed) throw new ServiceError('translate-limit', 429);
+        charged = { token, ip, kind: 'translate', account };
+        const result = await translateCaller(input, { signal: controller.signal, apiKey: freeModelKey });
+        charged = null;
+        json(response, 200, { text: result.text, translate: state.translate });
+      } catch (error) {
+        if (charged) await freeQuota.use({ ...charged, action: 'refund' }).catch(() => {});
+        json(response, error instanceof ServiceError ? error.status : 500, { error: error instanceof ServiceError ? error.code : 'internal' });
+      } finally { activeRequests--; }
+      return;
+    }
     if (['/api/chat', '/api/test', '/api/extract', '/api/review-task', '/api/relations', '/api/mindmap', '/api/recognize'].includes(path)) {
       if (request.method !== 'POST') { json(response, 405, { error: 'method' }); return; }
       if (activeRequests >= 2) { json(response, 429, { error: 'busy' }); return; }

@@ -225,15 +225,41 @@ footer{color:var(--stone);border-top:1px solid var(--hairline-soft);margin-top:4
 .pick-card p{margin:4px 0 0;font-size:12.5px;line-height:1.5;color:var(--muted)}
 .pick-tag{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:999px;background:#e8f1ec;color:#30694f;font-size:11px;font-weight:600;vertical-align:1px}
 .square-empty{width:fit-content;margin:40px auto;text-align:center;color:var(--muted)}
-.square-compose textarea{width:100%;resize:none}
+.square-compose textarea{width:100%;min-height:84px;resize:vertical}
 .square-compose .primary-button{flex-shrink:0;white-space:nowrap}
 .square-compose .actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px}
-.square-feed{display:flex;flex-direction:column;gap:14px;margin-top:16px}
-.square-author{display:flex;gap:10px;align-items:center}
-.square-avatar{width:36px;height:36px;border-radius:50%;background:#30694f1f;color:#30694f;display:flex;align-items:center;justify-content:center;font-weight:600}
-.square-module{display:inline-flex;align-items:center;gap:4px;margin-left:8px;font-size:12px;color:var(--muted)}
-.square-post>p{margin:10px 0 6px}
-.square-actions{display:flex;gap:6px}
+.square-compose-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:8px}
+.square-module-pick{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.square-module-pick select{width:auto}
+.square-locked{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.square-locked p{margin:0}
+.square-toolbar{display:flex;justify-content:flex-end;margin-top:12px}
+.square-feed{display:flex;flex-direction:column;gap:14px;margin-top:8px}
+.square-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.square-avatar{width:36px;height:36px;flex-shrink:0;border-radius:50%;background:#30694f1f;color:#30694f;display:flex;align-items:center;justify-content:center;font-weight:600}
+.square-module{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;background:#30694f14;color:#30694f;font-size:12px}
+.square-body{margin:10px 0 6px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+.square-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.square-action{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:4px 12px;border:1px solid var(--line,#e5e5e5);border-radius:9999px;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.square-action.active{color:#30694f;border-color:#30694f}
+.square-action:disabled{cursor:default;opacity:.75}
+.square-tools{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center;margin-left:auto}
+.square-comment .square-tools{margin-left:0}
+.square-report{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;margin-top:8px}
+.square-comments{display:flex;flex-direction:column;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line,#e5e5e5)}
+.square-comment{padding:8px 12px;border-radius:10px;background:#30694f0d}
+.square-comment .square-body{margin:6px 0 2px}
+.square-reply{display:flex;gap:8px;align-items:flex-end}
+.square-reply textarea{flex:1;min-width:0;resize:vertical}
+.square-more{display:flex;justify-content:center;margin:16px 0}
+.admin-square{margin-top:16px}
+.admin-report{padding:12px 0;border-top:1px solid var(--line,#e5e5e5)}
+.admin-report.is-hidden{opacity:.8}
+.admin-report .actions{display:flex;flex-wrap:wrap;gap:8px}
+.text-button.danger{color:#b42318}
+[data-theme="dark"] .square-comment{background:#ffffff0d}
+[data-theme="dark"] .square-module,[data-theme="dark"] .square-action.active{color:#7cc4a0;border-color:#7cc4a0}
+@media (max-width:600px){.square-tools{margin-left:0;width:100%}.square-reply{flex-direction:column;align-items:stretch}}
 [data-theme="dark"] .search-link,[data-theme="dark"] .discover-glyph,[data-theme="dark"] .square-avatar{color:#7cc4a0}
 @media(max-width:900px){.discover-grid{grid-template-columns:1fr}}
 .local-option{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.local-entry{margin-bottom:16px}.local-entry h2{margin-top:0}

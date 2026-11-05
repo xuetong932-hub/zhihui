@@ -1,6 +1,6 @@
-// 推荐 (recommendations) and 学习广场 (learning square). Recommendations are a hand-checked list of real creators,
-// books and papers per built-in module (recommend-data.js), plus search links built from the user's own recent card
-// titles or module names. The square has no backend yet, so it shows only the (disabled) compose card.
+// 推荐 (recommendations): a hand-checked list of real creators, books and papers per built-in module
+// (recommend-data.js), plus search links built from the user's own recent card titles or module names.
+// The learning square has its own module, square-ui.js.
 import { escapeHtml as e } from './chat-store.js';
 import { moduleIcon } from './module-icons.js';
 import { curatedItems } from './recommend-data.js';
@@ -67,18 +67,11 @@ export function createDiscoverUI({ locale, cards, profile, modules, account, ref
       ${list.length ? `<div class="keyword-row"><span class="field-hint">${tr('搜索关键词（来自这个模块最近学的）：', 'Search keyword (from this module):')}</span>${list.map(word => `<button type="button" class="keyword-chip ${word === keyword ? 'active' : ''}" data-keyword="${e(word)}" aria-pressed="${word === keyword}">${e(word)}</button>`).join('')}</div>` : ''}`;
   }
 
-  // No posts exist yet, so the feed is empty; the compose card shows where posting will be.
-  function squareView() {
-    return `<section class="intro"><span class="eyebrow">${tr('学习广场', 'Learning square')}</span><h1>${tr('学习广场 · 即将开放', 'Learning square · coming soon')}</h1><p>${tr('以后可以在这里分享笔记、讨论问题、互相鼓励。', 'Soon you can share notes, discuss questions and cheer each other on here.')}</p></section>
-      <section class="panel square-compose" aria-disabled="true"><textarea disabled rows="3" placeholder="${tr('分享你今天学到的一点……', 'Share something you learned today…')}"></textarea><div class="actions"><span class="field-hint">${tr('开放后可发帖。现在不会保存或发送任何内容。', 'Posting opens later. Nothing is saved or sent now.')}</span><button class="primary-button" disabled>${tr('发布', 'Post')}</button></div></section>
-      <p class="square-empty">${tr('这里什么都没有', 'Nothing here yet')}</p>`;
-  }
-
   function bind(page) {
     if (page !== 'recommend') return;
     document.querySelectorAll('[data-region]').forEach(button => { button.onclick = () => { region = button.dataset.region; try { localStorage.setItem(REGION_KEY, region); } catch { /* This page only. */ } refreshView(); }; });
     document.querySelectorAll('[data-keyword]').forEach(button => { button.onclick = () => { keyword = button.dataset.keyword; refreshView(); }; });
     document.querySelectorAll('[data-topic]').forEach(button => { button.onclick = () => { topic = button.dataset.topic; refreshView(); }; });
   }
-  return { recommendView, squareView, bind };
+  return { recommendView, bind };
 }

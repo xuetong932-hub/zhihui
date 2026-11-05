@@ -150,11 +150,13 @@ create table if not exists public.free_usage (
 );
 -- Added with photo questions; safe to run again on a table created before.
 alter table public.free_usage add column if not exists photo_used int not null default 0 check (photo_used >= 0);
+-- Added with the learning square's translate button.
+alter table public.free_usage add column if not exists translate_used int not null default 0 check (translate_used >= 0);
 alter table public.free_usage enable row level security;
 revoke all on public.free_usage from public, anon, authenticated;
 
 -- action: 'status' | 'consume' | 'refund'; kind: 'ask' (questions, 20 a day) | 'grade' (review grading, 30 a day)
--- | 'photo' (photo-question text recognition, 20 a day).
+-- | 'photo' (photo-question text recognition, 20 a day) | 'translate' (learning square translations, 50 a day).
 create or replace function public.free_quota(action text, kind text default 'ask') returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
@@ -163,20 +165,211 @@ declare
   ask_limit constant int := 20;
   grade_limit constant int := 30;
   photo_limit constant int := 20;
+  translate_limit constant int := 50;
   used public.free_usage;
   ok boolean := true;
 begin
   if uid is null or not public.is_adult() then raise exception 'not eligible' using errcode = '42501'; end if;
-  if action not in ('status', 'consume', 'refund') or kind not in ('ask', 'grade', 'photo') then raise exception 'invalid request' using errcode = '22023'; end if;
+  if action not in ('status', 'consume', 'refund') or kind not in ('ask', 'grade', 'photo', 'translate') then raise exception 'invalid request' using errcode = '22023'; end if;
   insert into public.free_usage(user_id, day) values (uid, today) on conflict do nothing;
   select * into used from public.free_usage where user_id = uid and day = today for update;
   if action = 'consume' then
-    ok := case kind when 'ask' then used.ask_used < ask_limit when 'grade' then used.grade_used < grade_limit else used.photo_used < photo_limit end;
-    if ok then update public.free_usage set ask_used = ask_used + (kind = 'ask')::int, grade_used = grade_used + (kind = 'grade')::int, photo_used = photo_used + (kind = 'photo')::int where user_id = uid and day = today returning * into used; end if;
+    ok := case kind when 'ask' then used.ask_used < ask_limit when 'grade' then used.grade_used < grade_limit when 'photo' then used.photo_used < photo_limit else used.translate_used < translate_limit end;
+    if ok then update public.free_usage set ask_used = ask_used + (kind = 'ask')::int, grade_used = grade_used + (kind = 'grade')::int, photo_used = photo_used + (kind = 'photo')::int, translate_used = translate_used + (kind = 'translate')::int where user_id = uid and day = today returning * into used; end if;
   elsif action = 'refund' then
-    update public.free_usage set ask_used = greatest(0, ask_used - (kind = 'ask')::int), grade_used = greatest(0, grade_used - (kind = 'grade')::int), photo_used = greatest(0, photo_used - (kind = 'photo')::int) where user_id = uid and day = today returning * into used;
+    update public.free_usage set ask_used = greatest(0, ask_used - (kind = 'ask')::int), grade_used = greatest(0, grade_used - (kind = 'grade')::int), photo_used = greatest(0, photo_used - (kind = 'photo')::int), translate_used = greatest(0, translate_used - (kind = 'translate')::int) where user_id = uid and day = today returning * into used;
   end if;
-  return jsonb_build_object('allowed', ok, 'ask_used', used.ask_used, 'ask_limit', ask_limit, 'grade_used', used.grade_used, 'grade_limit', grade_limit, 'photo_used', used.photo_used, 'photo_limit', photo_limit);
+  return jsonb_build_object('allowed', ok, 'ask_used', used.ask_used, 'ask_limit', ask_limit, 'grade_used', used.grade_used, 'grade_limit', grade_limit, 'photo_used', used.photo_used, 'photo_limit', photo_limit, 'translate_used', used.translate_used, 'translate_limit', translate_limit);
 end $$;
 revoke all on function public.free_quota(text, text) from public, anon;
 grant execute on function public.free_quota(text, text) to authenticated;
+
+-- 学习广场 (learning square): public posts, comments, likes and reports. The tables are reachable only through the
+-- functions below, which check sign-in, the age gate and registration, length, rate limits and ownership.
+-- Anyone (also without an account) may read; posting, commenting, liking and reporting need a registered adult account.
+create table if not exists public.square_posts (
+  id uuid primary key default gen_random_uuid(),
+  author uuid not null references auth.users(id) on delete cascade,
+  body text not null check (length(btrim(body)) between 1 and 1000),
+  lang text not null check (lang in ('zh','zh-TW','en','ja','ko','ms','es','fr','pt','de')),
+  module text check (module is null or module in ('coding','english','work','life')),
+  hidden boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists square_posts_created_idx on public.square_posts (created_at desc);
+create index if not exists square_posts_author_idx on public.square_posts (author, created_at desc);
+create table if not exists public.square_comments (
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references public.square_posts(id) on delete cascade,
+  author uuid not null references auth.users(id) on delete cascade,
+  body text not null check (length(btrim(body)) between 1 and 500),
+  lang text not null check (lang in ('zh','zh-TW','en','ja','ko','ms','es','fr','pt','de')),
+  hidden boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists square_comments_post_idx on public.square_comments (post_id, created_at);
+create index if not exists square_comments_author_idx on public.square_comments (author, created_at desc);
+create table if not exists public.square_likes (
+  post_id uuid not null references public.square_posts(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (post_id, user_id)
+);
+-- One report per person per item; three different reporters hide the item until an administrator decides.
+create table if not exists public.square_reports (
+  kind text not null check (kind in ('post','comment')),
+  target uuid not null,
+  reporter uuid not null references auth.users(id) on delete cascade,
+  reason text not null default '' check (length(reason) <= 200),
+  created_at timestamptz not null default now(),
+  primary key (kind, target, reporter)
+);
+create index if not exists square_reports_reporter_idx on public.square_reports (reporter, created_at desc);
+alter table public.square_posts enable row level security;
+alter table public.square_comments enable row level security;
+alter table public.square_likes enable row level security;
+alter table public.square_reports enable row level security;
+revoke all on public.square_posts, public.square_comments, public.square_likes, public.square_reports from public, anon, authenticated;
+
+-- May write in the square: registered adults, and administrators (operator-created, shown as 知回).
+create or replace function public.square_can_write() returns boolean
+language sql stable security definer set search_path = '' as $$
+  select auth.uid() is not null and (
+    exists(select 1 from public.admins where user_id = auth.uid())
+    or (public.is_adult() and exists(select 1 from public.user_profiles where user_id = auth.uid())));
+$$;
+create or replace function public.square_name(uid uuid) returns text
+language sql stable security definer set search_path = '' as $$
+  select coalesce((select username from public.user_profiles where user_id = uid), '知回');
+$$;
+create or replace function public.square_post_json(p public.square_posts) returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object('id', p.id, 'body', p.body, 'lang', p.lang, 'module', p.module, 'created_at', p.created_at,
+    'author_name', public.square_name(p.author),
+    'like_count', (select count(*) from public.square_likes l where l.post_id = p.id),
+    'comment_count', (select count(*) from public.square_comments c where c.post_id = p.id and not c.hidden),
+    'liked', auth.uid() is not null and exists(select 1 from public.square_likes l where l.post_id = p.id and l.user_id = auth.uid()),
+    'mine', coalesce(p.author = auth.uid(), false),
+    'can_delete', coalesce(p.author = auth.uid(), false) or exists(select 1 from public.admins where user_id = auth.uid()));
+$$;
+create or replace function public.square_comment_json(c public.square_comments) returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object('id', c.id, 'post_id', c.post_id, 'body', c.body, 'lang', c.lang, 'created_at', c.created_at,
+    'author_name', public.square_name(c.author), 'mine', coalesce(c.author = auth.uid(), false),
+    'can_delete', coalesce(c.author = auth.uid(), false) or exists(select 1 from public.admins where user_id = auth.uid()));
+$$;
+
+-- Newest visible posts, up to 20 at a time; before_at: created_at of the last post already shown.
+create or replace function public.square_feed(before_at timestamptz default null, max_rows int default 20) returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select coalesce(jsonb_agg(public.square_post_json(p) order by p.created_at desc), '[]'::jsonb)
+  from (select * from public.square_posts where not hidden and (square_feed.before_at is null or created_at < square_feed.before_at)
+        order by created_at desc limit least(greatest(coalesce(max_rows, 20), 1), 50)) p;
+$$;
+create or replace function public.square_comments(post uuid) returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select coalesce(jsonb_agg(public.square_comment_json(c) order by c.created_at), '[]'::jsonb)
+  from (select * from public.square_comments where post_id = square_comments.post and not hidden order by created_at limit 200) c;
+$$;
+
+create or replace function public.square_post(body text, lang text, module text default null) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare created public.square_posts;
+begin
+  if not public.square_can_write() then raise exception 'not_eligible'; end if;
+  if (select count(*) from public.square_posts p where p.author = auth.uid() and p.created_at > now() - interval '1 hour') >= 10 then raise exception 'rate_limited'; end if;
+  begin
+    insert into public.square_posts(author, body, lang, module) values (auth.uid(), btrim(square_post.body), square_post.lang, nullif(square_post.module, '')) returning * into created;
+  exception when check_violation or not_null_violation then raise exception 'invalid_square';
+  end;
+  return public.square_post_json(created);
+end $$;
+create or replace function public.square_comment(post uuid, body text, lang text) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare created public.square_comments;
+begin
+  if not public.square_can_write() then raise exception 'not_eligible'; end if;
+  if not exists(select 1 from public.square_posts p where p.id = square_comment.post and not p.hidden) then raise exception 'not_found'; end if;
+  if (select count(*) from public.square_comments c where c.author = auth.uid() and c.created_at > now() - interval '1 hour') >= 60 then raise exception 'rate_limited'; end if;
+  begin
+    insert into public.square_comments(post_id, author, body, lang) values (square_comment.post, auth.uid(), btrim(square_comment.body), square_comment.lang) returning * into created;
+  exception when check_violation or not_null_violation then raise exception 'invalid_square';
+  end;
+  return public.square_comment_json(created);
+end $$;
+create or replace function public.square_like(post uuid, liked boolean) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.square_can_write() then raise exception 'not_eligible'; end if;
+  if not exists(select 1 from public.square_posts p where p.id = square_like.post and not p.hidden) then raise exception 'not_found'; end if;
+  if square_like.liked then insert into public.square_likes(post_id, user_id) values (square_like.post, auth.uid()) on conflict do nothing;
+  else delete from public.square_likes l where l.post_id = square_like.post and l.user_id = auth.uid(); end if;
+  return jsonb_build_object('liked', square_like.liked, 'like_count', (select count(*) from public.square_likes l where l.post_id = square_like.post));
+end $$;
+-- Authors delete their own posts and comments; administrators may delete any.
+create or replace function public.square_delete(kind text, target uuid) returns void
+language plpgsql security definer set search_path = '' as $$
+declare is_admin boolean := exists(select 1 from public.admins where user_id = auth.uid());
+begin
+  if auth.uid() is null then raise exception 'not_eligible'; end if;
+  if square_delete.kind = 'post' then delete from public.square_posts p where p.id = square_delete.target and (p.author = auth.uid() or is_admin);
+  elsif square_delete.kind = 'comment' then delete from public.square_comments c where c.id = square_delete.target and (c.author = auth.uid() or is_admin);
+  else raise exception 'invalid_square'; end if;
+  if not found then raise exception 'not_found'; end if;
+  delete from public.square_reports r where r.kind = square_delete.kind and r.target = square_delete.target;
+end $$;
+create or replace function public.square_report(kind text, target uuid, reason text default '') returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not public.square_can_write() then raise exception 'not_eligible'; end if;
+  if square_report.kind not in ('post', 'comment') then raise exception 'invalid_square'; end if;
+  if (square_report.kind = 'post' and not exists(select 1 from public.square_posts p where p.id = square_report.target))
+     or (square_report.kind = 'comment' and not exists(select 1 from public.square_comments c where c.id = square_report.target)) then raise exception 'not_found'; end if;
+  if (select count(*) from public.square_reports r where r.reporter = auth.uid() and r.created_at > now() - interval '1 hour') >= 30 then raise exception 'rate_limited'; end if;
+  insert into public.square_reports(kind, target, reporter, reason) values (square_report.kind, square_report.target, auth.uid(), left(coalesce(square_report.reason, ''), 200)) on conflict do nothing;
+  if (select count(*) from public.square_reports r where r.kind = square_report.kind and r.target = square_report.target) >= 3 then
+    if square_report.kind = 'post' then update public.square_posts p set hidden = true where p.id = square_report.target;
+    else update public.square_comments c set hidden = true where c.id = square_report.target; end if;
+  end if;
+end $$;
+
+-- Administrators: reported or hidden items, most recently reported first.
+create or replace function public.admin_square_reports() returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+begin
+  if not exists(select 1 from public.admins where user_id = auth.uid()) then raise exception 'not_admin'; end if;
+  return coalesce((select jsonb_agg(item order by item->>'reported_at' desc) from (
+    select jsonb_build_object('kind', 'post', 'id', p.id, 'body', p.body, 'author_name', public.square_name(p.author), 'created_at', p.created_at, 'hidden', p.hidden,
+      'reports', (select count(*) from public.square_reports r where r.kind = 'post' and r.target = p.id),
+      'reasons', (select coalesce(jsonb_agg(r.reason) filter (where r.reason <> ''), '[]'::jsonb) from public.square_reports r where r.kind = 'post' and r.target = p.id),
+      'reported_at', coalesce((select max(r.created_at) from public.square_reports r where r.kind = 'post' and r.target = p.id), p.created_at)) as item
+    from public.square_posts p where p.hidden or exists(select 1 from public.square_reports r where r.kind = 'post' and r.target = p.id)
+    union all
+    select jsonb_build_object('kind', 'comment', 'id', c.id, 'body', c.body, 'author_name', public.square_name(c.author), 'created_at', c.created_at, 'hidden', c.hidden,
+      'reports', (select count(*) from public.square_reports r where r.kind = 'comment' and r.target = c.id),
+      'reasons', (select coalesce(jsonb_agg(r.reason) filter (where r.reason <> ''), '[]'::jsonb) from public.square_reports r where r.kind = 'comment' and r.target = c.id),
+      'reported_at', coalesce((select max(r.created_at) from public.square_reports r where r.kind = 'comment' and r.target = c.id), c.created_at))
+    from public.square_comments c where c.hidden or exists(select 1 from public.square_reports r where r.kind = 'comment' and r.target = c.id)
+    limit 300) items), '[]'::jsonb);
+end $$;
+-- action: 'hide' | 'restore' (also clears its reports) | 'delete'.
+create or replace function public.admin_square_moderate(kind text, target uuid, action text) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  if not exists(select 1 from public.admins where user_id = auth.uid()) then raise exception 'not_admin'; end if;
+  if admin_square_moderate.kind not in ('post', 'comment') or admin_square_moderate.action not in ('hide', 'restore', 'delete') then raise exception 'invalid_square'; end if;
+  if admin_square_moderate.action = 'delete' then
+    if admin_square_moderate.kind = 'post' then delete from public.square_posts p where p.id = admin_square_moderate.target;
+    else delete from public.square_comments c where c.id = admin_square_moderate.target; end if;
+  elsif admin_square_moderate.kind = 'post' then update public.square_posts p set hidden = (admin_square_moderate.action = 'hide') where p.id = admin_square_moderate.target;
+  else update public.square_comments c set hidden = (admin_square_moderate.action = 'hide') where c.id = admin_square_moderate.target; end if;
+  if admin_square_moderate.action <> 'hide' then delete from public.square_reports r where r.kind = admin_square_moderate.kind and r.target = admin_square_moderate.target; end if;
+end $$;
+
+revoke all on function public.square_can_write(), public.square_name(uuid), public.square_post_json(public.square_posts), public.square_comment_json(public.square_comments),
+  public.square_feed(timestamptz, int), public.square_comments(uuid), public.square_post(text, text, text), public.square_comment(uuid, text, text),
+  public.square_like(uuid, boolean), public.square_delete(text, uuid), public.square_report(text, uuid, text),
+  public.admin_square_reports(), public.admin_square_moderate(text, uuid, text) from public, anon, authenticated;
+grant execute on function public.square_feed(timestamptz, int), public.square_comments(uuid) to anon, authenticated;
+grant execute on function public.square_post(text, text, text), public.square_comment(uuid, text, text), public.square_like(uuid, boolean),
+  public.square_delete(text, uuid), public.square_report(text, uuid, text), public.admin_square_reports(), public.admin_square_moderate(text, uuid, text) to authenticated;

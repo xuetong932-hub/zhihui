@@ -9,6 +9,7 @@ import {createAdminUI} from './admin-ui.js';
 import {moduleLabel,activeModuleIds,isActiveModule,isCustomModule} from './modules.js';
 import {moduleIcon} from './module-icons.js';
 import {createDiscoverUI} from './discover-ui.js';
+import {createSquareUI} from './square-ui.js';
 import {resizeImage} from './background.js';
 import {starterQuestions,starterCards,hasStarterPack,starterPackPanel} from './starter-content.js';
 import {createOnboarding,onboardingDone,markOnboardingDone,speechErrorText} from './onboarding.js';
@@ -176,6 +177,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   const owner=()=>auth?.user&&auth.config?{url:auth.config.url,userId:auth.user.id,label:getAccount?.()?.username||''}:null;
   const admin=createAdminUI({locale:getLocale,refresh,auth});
   const discover=createDiscoverUI({locale:getLocale,refresh,cards:library.cards,profile:getProfile,account:()=>getAccount?.(),modules:()=>activeModuleIds(getProfile()).map(id=>({id,name:moduleName(id)}))});
+  const square=createSquareUI({auth,getAccount,locale:getLocale,refresh,moduleName});
   const device=createDeviceUI({locale:getLocale,refresh,validateProfile,reloadLocal,owner,due:()=>getProfile()?review.count():0,openReview:()=>{page='review';refresh();}});
   const cloud=createCloudUI({locale:getLocale,validateProfile,refresh,reloadLocal,auth,getAccount,owner,signOut,getModelKey:()=>({config:{...config},apiKey}),acceptModelKey:value=>{
     if(!validConfig(value?.config)||typeof value.apiKey!=='string'||!/^[\x21-\x7e]{8,512}$/.test(value.apiKey))return false;
@@ -220,8 +222,8 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   }
   // Phone layout: 推荐 and 广场 share one 发现 tab with a switch at the top.
   let discoverTab='recommend';
-  function discoverView(){const zh=getLocale()==='zh';return `<div class="segmented discover-switch" role="group" aria-label="${pick('发现', 'Discover')}">${[['recommend',pick('推荐', 'For you')],['square',pick('广场', 'Square')]].map(([id,label])=>`<button type="button" class="${discoverTab===id?'active':''}" data-discover-tab="${id}" aria-pressed="${discoverTab===id}">${label}</button>`).join('')}</div>${discoverTab==='square'?discover.squareView():discover.recommendView()}`;}
-  function view() { return page==='onboarding'?onboarding.view():page==='discover'?discoverView():page==='recommend'?discover.recommendView():page==='square'?discover.squareView():page==='admin'?admin.view():page==='cloud'?cloud.view():page==='device'?device.view():page === 'review' ? review.view() : page === 'library' ? library.view() : page === 'model' ? modelView() : chatView(); }
+  function discoverView(){const zh=getLocale()==='zh';return `<div class="segmented discover-switch" role="group" aria-label="${pick('发现', 'Discover')}">${[['recommend',pick('推荐', 'For you')],['square',pick('广场', 'Square')]].map(([id,label])=>`<button type="button" class="${discoverTab===id?'active':''}" data-discover-tab="${id}" aria-pressed="${discoverTab===id}">${label}</button>`).join('')}</div>${discoverTab==='square'?square.view():discover.recommendView()}`;}
+  function view() { return page==='onboarding'?onboarding.view():page==='discover'?discoverView():page==='recommend'?discover.recommendView():page==='square'?square.view():page==='admin'?admin.view():page==='cloud'?cloud.view():page==='device'?device.view():page === 'review' ? review.view() : page === 'library' ? library.view() : page === 'model' ? modelView() : chatView(); }
   function modelView() {
     const p = providers[modelDraft.provider];
     return `<section class="intro model-intro"><div><span class="eyebrow">${t('modelSettings')}</span><h1>${t('modelTitle')}</h1><p>${isFree(modelDraft) ? (pick('默认使用知回免费额度，不需要填写 Key；也可以改选服务商，使用自己的 Key。', 'The free allowance is used by default with no key; you can switch to a provider with your own key.')) : t('modelHint')}</p></div><a class="inline-link model-help-link" id="model-help-link" href="#model-config-guide" aria-haspopup="dialog">${pick('配置说明', 'Setup guide')} ↗</a></section>
@@ -299,6 +301,8 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     const more=document.querySelector('.nav-more');if(more)more.ontoggle=()=>{if(more.open)setTimeout(()=>document.addEventListener('click',event=>{if(!more.contains(event.target))more.open=false;},{once:true}));};
     document.querySelectorAll('[data-discover-tab]').forEach(button=>button.onclick=()=>{discoverTab=button.dataset.discoverTab;refresh();});
     discover.bind(page==='discover'?discoverTab:page);
+    // The square loads its posts the first time it is shown.
+    if(page==='square'||(page==='discover'&&discoverTab==='square')){square.bind();square.open();}
     document.querySelectorAll('[data-chat-home]').forEach(button => { button.onclick = () => { if (!busy && !testing&&!review.busy&&!library.busy) { page = 'home'; refresh(); } }; });
     document.querySelectorAll('[data-model-settings]').forEach(button => { button.onclick = openModel; });
     document.querySelectorAll('[data-open-module]').forEach(button => { button.onclick = () => openModule(button.dataset.openModule); });
