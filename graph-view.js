@@ -35,9 +35,18 @@ export function mountGraph(host, { nodes, links, theme = 'light', positions = ne
     const label = el('text', { y: node.kind === 'hub' ? 4 : r + 13, 'text-anchor': 'middle', class: 'graph-label' }); label.textContent = node.label.length > 14 ? `${node.label.slice(0, 13)}…` : node.label;
     g.append(label); node.el = g; node.r = r; nodeLayer.append(g);
   }
-  // View transform for zoom and pan.
-  let scale = 1, tx = 0, ty = 0, alpha = positions.size ? 0.3 : 1, frame = 0;
+  // View transform for zoom and pan. Until the user pans or zooms, the view keeps every node (and its label) in
+  // sight: larger graphs spread wider than the canvas, so it zooms out to fit them.
+  let scale = 1, tx = 0, ty = 0, alpha = positions.size ? 0.3 : 1, frame = 0, userView = false;
   const applyView = () => world.setAttribute('transform', `translate(${tx},${ty}) scale(${scale})`);
+  function fit() {
+    if (userView || dragging || !nodes.length) return;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const node of nodes) { minX = Math.min(minX, node.x - node.r - 40); maxX = Math.max(maxX, node.x + node.r + 40); minY = Math.min(minY, node.y - node.r - 12); maxY = Math.max(maxY, node.y + node.r + 24); }
+    scale = Math.max(0.25, Math.min(1, width / (maxX - minX), height / (maxY - minY)));
+    tx = (width - (minX + maxX) * scale) / 2; ty = (height - (minY + maxY) * scale) / 2;
+    applyView();
+  }
   const toWorld = event => { const box = svg.getBoundingClientRect(); return { x: ((event.clientX - box.left) * width / box.width - tx) / scale, y: ((event.clientY - box.top) * height / box.height - ty) / scale }; };
   function draw() {
     for (const edge of edges) {
@@ -65,7 +74,7 @@ export function mountGraph(host, { nodes, links, theme = 'light', positions = ne
       if (node.fixed || node === dragging) { node.vx = node.vy = 0; continue; }
       node.vx *= 0.82; node.vy *= 0.82; node.x += node.vx; node.y += node.vy;
     }
-    alpha *= 0.985; draw();
+    alpha *= 0.985; draw(); fit();
     if (alpha > 0.01 && host.isConnected) frame = requestAnimationFrame(tick); else frame = 0;
   }
   const reheat = (value = 0.4) => { alpha = Math.max(alpha, value); if (!frame && host.isConnected) frame = requestAnimationFrame(tick); };
@@ -94,14 +103,14 @@ export function mountGraph(host, { nodes, links, theme = 'light', positions = ne
     node.el.addEventListener('keydown', event => { if (event.key === 'Enter') { if (node.kind === 'card') onOpen(node.id); else onDouble(node); } });
   }
   svg.addEventListener('pointerdown', event => { panning = { x: event.clientX, y: event.clientY, tx, ty }; svg.setPointerCapture(event.pointerId); blur(); });
-  svg.addEventListener('pointermove', event => { if (!panning) return; const box = svg.getBoundingClientRect(); tx = panning.tx + (event.clientX - panning.x) * width / box.width; ty = panning.ty + (event.clientY - panning.y) * height / box.height; applyView(); });
+  svg.addEventListener('pointermove', event => { if (!panning) return; userView = true; const box = svg.getBoundingClientRect(); tx = panning.tx + (event.clientX - panning.x) * width / box.width; ty = panning.ty + (event.clientY - panning.y) * height / box.height; applyView(); });
   svg.addEventListener('pointerup', () => { panning = null; });
   svg.addEventListener('wheel', event => {
-    event.preventDefault(); const box = svg.getBoundingClientRect(), px = (event.clientX - box.left) * width / box.width, py = (event.clientY - box.top) * height / box.height;
+    event.preventDefault(); userView = true; const box = svg.getBoundingClientRect(), px = (event.clientX - box.left) * width / box.width, py = (event.clientY - box.top) * height / box.height;
     const next = Math.min(3, Math.max(0.4, scale * (event.deltaY < 0 ? 1.12 : 1 / 1.12)));
     tx = px - (px - tx) * next / scale; ty = py - (py - ty) * next / scale; scale = next; applyView();
   }, { passive: false });
   for (const node of nodes) if (positions.get(node.id)?.fixed) node.fixed = true;
-  applyView(); draw(); reheat(alpha);
-  return { reset: () => { scale = 1; tx = ty = 0; applyView(); nodes.forEach(node => { node.fixed = false; }); reheat(1); } };
+  applyView(); draw(); fit(); reheat(alpha);
+  return { reset: () => { userView = false; nodes.forEach(node => { node.fixed = false; }); reheat(1); } };
 }
