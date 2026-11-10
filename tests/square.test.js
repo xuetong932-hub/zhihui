@@ -118,7 +118,10 @@ test('translation request: the text is data, the key stays on the server, upstre
   const body = JSON.parse(sent.init.body);
   assert.equal(sent.init.headers.Authorization, 'Bearer server-key');
   assert.deepEqual(body.messages.map(m => m.role), ['system', 'user']);
-  assert.equal(body.messages[1].content, 'Hello', 'the post is sent as the user message, not mixed into instructions');
+  assert.equal(body.messages[1].content, 'Translate into German:\n<text>\nHello\n</text>', 'the post goes inside <text> tags in the user message, never into the instructions');
+  assert.match(translatePrompt('de'), /as KnowBack/); assert.match(translatePrompt('zh-TW'), /as 知回/);
+  const echoing = async () => new Response(JSON.stringify({ choices: [{ message: { content: '<text>\nHallo Welt\n</text>' }, finish_reason: 'stop' }] }), { status: 200 });
+  assert.deepEqual(await translateText({ text: 'Hello world', target: 'de' }, { fetchImpl: echoing, apiKey: 'k' }), { text: 'Hallo Welt' }, 'echoed tags are removed');
   await assert.rejects(translateText({ text: 'Hello', target: 'de' }, { fetchImpl: async () => new Response('{"error":"secret detail"}', { status: 500 }), apiKey: 'k' }), error => error.code === 'upstream');
 });
 

@@ -1,4 +1,6 @@
-// Isolated browser QA only. Not loaded by npm start; never calls external services.
+// Isolated browser QA only. Not loaded by npm start. By default it never calls external services: every model feature
+// returns fixed test text. With REAL_MODELS=1 (for recording real product footage) the model features use 知回's real
+// free model instead; the key is read here from ZHIPU_API_KEY or the gitignored server.local.json and never printed.
 import { createApp } from '../server.mjs';
 import { validateRequest, ServiceError } from '../model-service.mjs';
 import { validateRecognize } from '../recognize-service.mjs';
@@ -10,7 +12,9 @@ import { readFileSync } from 'node:fs';
 let admin = null;
 try { const value = JSON.parse(readFileSync(new URL('./qa-admin.local.json', import.meta.url), 'utf8')); if (typeof value.username === 'string' && typeof value.password === 'string') admin = { username: value.username, email: 'admin@admin.test', password: value.password }; } catch { console.log('No tests/qa-admin.local.json: no administrator account in the test service.'); }
 const fake = createFakeSupabase({ adminEmails: [], seedAdmin: admin && { email: admin.email, password: admin.password } });
-const app = createApp({publicConfig: host => ({ url: `http://${host}${FAKE_PREFIX}`, publicKey: 'sb_publishable_fake_test_only', ...(admin ? { adminLogin: { username: admin.username, email: admin.email } } : {}) }), extraRoute: fake.route,
+const realKey = process.env.REAL_MODELS === '1' ? (process.env.ZHIPU_API_KEY || (() => { try { return JSON.parse(readFileSync(new URL('../server.local.json', import.meta.url), 'utf8')).ZHIPU_API_KEY || ''; } catch { return ''; } })()) : '';
+if (process.env.REAL_MODELS === '1' && !realKey) console.log('REAL_MODELS=1 but no free model key: using test responses.');
+const testCallers = {
   // The free allowance runs against the fake account service's free_quota and the test model below; no real key.
   freeModelKey: 'test-free-allowance-not-real',
   // Photo questions: checks the request like the real service, then returns fixed text (not real recognition).
@@ -29,6 +33,9 @@ const app = createApp({publicConfig: host => ({ url: `http://${host}${FAKE_PREFI
     signal.addEventListener('abort', () => { clearTimeout(timer); reject(new ServiceError('cancelled', 499)); }, { once: true });
   });
   return { content: `## 直接回答\n仅用于浏览器验收的测试响应，非真实模型答案。\n## 分步骤解释\n当前模块：${input.module}；上下文消息数：${input.messages.length}。\n## 生活例子\n像给每个学科准备独立笔记本。\n## 简短总结\n<script>alert(1)</script>\n测试：${question}`, provider: input.config.provider, model: input.config.model, sources: input.config.search ? [{ url: 'https://example.com/', title: '测试来源（非知识依据）' }] : [], searchStatus: input.config.search ? 'sources-returned' : 'off', truncated: false, usage: { inputTokens: 10, outputTokens: 20 } };
-} });
+} };
+const app = createApp({ publicConfig: host => ({ url: `http://${host}${FAKE_PREFIX}`, publicKey: 'sb_publishable_fake_test_only', ...(admin ? { adminLogin: { username: admin.username, email: admin.email } } : {}) }), extraRoute: fake.route,
+  // Real mode: the server's default model callers and the real free key. Test mode: the fixed test callers above.
+  ...(realKey ? { freeModelKey: realKey } : testCallers) });
 const port = Number(process.env.QA_PORT || 4175);
-app.listen(port, '127.0.0.1', () => console.log(`Isolated QA fixture: http://127.0.0.1:${port} (not a real model)`));
+app.listen(port, '127.0.0.1', () => console.log(`Isolated QA fixture: http://127.0.0.1:${port} (${realKey ? 'REAL free model' : 'not a real model'})`));
