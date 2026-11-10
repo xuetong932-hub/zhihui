@@ -200,10 +200,43 @@ function boot() {
   ];
   // Icon on top, its name below in the current language only (Chinese or English, never both).
   function tabBar(locked) {
-    return `<nav class="tabbar" aria-label="${pick('主导航', 'Main')}">${TABS.map(([id, icon, pages, name]) => {
+    return `<nav class="tabbar" aria-label="${pick('主导航', 'Main')}"><span class="tab-pill" aria-hidden="true"></span>${TABS.map(([id, icon, pages, name]) => {
       const on = pages.includes(chat.page), label = name();
       return `<button class="tab ${on ? 'active' : ''}" data-tab="${id}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}>${iconSvg(icon, 24)}<span class="tab-label">${label}</span></button>`;
     }).join('')}</nav>`;
+  }
+  // Tab switch motion: the capsule flows to the new tab like a drop. The leading edge arrives first and the trailing
+  // edge follows a beat later, so it stretches (and flattens a little) on the way, then both settle with a small
+  // spring. The new icon dips and pops back, the label colours cross-fade and the page is nudged in from the side
+  // tapped; about 400 ms in all. It plays only when the active tab changes between renders (every render rebuilds
+  // the bar), and reduced motion just places the capsule. Tabs share the bar equally, so % edges follow rotation.
+  const TAB_SPRING = 'linear(0, .24 8%, .6 20%, .88 32%, 1.012 44%, 1.025 54%, 1.016 64%, 1.003 76%, .998 86%, 1)';
+  const PAGE_FIXED = '.review-bar, #question-form, .photo-status'; // a transform would unpin these, so they only fade
+  let shownTab = -1;
+  function placeTabPill() {
+    const bar = document.querySelector('.tabbar'), pill = bar?.querySelector('.tab-pill');
+    const tabs = bar ? [...bar.querySelectorAll('.tab')] : [], index = tabs.findIndex(tab => tab.classList.contains('active'));
+    if (!pill || index < 0) { shownTab = -1; if (pill) pill.hidden = true; return; }
+    const edges = i => [`calc(${(i + 0.5) * 100 / tabs.length}% - 32px)`, `calc(${(tabs.length - i - 0.5) * 100 / tabs.length}% - 32px)`];
+    const [left, right] = edges(index), previous = shownTab < tabs.length ? shownTab : -1;
+    Object.assign(pill.style, { left, right, width: 'auto' });
+    shownTab = index;
+    if (previous < 0 || previous === index || !pill.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const [oldLeft, oldRight] = edges(previous), forward = index > previous;
+    const lead = { duration: 280, easing: TAB_SPRING }, trail = { duration: 340, delay: 60, easing: 'cubic-bezier(.3, .6, .25, 1)', fill: 'backwards' }; // only the front springs, so it never pinches
+    pill.animate({ left: [oldLeft, left] }, forward ? trail : lead);
+    pill.animate({ right: [oldRight, right] }, forward ? lead : trail);
+    pill.animate([{ transform: 'scaleY(1)' }, { transform: 'scaleY(.86)', offset: 0.45 }, { transform: 'scaleY(1)' }], { duration: 400, easing: 'ease-in-out' });
+    const lift = 'translateY(-1px) scale';
+    tabs[index].querySelector('svg')?.animate([{ transform: `${lift}(1)` }, { transform: `${lift}(.8)`, offset: 0.3 }, { transform: `${lift}(1.12)`, offset: 0.7 }, { transform: `${lift}(1.06)` }], { duration: 400, easing: 'ease-out' });
+    const on = getComputedStyle(tabs[index]).color, off = getComputedStyle(tabs[previous]).color, fade = { duration: 250, easing: 'ease' };
+    tabs[index].animate({ color: [off, on] }, fade);
+    tabs[previous].animate({ color: [on, off] }, fade);
+    const shift = `translateX(${forward ? 24 : -24}px)`;
+    for (const part of document.querySelector('main')?.children || []) {
+      const pinned = part.matches(PAGE_FIXED) || part.querySelector(PAGE_FIXED);
+      part.animate(pinned ? { opacity: [0.4, 1] } : { opacity: [0.4, 1], transform: [shift, 'none'] }, { duration: 400, easing: TAB_SPRING });
+    }
   }
   // The Android app download is offered in a phone browser on Android, not inside the installed app itself.
   // The app reveals itself through the referrer on launch only, so that is remembered for the session.
@@ -269,6 +302,7 @@ function boot() {
       ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
     document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => chat.go(button.dataset.tab); });
+    placeTabPill();
     document.querySelectorAll('[data-share-card]').forEach(button => { button.onclick = () => openShareDialog({ locale, data: shareData() }); });
     // Day / night switch (theme.js applies it before paint and remembers it per device).
     on('#theme-toggle', () => { window.knowledgeReviewTheme?.toggle(); render(); });

@@ -14,7 +14,9 @@
 .tab .mod-icon{transition:transform .15s ease}
 .tab.active{color:var(--accent)}
 .tab.active .mod-icon{transform:translateY(-1px) scale(1.06);stroke-width:2.1}
-.tab.active::before{content:"";position:absolute;top:-1px;width:22px;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
+/* Capsule behind the active tab; app.js places it and makes it flow like a drop when the tab changes. */
+.tab{z-index:1;transition:color .25s ease}
+.tab-pill{position:absolute;top:calc((var(--tabbar-h) - 50px) / 2);left:0;width:0;height:50px;border-radius:25px;background:#30694f1f;pointer-events:none;z-index:0}
 .tab:disabled{opacity:.45}
 
 /* Home: greeting, task card, today's list, module strip */
@@ -68,7 +70,7 @@ a.me-row{text-decoration:none}
 [data-theme="dark"] .tabbar{background:#16191deb}
 [data-theme="dark"] .tab{color:#6f7772}
 [data-theme="dark"] .tab.active{color:#7cc4a0}
-[data-theme="dark"] .tab.active::before{background:#7cc4a0}
+[data-theme="dark"] .tab-pill{background:#7cc4a026}
 [data-theme="dark"] .task-card{background:linear-gradient(135deg,#1f4a37 0%,#2b6249 60%,#3a7a5c 100%);box-shadow:none}
 [data-theme="dark"] .task-start{background:#e9f3ee;color:#1f4a37}
 [data-theme="dark"] .strip-card,[data-theme="dark"] .me-group,[data-theme="dark"] .m-section .review-preview,[data-theme="dark"] .m-section .empty-state{background:#1a1d21}
