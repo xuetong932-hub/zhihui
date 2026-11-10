@@ -370,3 +370,8 @@ footer{color:var(--stone);border-top:1px solid var(--hairline-soft);margin-top:4
 .language-first .primary-button{width:100%;justify-content:center;text-align:center}
 @media (max-width:600px){.language-first{margin:24px auto;padding:22px}}
 [data-theme="dark"] .language-dialog{background:#1f2326;color:#e8ece9}
+
+/* Press-and-spring for long bar buttons: shrink to 96% while pressed, spring past 100% on release, settle at 100%. */
+.task-start,.task-share,.module-open,.language-first .primary-button{-webkit-tap-highlight-color:transparent;transform:scale(1);transition:transform .45s cubic-bezier(.3,2.2,.5,1),background .15s,border-color .15s,color .15s}
+@supports (transition-timing-function:linear(0,1)){.task-start,.task-share,.module-open,.language-first .primary-button{transition:transform .5s linear(0,.45 12%,.95 24%,1.35 36%,1.5 46%,1.42 56%,1.2 66%,1 76%,.94 84%,.98 92%,1),background .15s,border-color .15s,color .15s}}
+:is(.task-start,.task-share,.module-open,.language-first .primary-button):active:not(:disabled){transform:scale(.96);transition:transform .1s ease-out,background .15s,border-color .15s,color .15s}

@@ -11,6 +11,8 @@ import { createAuthGate } from './auth-ui.js';
 import { escapeHtml as esc } from './chat-store.js';
 import { PRESET_MODULES as moduleIds, LEVELS as levels, MAX_CUSTOM_MODULES, isCustomModule, cleanModuleName, validModules, validDailyMinutes, newCustomModuleId, activeModuleIds, moduleLabel } from './modules.js';
 import { pick, intlLocale, currentLocale, isLocale, setLocale, loadCatalog, needsCatalog, ENABLED, localeName, savedLocale, saveLocale } from './i18n.js';
+// iOS Safari only applies :active to buttons when a touch listener exists (press-and-spring buttons in styles.css).
+globalThis.document?.addEventListener('touchstart', () => {}, { passive: true });
 const words = {
   zh: {
     brand: '知回', subtitle: '把好问题，变成记得住的知识。', language: 'English',
