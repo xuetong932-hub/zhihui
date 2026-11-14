@@ -625,3 +625,19 @@ main:has(.book-page) .library-switch{display:none}
 @media (prefers-reduced-motion:reduce){.scene-sheet,.scene-sheet-layer{transition:none}}
 .scene-sheet .scene-grid{margin-top:var(--sp-16);row-gap:var(--sp-16)}
 .scene-pick em{font-style:normal;font-size:11px;color:var(--muted)}
+
+/* Glass controls on the home scene (2026-11-15, after Apple's translucent "glass" material): the main action and the
+   four modules sit on frosted, see-through glass with a bright top edge and a soft inner highlight, so the scene shows
+   through. The modules are one glass bar (no separate circles). */
+.home-scene-wrap .task-start,.home-scene-wrap~.frost-panel .module-strip{position:relative;-webkit-backdrop-filter:blur(18px) saturate(1.8);backdrop-filter:blur(18px) saturate(1.8);border:1px solid rgba(255,255,255,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.75),inset 0 -1px 0 rgba(255,255,255,.18),0 8px 24px rgba(40,28,12,.16)}
+.home-scene-wrap .task-start{background:linear-gradient(180deg,rgba(70,132,100,.42),rgba(48,105,79,.26));color:#fffaf2;text-shadow:0 1px 2px rgba(40,24,8,.35);letter-spacing:.04em;overflow:hidden}
+.home-scene-wrap .task-start::before,.home-scene-wrap~.frost-panel .module-strip::before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(120% 80% at 20% 0%,rgba(255,255,255,.38),rgba(255,255,255,0) 55%);pointer-events:none}
+.home-scene-wrap~.frost-panel .module-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:0;padding:var(--sp-12) var(--sp-8);border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,.2))}
+.home-scene-wrap~.frost-panel .strip-card{position:relative;padding:var(--sp-4);border-radius:20px}
+.home-scene-wrap~.frost-panel .strip-thumb{width:48px;height:48px;background:none;box-shadow:none}
+.home-scene-wrap~.frost-panel .strip-art{width:44px;height:44px;filter:drop-shadow(0 4px 6px rgba(70,48,24,.18))}
+.home-scene-wrap~.frost-panel .strip-card strong{text-shadow:none}
+.home-scene-wrap~.frost-panel .strip-card:active{background:rgba(255,255,255,.3)}
+[data-theme="dark"] .home-scene-wrap .task-start,[data-theme="dark"] .home-scene-wrap~.frost-panel .module-strip{border-color:rgba(255,255,255,.16);background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05));box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 8px 24px rgba(0,0,0,.35);color:#f3eadb}
+[data-theme="dark"] .home-scene-wrap .task-start::before,[data-theme="dark"] .home-scene-wrap~.frost-panel .module-strip::before{background:radial-gradient(120% 80% at 20% 0%,rgba(255,255,255,.12),rgba(255,255,255,0) 55%)}
+[data-theme="dark"] .home-scene-wrap~.frost-panel .strip-thumb{background:none}
