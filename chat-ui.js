@@ -10,7 +10,17 @@ import {moduleLabel,activeModuleIds,isActiveModule,isCustomModule} from './modul
 import {moduleIcon} from './module-icons.js';
 import {createDiscoverUI} from './discover-ui.js';
 import {createSquareUI} from './square-ui.js';
-import {resizeImage} from './background.js';
+// Photo questions: decode through a canvas (drops metadata such as location), scale down and re-encode as JPEG.
+const MAX_PHOTO_BYTES = 30 * 1024 * 1024;
+async function resizeImage(file, { maxSide = 1600 } = {}) {
+  if (file.type && !file.type.startsWith('image/')) throw new Error('type');
+  if (file.size > MAX_PHOTO_BYTES) throw new Error('size');
+  const bitmap = await createImageBitmap(file).catch(() => { throw new Error('decode'); });
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height)), canvas = document.createElement('canvas');
+  canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close();
+  return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('decode')), 'image/jpeg', 0.85));
+}
 import {starterQuestions,starterCards,hasStarterPack,starterPackPanel} from './starter-content.js';
 import {createOnboarding,onboardingDone,markOnboardingDone,speechErrorText} from './onboarding.js';
 import {createTour,tourDone} from './tour.js';

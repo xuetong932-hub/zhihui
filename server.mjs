@@ -12,15 +12,13 @@ import { translateText, validateTranslate } from './translate-service.mjs';
 
 const files = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
-  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','module-icons.js','background.js','discover-ui.js','recommend-data.js','starter-content.js','habit.js','fsrs.js','onboarding.js','tour.js', 'square-ui.js','i18n.js','theme.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','graph-view.js','mindmap.js','viz-edit.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
+  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','module-icons.js','discover-ui.js','recommend-data.js','starter-content.js','habit.js','fsrs.js','onboarding.js','tour.js', 'square-ui.js','i18n.js','theme.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','graph-view.js','mindmap.js','viz-edit.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
   ['/manifest.webmanifest',['manifest.webmanifest','application/manifest+json']],['/icon.svg',['icon.svg','image/svg+xml']],
   // PNG icons for installing to a phone (Android app package, home screen); made from icon.svg.
   ...['icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png'].map(name => [`/${name}`, [name, 'image/png']]),
   // Android app: the installer, and the file that proves the app and this site belong together (docs/ANDROID_APP.md).
   ['/zhihui.apk', ['downloads/zhihui.apk', 'application/vnd.android.package-archive']], ['/.well-known/assetlinks.json', ['.well-known/assetlinks.json', 'application/json']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
-  // Built-in background photos (see docs/BACKGROUNDS.md), each with a small thumbnail for the picker.
-  ...['lake','forest','sea','anime-day','anime-night','neon-street','neon-city','silhouette'].flatMap(id => [`/backgrounds/${id}.jpg`, `/backgrounds/${id}-thumb.jpg`]).map(path => [path, [path.slice(1), 'image/jpeg']]),
   // Interface illustrations (3D clay, generated in LibTV; source PNGs and convert.py live in store-assets/libtv/ui, untracked).
   ...['home-desk','home-hero','review-hero','done-state','icon-coding','icon-english','icon-work','icon-life'].map(name => [`/illustrations/${name}.webp`, [`illustrations/${name}.webp`, 'image/webp']]),
   // Display font for headings: Smiley Sans / 得意黑 v2.0.1 (OFL-1.1, unmodified; licence in fonts/SmileySans-OFL.txt).

@@ -27,7 +27,7 @@
    and the main action sit on its calm wall with no card; the frosted module panel rises over its faded bottom. */
 [data-layout="mobile"] #app:has(.home-scene) .header{position:relative;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
 .home-scene{position:absolute;top:0;left:0;width:100%;height:calc(100vw * 16 / 9);max-height:1140px;object-fit:cover;object-position:center top;z-index:-1;pointer-events:none;-webkit-mask-image:linear-gradient(#000 62%,transparent 94%);mask-image:linear-gradient(#000 62%,transparent 94%)}
-.has-background .home-scene{display:none}
+
 .home-scene-wrap .m-hello,.home-scene-wrap .today-big,.home-scene-wrap .today-meta>span:not(.today-goal){text-shadow:0 0 14px #fbf7f0,0 0 4px #fbf7f0}
 [data-theme="dark"] .home-scene-wrap .m-hello,[data-theme="dark"] .home-scene-wrap .today-big,[data-theme="dark"] .home-scene-wrap .today-meta>span:not(.today-goal){text-shadow:0 1px 10px #000c}
 .home-scene-wrap{display:flex;flex-direction:column;min-height:calc(min(100vw,640px) * 16 / 9 * .66 - 72px)}
@@ -181,3 +181,21 @@ a.me-row{text-decoration:none}
 [data-layout="mobile"] #question-form:has(#question.photo-text){flex-wrap:wrap}[data-layout="mobile"] #question.photo-text{flex:1 1 100%}[data-layout="mobile"] #question-form:has(#question.photo-text) .composer-footer{flex:1 1 100%;justify-content:flex-end}[data-layout="mobile"] #question-form .photo-status{position:static;order:-1;flex:1 1 100%;margin:0}
 .tab{flex-direction:column;gap:3px}.tab-label{font-size:11px;line-height:1;font-weight:500;letter-spacing:.01em;white-space:nowrap}.tab.active .tab-label{font-weight:700}
 .task-share{display:block;width:100%;margin:10px 0 0;min-height:44px;border:1px solid var(--line);border-radius:999px;background:#ffffffb3;color:var(--ink);font-size:15px;font-weight:600;cursor:pointer}
+
+/* No white cards on the phone either (see styles.css): groups, lists and the home module panel sit on the canvas. */
+[data-layout="mobile"] .panel,[data-theme="dark"][data-layout="mobile"] .panel{background:transparent;border:0;border-bottom:1px solid var(--divider);border-radius:0;box-shadow:none;padding-left:0;padding-right:0}
+.me-group,[data-theme="dark"] .me-group{background:transparent;border:0;border-bottom:1px solid var(--divider);border-radius:0;box-shadow:none;margin-bottom:8px;padding-bottom:6px}
+.me-group h2{padding:14px 2px 4px}
+.me-row{padding:0 2px;border-top-color:var(--divider)}
+.me-note{padding:4px 2px 12px}
+.frost-panel,[data-theme="dark"] .frost-panel{padding:0;border:0;border-radius:0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none}
+.frost-panel>.section-heading{margin:2px 2px 8px}
+.strip-thumb{background:#ffffffb3;box-shadow:0 4px 14px rgba(86,64,32,.08)}
+[data-theme="dark"] .strip-thumb{background:#ffffff14;box-shadow:none}
+.m-section .review-preview,[data-theme="dark"] .m-section .review-preview{background:transparent;border:0;border-radius:0;box-shadow:none;padding:0 2px}
+.m-section .review-preview .preview-item{border-color:var(--divider)}
+.m-section .empty-state,[data-theme="dark"] .m-section .empty-state,[data-layout="mobile"] .messages .empty-state,[data-theme="dark"] .messages .empty-state{background:transparent;border:0;border-radius:0;box-shadow:none;padding:18px 0}
+
+.frost-panel>.section-heading h2,.frost-panel .strip-card strong{text-shadow:0 0 12px #fbf7f0,0 0 4px #fbf7f0}
+[data-theme="dark"] .frost-panel>.section-heading h2,[data-theme="dark"] .frost-panel .strip-card strong{text-shadow:0 1px 10px #000c}
+

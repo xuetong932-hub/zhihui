@@ -47,7 +47,7 @@ for (const file of FILES) {
   }
 }
 // Keyed dictionaries: const words/copy = { zh: { key: '…' }, en: { key: '…' } }.
-for (const [file, name] of [['app.js', 'words'], ['chat-ui.js', 'copy'], ['modules.js', 'PRESET_NAMES'], ['background.js', 'words']]) {
+for (const [file, name] of [['app.js', 'words'], ['chat-ui.js', 'copy'], ['modules.js', 'PRESET_NAMES']]) {
   const src = readFileSync(root + file, 'utf8'), start = src.indexOf(`${name} = {`); if (start < 0) continue;
   const block = lang => { const i = src.indexOf(`${lang}: {`, start); let depth = 0; for (let j = i; j < src.length; j++) { if (src[j] === '{') depth++; else if (src[j] === '}' && --depth === 0) return src.slice(i, j); } return ''; };
   // Matches inside an earlier value (e.g. "…to this provider:") are text, not keys, so they are skipped.

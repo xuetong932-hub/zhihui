@@ -1,7 +1,6 @@
 import { createChatUI } from './chat-ui.js';
 import { moduleStyles } from './memory-viz.js';
 import { moduleIcon, iconSvg, CUSTOM_ICONS } from './module-icons.js';
-import { initBackground, openBackgroundDialog } from './background.js';
 import { localDay } from './knowledge-store.js';
 import { streakDays } from './review-store.js';
 import { DAILY_GOALS, DEFAULT_GOAL, goalOf, doneToday, goalStreak, openShareDialog } from './habit.js';
@@ -248,7 +247,7 @@ function boot() {
     const row = (attrs, icon, label, value = '') => `<button class="me-row" ${attrs}><span class="me-icon">${icon}</span><span class="me-label">${label}</span>${value ? `<span class="me-value">${value}</span>` : ''}<span class="me-chevron" aria-hidden="true">›</span></button>`;
     const name = account?.local ? (pick('本地模式', 'Local mode')) : account?.username || (account?.is_admin ? (pick('管理员', 'Administrator')) : (pick('已登录', 'Signed in')));
     return `<section class="me-head"><span class="me-avatar">${iconSvg('user', 28)}</span><div><h1>${esc(name)}</h1><p>${account?.local ? (pick('记录只保存在这台设备', 'Records stay on this device')) : (pick('学习记录保存在本机，可在账号中加密同步', 'Records are kept here; encrypted sync is in Account'))}</p></div></section>
-      <div class="me-group"><h2>${pick('学习', 'Learning')}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), pick('目标 {v0} 张', 'Goal {v0}', { v0: goalOf(profile) }))}${row('id="background-open"', iconSvg('palette'), pick('背景', 'Background'))}${row('id="theme-toggle"', iconSvg('bulb'), pick('外观', 'Appearance'), dark ? (pick('黑夜', 'Night')) : (pick('白天', 'Day')))}${row('id="language"', iconSvg('globe'), pick('语言', 'Language'), localeName(locale))}</div>
+      <div class="me-group"><h2>${pick('学习', 'Learning')}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), pick('目标 {v0} 张', 'Goal {v0}', { v0: goalOf(profile) }))}${row('id="theme-toggle"', iconSvg('bulb'), pick('外观', 'Appearance'), dark ? (pick('黑夜', 'Night')) : (pick('白天', 'Day')))}${row('id="language"', iconSvg('globe'), pick('语言', 'Language'), localeName(locale))}</div>
       <div class="me-group"><h2>${pick('账号与设备', 'Account & device')}</h2>${account?.local ? row('data-signin', iconSvg('user'), pick('登录 / 注册', 'Sign in / Register')) : row('data-cloud', iconSvg('user'), pick('账号与同步', 'Account & sync'))}${row('data-device', iconSvg('camera'), pick('设备与提醒', 'Device & reminders'))}${account?.is_admin ? row('data-admin', iconSvg('chart'), pick('管理', 'Admin')) : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}${row('data-onboarding', iconSvg('compass'), pick('产品演示', 'Product tour'))}${row('data-tour', iconSvg('bulb'), pick('新手指引', 'Guided tour'))}</div>
       ${androidBrowser() ? `<div class="me-group"><h2>${pick('安卓 App', 'Android app')}</h2><a class="me-row" href="/zhihui.apk" download="zhihui.apk"><span class="me-icon">${iconSvg('download')}</span><span class="me-label">${pick('下载安卓 App', 'Download the Android app')}</span><span class="me-value">${pick('约 1 MB', 'About 1 MB')}</span><span class="me-chevron" aria-hidden="true">›</span></a><p class="me-note">${pick('安装时手机会提示"未知来源应用"，选择仍然安装即可。', 'Your phone will warn about an app from an unknown source; choose to install anyway.')}</p></div>` : ''}`;
   }
@@ -303,7 +302,7 @@ function boot() {
     const inApp = Boolean(chat), locked = inApp ? chat.locked : gate.busy, guide = inApp && chat.page === 'onboarding', tabs = phone && inApp && profile && !editing && !guide;
     app.innerHTML = `
       <header class="header"><a class="brand" href="${phone ? '/m/' : '/'}" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
-        ${tabs ? '' : `<div class="header-actions">${inApp && profile && !editing && !guide ? chat.nav() : ''}${themeButton()}<button class="text-button theme-toggle" id="background-open" aria-label="${pick('背景', 'Background')}"><span aria-hidden="true">▧</span><span class="theme-name">${pick('背景', 'Background')}</span></button><button class="text-button" id="language" aria-haspopup="dialog" aria-label="${pick('界面语言', 'Interface language')}" ${locked ? 'disabled' : ''}><span aria-hidden="true">🌐</span> ${localeName(locale)}</button></div>`}</header>
+        ${tabs ? '' : `<div class="header-actions">${inApp && profile && !editing && !guide ? chat.nav() : ''}${themeButton()}<button class="text-button" id="language" aria-haspopup="dialog" aria-label="${pick('界面语言', 'Interface language')}" ${locked ? 'disabled' : ''}><span aria-hidden="true">🌐</span> ${localeName(locale)}</button></div>`}</header>
       <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? meView() : chat.isHome ? homeView() : chat.view()}</main>
       ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
@@ -312,7 +311,6 @@ function boot() {
     document.querySelectorAll('[data-share-card]').forEach(button => { button.onclick = () => openShareDialog({ locale, data: shareData() }); });
     // Day / night switch (theme.js applies it before paint and remembers it per device).
     on('#theme-toggle', () => { window.knowledgeReviewTheme?.toggle(); render(); });
-    on('#background-open', () => openBackgroundDialog(locale));
     on('#language', () => openLanguageDialog(next => {
       if (inApp && profile && !editing) {
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...profile, locale: next })); }
@@ -507,7 +505,8 @@ function boot() {
   }
   render();
   void gate.start();
-  initBackground();
+  // The page-background feature was removed (2026-11-14): drop its saved choice and any uploaded image on this device.
+  try { localStorage.removeItem('knowledge-review.background.v1'); indexedDB.deleteDatabase('knowledge-review.files'); } catch { /* Storage blocked: nothing saved anyway. */ }
   if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 
