@@ -278,3 +278,7 @@ button.pet-tile{cursor:pointer}
 [data-theme="dark"] .pet-meter{background:#ffffff1a}
 .pet-scene-wrap .m-hello h1{text-shadow:0 0 14px #fbf7f0,0 0 4px #fbf7f0}
 [data-theme="dark"] .pet-scene-wrap .m-hello h1{text-shadow:0 1px 10px #000c}
+/* The pet-page squirrel sits on the cushion: a soft contact shadow under it ties it into the painted room. */
+.pet-mascot{filter:none}
+.pet-mascot::before{content:"";position:absolute;left:14%;right:14%;bottom:2px;height:18px;border-radius:50%;background:radial-gradient(closest-side,rgba(70,48,24,.32),rgba(70,48,24,0));z-index:-1;pointer-events:none}
+[data-theme="dark"] .pet-mascot::before{background:radial-gradient(closest-side,rgba(0,0,0,.5),rgba(0,0,0,0))}
