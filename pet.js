@@ -8,8 +8,9 @@ import { localDay } from './knowledge-store.js';
 export const PINE = { learned: 1, goalDay: 3, week: 10 };
 const LEARNED = ['understood', 'mastered'];
 
-export function pineCones(events, goal, now = new Date()) {
-  const today = localDay(now), gains = [];
+// Every pine-cone gain as [day, amount, kind], oldest first (achievements.js dates its badges from these).
+export function pineGains(events, goal) {
+  const gains = [];
   const sorted = [...(events || [])].sort((a, b) => a.at.localeCompare(b.at));
   const learned = new Set(), perDay = new Map();
   for (const event of sorted) {
@@ -26,11 +27,16 @@ export function pineCones(events, goal, now = new Date()) {
     if (run % 7 === 0) gains.push([day, PINE.week, 'week']);
     previous = day;
   }
+  return { gains: gains.sort((a, b) => a[0].localeCompare(b[0])), learned: learned.size };
+}
+
+export function pineCones(events, goal, now = new Date()) {
+  const today = localDay(now), { gains, learned } = pineGains(events, goal);
   const todayGains = gains.filter(([day]) => day === today);
   return {
     total: gains.reduce((sum, [, amount]) => sum + amount, 0),
     today: todayGains.reduce((sum, [, amount]) => sum + amount, 0),
-    learned: learned.size,
+    learned,
     learnedToday: todayGains.filter(([, , kind]) => kind === 'learned').length,
   };
 }

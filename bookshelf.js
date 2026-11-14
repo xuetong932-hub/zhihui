@@ -28,23 +28,21 @@ const tall = count => count >= 40 ? 3 : count >= 15 ? 2 : count >= 5 ? 1 : 0;
 function bookHtml(book, { selected, editing, last }) {
   const note = pick('{n} 张 · {due} 待复习', '{n} cards · {due} due', { n: book.count, due: book.due });
   const art = PRESET_ART.includes(book.id) ? `<img src="/illustrations/icon-${book.id}.webp" alt="" decoding="async">` : iconSvg(book.icon, 30, '#ffffff');
-  return `<div class="book-slot"><button type="button" class="book cover-${book.color} tall-${tall(book.count)} ${selected === book.id ? 'is-selected' : last === book.id ? 'was-selected' : ''}" data-book="${book.id}" aria-label="${e(book.name)}，${e(note)}">
+  return `<div class="book-slot ${selected === book.id ? 'is-selected' : ''}"><button type="button" class="book cover-${book.color} tall-${tall(book.count)} ${selected === book.id ? 'is-selected' : last === book.id ? 'was-selected' : ''}" data-book="${book.id}" aria-label="${e(book.name)}，${e(note)}" aria-pressed="${selected === book.id}">
+      <span class="book-spine" aria-hidden="true"><span class="book-art">${art}</span><strong class="book-title">${e(book.name)}</strong>${book.due ? '<span class="book-ribbon"></span>' : ''}</span>
       <span class="book-body"><span class="book-art">${art}</span><strong class="book-title">${e(book.name)}</strong><span class="book-note">${e(note)}</span>${book.due ? '<span class="book-ribbon" aria-hidden="true"></span>' : ''}</span></button>
       ${editing ? `<button type="button" class="book-x" data-book-delete="${book.id}" aria-label="${pick('删除「{name}」', 'Delete “{name}”', { name: e(book.name) })}">✕</button>` : ''}</div>`;
 }
 
 export function shelfView({ books, mode, selected, last, editing, canAdd, sheet, menu, error, extra = '' }) {
   const chosen = books.find(book => book.id === selected);
-  const modeIcon = mode === 'cover'
-    ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M5 4v16M9.5 4v16M14 6l3.5-1.5 3 14.5-3.5 1.5z"/></svg>'
-    : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="7" height="9" rx="1.5"/><rect x="13.5" y="4" width="7" height="9" rx="1.5"/><rect x="3.5" y="15" width="7" height="5" rx="1.5"/><rect x="13.5" y="15" width="7" height="5" rx="1.5"/></svg>';
   const sheetBook = books.find(book => book.id === sheet);
   return `<section class="shelf-wrap">
     <div class="shelf-bar"><h2>${pick('我的书架', 'My bookshelf')}</h2><div class="shelf-tools">
-      ${editing ? `<button type="button" class="shelf-done" data-shelf-done>${pick('完成', 'Done')}</button>` : `<button type="button" class="shelf-tool" data-shelf-mode aria-label="${mode === 'cover' ? pick('按书脊摆放', 'Show spines') : pick('按封面摆放', 'Show covers')}">${modeIcon}</button><button type="button" class="shelf-tool" data-shelf-menu aria-haspopup="menu" aria-label="${pick('更多', 'More')}">⋯</button>`}
+      ${editing ? `<button type="button" class="shelf-done" data-shelf-done>${pick('完成', 'Done')}</button>` : `<button type="button" class="shelf-tool" data-shelf-menu aria-haspopup="menu" aria-label="${pick('更多', 'More')}">⋯</button>`}
     </div></div>
     <p role="alert" class="error">${e(error || '')}</p>
-    <div class="shelf shelf-${mode} ${editing ? 'is-editing' : ''}">${books.map(book => bookHtml(book, { selected, editing, last })).join('')}
+    <div class="shelf shelf-spine ${editing ? 'is-editing' : ''}">${books.map(book => bookHtml(book, { selected, editing, last })).join('')}
       ${canAdd && !editing ? `<div class="book-slot"><button type="button" class="book book-new" data-book-new aria-label="${pick('新建一本书', 'New book')}"><span class="book-body"><span class="book-plus" aria-hidden="true">＋</span><span class="book-note">${pick('新书', 'New book')}</span></span></button></div>` : ''}</div>
     ${chosen && !editing ? `<div class="shelf-info" role="status"><span class="shelf-info-dot cover-${chosen.color}" aria-hidden="true"></span><div><strong>${e(chosen.name)}</strong><span>${pick('{n} 张卡片 · {due} 张待复习', '{n} cards · {due} due', { n: chosen.count, due: chosen.due })}</span></div><button type="button" class="primary-button" data-book-open="${chosen.id}">${pick('打开', 'Open')}</button></div>` : ''}
     ${extra}
@@ -82,7 +80,8 @@ export const cardPageView = (book, cardHtml) => `<section class="book-page book-
 // Opening: the book flies to the middle and grows, the cover swings open on its spine, the page fills the screen.
 export async function animateOpen(bookEl, done) {
   if (reduced() || !bookEl?.animate) { done(); return; }
-  const r = bookEl.getBoundingClientRect(), color = [...bookEl.classList].find(name => name.startsWith('cover-')) || '';
+  // Start from the turned-out cover when it is showing, else from the spine.
+  const cover = bookEl.querySelector('.book-body'), r = (cover && cover.getBoundingClientRect().width > 50 ? cover : bookEl).getBoundingClientRect(), color = [...bookEl.classList].find(name => name.startsWith('cover-')) || '';
   const layer = document.createElement('div'), fly = document.createElement('div');
   layer.className = 'book-fly-layer'; fly.className = `book-fly ${color}`;
   fly.innerHTML = `<div class="book-fly-page"></div><div class="book-fly-cover">${bookEl.querySelector('.book-body').outerHTML}</div>`;

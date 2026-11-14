@@ -419,28 +419,11 @@ button.pet-tile{cursor:pointer}
 .book-new .book-body{background:none;border:2px dashed rgba(86,64,32,.25);color:var(--muted);box-shadow:none}
 .book-new .book-body::after{display:none}
 .book-plus{font-size:28px;line-height:1}
-.shelf-spine .book{width:44px}
-.shelf-spine .tall-0{height:148px}.shelf-spine .tall-1{height:164px}.shelf-spine .tall-2{height:180px}.shelf-spine .tall-3{height:196px}
-.shelf-spine .book-body{flex-direction:column;justify-content:flex-start;padding:var(--sp-8) 0;border-radius:4px;background:linear-gradient(90deg,var(--c2),var(--c1) 40%,var(--c2))}
-.shelf-spine .book-body::after,.shelf-spine .book-note{display:none}
-.shelf-spine .book-art{width:28px;height:28px;flex:none}
-.shelf-spine .book-art img{width:24px;height:24px}
-.shelf-spine .book-art svg{width:16px;height:16px}
-.shelf-spine .book-title{writing-mode:vertical-rl;font-size:15px;letter-spacing:.08em;max-height:calc(100% - 36px);overflow:hidden}
-.shelf-spine .book-ribbon{right:auto;left:18px}
-.shelf-spine .book-new{height:148px}
-/* Selected: pulled out and tilted towards you; the previous one slides back. */
-.book.is-selected{animation:book-pull .5s cubic-bezier(.2,.9,.25,1.15) forwards}
-.book.was-selected{animation:book-back .4s ease}
-@keyframes book-pull{0%{transform:none}55%{transform:translateY(-20px) rotateY(-16deg) rotateZ(-2deg)}100%{transform:translateY(-14px) rotateY(-10deg)}}
-@keyframes book-back{from{transform:translateY(-14px) rotateY(-10deg)}to{transform:none}}
-.book.is-selected .book-body{box-shadow:0 18px 24px rgba(70,48,24,.24)}
 /* Edit mode: books wobble, a ✕ sits on each. */
 .shelf.is-editing .book{animation:book-wobble .32s ease-in-out infinite alternate}
 .shelf.is-editing .book-slot:nth-child(2n) .book{animation-delay:-.16s}
 @keyframes book-wobble{from{transform:rotate(-1.6deg)}to{transform:rotate(1.6deg)}}
 .book-x{position:absolute;left:-4px;top:calc(var(--row) - 156px - 16px);z-index:2;display:grid;place-items:center;width:28px;height:28px;padding:0;border:2px solid #f6f2ea;border-radius:50%;background:#6b5640;color:#fff;font-size:12px;line-height:1}
-.shelf-spine .book-x{left:-2px;top:auto;bottom:calc(12px + 140px)}
 .shelf-info{display:flex;align-items:center;gap:var(--sp-12);margin-top:var(--sp-16);padding:var(--sp-12) var(--sp-16);border-radius:16px;background:rgba(255,253,249,.8);box-shadow:0 6px 18px rgba(86,64,32,.08);animation:cone-in .3s ease}
 .shelf-info div{display:flex;flex:1;flex-direction:column;min-width:0}
 .shelf-info strong{font-size:15px}
@@ -510,3 +493,99 @@ button.pet-tile{cursor:pointer}
 .book-dialog-actions{display:flex;justify-content:flex-end;gap:var(--sp-8);margin-top:var(--sp-24)}
 @media (prefers-reduced-motion:reduce){.book.is-selected{animation:none;transform:translateY(-12px)}.book.was-selected,.shelf.is-editing .book,.book-sheet,.book-page,.shelf-info{animation:none}}
 main:has(.book-page) .library-switch{display:none}
+
+/* Spine-first shelf (2026-11-15, after Dog-ear): every book stands as a spine; the chosen one is pulled up and turns to
+   face you, showing its cover, while its neighbours slide aside; choosing another turns it back. */
+.shelf-spine .book{width:44px;transform:none}
+.shelf-spine .tall-0{height:148px}.shelf-spine .tall-1{height:164px}.shelf-spine .tall-2{height:180px}.shelf-spine .tall-3{height:196px}
+.book-spine{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;gap:var(--sp-8);padding:var(--sp-8) 0;border-radius:4px;background:linear-gradient(90deg,var(--c2),var(--c1) 40%,var(--c2));color:#fff;box-shadow:0 6px 12px rgba(70,48,24,.18),inset 0 8px 0 rgba(255,255,255,.12),inset 0 -8px 0 rgba(0,0,0,.08);overflow:hidden;backface-visibility:hidden}
+.book-spine .book-art{flex:none;width:28px;height:28px}
+.book-spine .book-art img{width:24px;height:24px}
+.book-spine .book-art svg{width:16px;height:16px}
+.book-spine .book-title{writing-mode:vertical-rl;font-size:15px;letter-spacing:.08em;max-height:calc(100% - 40px);overflow:hidden}
+.book-spine .book-ribbon{right:3px;width:6px;height:20px}
+.shelf-spine .book>.book-body{left:50%;right:auto;width:112px;height:152px;top:auto;bottom:0;margin-left:-56px;opacity:0;transform:rotateY(90deg);pointer-events:none}
+.shelf-spine .book-new{height:148px}
+.shelf-spine .book-new .book-body{left:0;width:44px;margin:0;opacity:1;transform:none}
+.shelf-spine .book-new .book-note{display:none}
+.book-slot.is-selected{z-index:3}
+.book.is-selected{animation:book-lift .5s cubic-bezier(.2,.9,.25,1.12) forwards}
+.book.is-selected .book-spine{animation:spine-turn .2s ease-in forwards}
+.book.is-selected>.book-body{animation:cover-turn .36s .16s cubic-bezier(.2,.9,.25,1.1) forwards;box-shadow:0 18px 28px rgba(70,48,24,.28)}
+.book.was-selected .book-spine{animation:spine-back .3s .14s ease-out both}
+.book.was-selected>.book-body{animation:cover-back .18s ease-in both}
+@keyframes book-lift{to{transform:translateY(-16px)}}
+@keyframes spine-turn{to{transform:rotateY(-90deg);opacity:0}}
+@keyframes cover-turn{from{transform:rotateY(90deg);opacity:1}to{transform:rotateY(0);opacity:1}}
+@keyframes spine-back{from{transform:rotateY(-90deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes cover-back{from{transform:none;opacity:1}to{transform:rotateY(90deg);opacity:1}}
+.book-slot:has(~ .book-slot.is-selected){animation:slide-left .4s cubic-bezier(.2,.9,.25,1) forwards}
+.book-slot.is-selected ~ .book-slot{animation:slide-right .4s cubic-bezier(.2,.9,.25,1) forwards}
+@keyframes slide-left{to{transform:translateX(-32px)}}
+@keyframes slide-right{to{transform:translateX(32px)}}
+.shelf-spine .book-x{left:-4px;top:auto;bottom:calc(12px + 136px)}
+@media (prefers-reduced-motion:reduce){.book.is-selected,.book.is-selected .book-spine,.book.is-selected>.book-body,.book.was-selected .book-spine,.book.was-selected>.book-body,.book-slot:has(~ .book-slot.is-selected),.book-slot.is-selected ~ .book-slot{animation:none}.book.is-selected .book-spine{opacity:0}.book.is-selected>.book-body{opacity:1;transform:none}}
+
+/* Squirrel's store page (badges-ui.js): level card, stats and a badge wall of metal-enamel badges on little wooden
+   stands; bronze / silver / gold shown by the stars and stand finish, locked ones grey with a lock. */
+.pet-tile-badge{width:32px;height:32px;object-fit:contain}
+.store-page{padding-bottom:var(--sp-24)}
+.store-top{margin:0 -16px var(--sp-16)}
+.level-card{display:flex;align-items:center;gap:var(--sp-16);padding:var(--sp-16);border-radius:24px;background:linear-gradient(135deg,#fff6e6,#f3e4c8);box-shadow:0 8px 24px rgba(120,84,30,.12),inset 0 0 0 1px rgba(255,255,255,.7)}
+[data-theme="dark"] .level-card{background:linear-gradient(135deg,#2a241b,#211c15);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.level-avatar{display:grid;place-items:center;flex:none;width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fffdf8,#f1dfbd);box-shadow:inset 0 0 0 3px #e0b46a,0 4px 12px rgba(120,84,30,.18)}
+.level-avatar img{width:60px;height:60px;object-fit:contain}
+.level-text{display:flex;flex:1;flex-direction:column;gap:var(--sp-4);min-width:0}
+.level-lv{align-self:flex-start;padding:0 var(--sp-8);border-radius:999px;background:linear-gradient(135deg,#e9c27a,#c9963f);color:#fff;font-size:12px;font-weight:700;line-height:20px;text-shadow:0 1px 1px rgba(0,0,0,.15)}
+.level-text strong{font-family:var(--font-display);font-weight:400;font-size:22px;color:#4a3216}
+[data-theme="dark"] .level-text strong{color:#f3e2c2}
+.level-bar{display:block;height:8px;border-radius:999px;background:rgba(120,84,30,.14);overflow:hidden}
+.level-bar i{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#e9c27a,#c9963f);transition:width .6s cubic-bezier(.2,.9,.25,1)}
+.level-next{font-size:12px;color:#8a6a3e}
+.store-stats{display:flex;gap:var(--sp-8);margin:var(--sp-16) 0 var(--sp-24)}
+.store-stats span{display:flex;flex:1;flex-direction:column;align-items:center;gap:var(--sp-4);padding:var(--sp-12);border-radius:16px;background:rgba(255,253,249,.8);font-size:12px;color:var(--muted)}
+.store-stats b{font-family:var(--font-display);font-weight:400;font-size:22px;color:var(--ink)}
+[data-theme="dark"] .store-stats span{background:#1f2327}
+.badge-wall{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-24) var(--sp-12)}
+.badge{display:flex;flex-direction:column;align-items:center;gap:var(--sp-4);padding:0;border:0;background:none;color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.badge-art{position:relative;display:grid;place-items:center;width:88px;height:88px}
+.badge-art::after{content:"";position:absolute;left:12%;right:12%;bottom:-8px;height:12px;border-radius:50%;background:linear-gradient(#c9a77c,#9c7a52);box-shadow:0 4px 8px rgba(70,48,24,.2);z-index:-1}
+.badge-art img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 8px rgba(120,84,30,.25));transition:transform .2s}
+.badge:active .badge-art img{transform:scale(.94)}
+.badge.tier-0 .badge-art img{filter:grayscale(1) opacity(.42)}
+.badge.tier-3 .badge-art img{filter:drop-shadow(0 0 10px rgba(240,190,90,.65)) drop-shadow(0 6px 8px rgba(120,84,30,.25))}
+.badge.tier-1 .badge-art::after{background:linear-gradient(#d9a07a,#a4683f)}
+.badge.tier-2 .badge-art::after{background:linear-gradient(#e2e5e8,#a8afb6)}
+.badge.tier-3 .badge-art::after{background:linear-gradient(#f0cf85,#c79647)}
+.badge-lock{position:absolute;right:8px;bottom:4px;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#fffdf9;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.badge strong{margin-top:var(--sp-8);font-size:13px;line-height:1.3;text-align:center}
+.badge-sub{font-size:11px;color:var(--muted)}
+.badge-stars{display:flex;gap:var(--sp-4);margin-top:var(--sp-4)}
+.badge-stars i{width:8px;height:8px;background:rgba(120,84,30,.18);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.badge-stars i.on{background:#d9a441}
+/* Detail and celebration overlays. */
+.badge-layer{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:var(--sp-24);background:rgba(36,26,12,0);transition:background .22s ease}
+.badge-layer.open{background:rgba(36,26,12,.62)}
+.badge-detail,.badge-celebrate{position:relative;display:flex;flex-direction:column;align-items:center;gap:var(--sp-8);width:min(100%,360px);padding:var(--sp-24);border-radius:28px;background:linear-gradient(180deg,#fffaf0,#f6ead2);text-align:center;opacity:0;transform:scale(.9) translateY(16px);transition:opacity .22s ease,transform .32s cubic-bezier(.2,.9,.25,1.15)}
+[data-theme="dark"] .badge-detail,[data-theme="dark"] .badge-celebrate{background:linear-gradient(180deg,#2a241b,#1d1914);color:#f3e2c2}
+.badge-layer.open .badge-detail,.badge-layer.open .badge-celebrate{opacity:1;transform:none}
+.badge-detail h2,.badge-celebrate h2{margin:0;font-size:22px}
+.badge-detail p{margin:0;font-size:13px;color:var(--muted)}
+.badge-big{position:relative;width:184px;height:184px;margin-top:-72px;perspective:600px}
+.badge-big img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 12px 18px rgba(120,84,30,.35));animation:badge-turn 6s ease-in-out infinite}
+.badge-detail.tier-0 .badge-big img{filter:grayscale(1) opacity(.5)}
+.badge-sheen{position:absolute;inset:8%;border-radius:20%;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.65) 48%,transparent 60%) -150% 0/250% 100% no-repeat;mix-blend-mode:overlay;animation:badge-sheen 3.2s ease-in-out infinite;pointer-events:none}
+@keyframes badge-turn{0%,100%{transform:rotateY(-14deg)}50%{transform:rotateY(14deg)}}
+@keyframes badge-sheen{0%,40%{background-position:-150% 0}70%,100%{background-position:150% 0}}
+.badge-tiers{width:100%;margin:var(--sp-8) 0;padding:0;list-style:none}
+.badge-tiers li{display:grid;grid-template-columns:40px 1fr auto;gap:var(--sp-8);align-items:center;padding:var(--sp-8) 0;border-top:1px solid var(--divider);font-size:13px;color:var(--muted);text-align:left}
+.badge-tiers li.got{color:var(--ink)}
+.badge-tiers li span:first-child{font-weight:700}
+.badge-detail .primary-button,.badge-celebrate .primary-button{min-height:44px;padding:0 var(--sp-32);margin-top:var(--sp-8)}
+.badge-celebrate{overflow:visible}
+.badge-celebrate .badge-big{margin-top:-96px;animation:badge-pop .7s cubic-bezier(.2,.9,.25,1.3) both}
+.badge-new{margin:0;font-size:13px;font-weight:700;letter-spacing:.1em;color:#c9963f}
+.badge-rays{position:absolute;left:calc(50% - 180px);top:-184px;width:360px;height:360px;border-radius:50%;background:repeating-conic-gradient(rgba(255,214,120,.42) 0 10deg,transparent 10deg 24deg);-webkit-mask-image:radial-gradient(circle,#000 20%,transparent 68%);mask-image:radial-gradient(circle,#000 20%,transparent 68%);animation:badge-rays 9s linear infinite;pointer-events:none}
+@keyframes badge-pop{0%{transform:scale(0) rotate(-200deg);opacity:0}60%{transform:scale(1.15) rotate(10deg);opacity:1}100%{transform:none}}
+@keyframes badge-rays{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.badge-big img,.badge-sheen,.badge-rays,.badge-celebrate .badge-big{animation:none}.badge-detail,.badge-celebrate{transition:none}}

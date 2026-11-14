@@ -497,6 +497,9 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     get page() { return page; },
     go(next) { if (busy || testing || library.busy || review.busy || cloud.busy || admin.busy) return; page = next; notice = ''; refresh(); window.scrollTo(0, 0); },
     reviewEvents: () => review.events().events,
+    // For the squirrel's level and badges (achievements.js): knowledge cards and the times questions were asked.
+    knowledgeCards: () => library.cards(),
+    questionDates: () => Object.values(chats.modules).flat().flatMap(thread => thread.messages.filter(message => message.role === 'user').map(message => message.createdAt)),
     // Cards reviewed today, for the check-in image (modules and, if the user chooses, titles).
     reviewedToday: () => { const today = new Date().toDateString(), ids = new Set(review.events().events.filter(event => new Date(event.at).toDateString() === today).map(event => event.cardId)); return library.cards().filter(card => ids.has(card.id)); },
     // Home page: the starter pack while the library is empty, or the "practise now" step right after adding.

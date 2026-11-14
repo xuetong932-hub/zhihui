@@ -6,6 +6,8 @@ import { streakDays } from './review-store.js';
 import { DAILY_GOALS, DEFAULT_GOAL, goalOf, doneToday, goalStreak, openShareDialog } from './habit.js';
 import { pineCones, petMood, MOOD_POSE } from './pet.js';
 import { startPetPlay, flyCone } from './pet-physics.js';
+import { achievements, newBadges } from './achievements.js';
+import { storeView, showBadge, celebrateBadge } from './badges-ui.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
 import { createAuthGate } from './auth-ui.js';
@@ -377,11 +379,13 @@ function boot() {
       const total = Number(jar.dataset.petJar) || 0;
       let stashed = jarCount(total);
       jar.onclick = () => bumpJar(jar);
-      if (reducedMotion()) { stashed = total; saveJarCount(total); }
+      if (reducedMotion()) { stashed = total; saveJarCount(total); setTimeout(() => { if (button.isConnected) celebrateNewBadges(); }, 300); }
       renderJar(jar, stashed);
       if (!reducedMotion()) {
         const world = startPetPlay(button, scene, { usual: () => button.dataset.pose, sleepy: () => button.dataset.pose === 'sleep', ring: () => openMascotRing(button) });
-        if (total > stashed) world.stash(total - stashed, jar, k => { stashed += k; saveJarCount(stashed); renderJar(jar, stashed, k); bumpJar(jar); }, PINE_ICON);
+        // New cones are carried to the jar first, then any newly earned badge is celebrated.
+        const stashing = total > stashed ? world.stash(total - stashed, jar, k => { stashed += k; saveJarCount(stashed); renderJar(jar, stashed, k); bumpJar(jar); }, PINE_ICON) : new Promise(resolve => setTimeout(resolve, 900));
+        stashing.then(() => { if (button.isConnected) celebrateNewBadges(); });
         return;
       }
     }
@@ -404,6 +408,29 @@ function boot() {
       button.mascotTimer = setTimeout(() => button.classList.remove('acting-jelly', 'acting-flip'), 900);
     });
   }
+  // The squirrel's level and badges (achievements.js), and its store page (pet tab → 仓库).
+  let petPage = 'room';
+  const petProgress = () => achievements({ events: chat.reviewEvents(), goal: goalOf(profile), cards: chat.knowledgeCards(), questions: chat.questionDates(), books: Object.keys(profile?.modules || {}).filter(isCustomModule).length });
+  function petStoreView() {
+    const progress = petProgress();
+    return storeView({ level: progress.level, badges: progress.badges, cones: progress.level.cones, mascot: 'cheer' });
+  }
+  // Badge tiers already celebrated on this device; the first visit marks what is there without a celebration.
+  const BADGES_SEEN_KEY = 'knowledge-review.badges-seen.v1';
+  async function celebrateNewBadges() {
+    const { badges } = petProgress();
+    let seen = null;
+    try { seen = JSON.parse(localStorage.getItem(BADGES_SEEN_KEY) || 'null'); } catch { /* Treated as a first visit. */ }
+    const keys = badges.flatMap(badge => badge.earned.map(item => `${badge.id}:${item.tier}`));
+    const save = list => { try { localStorage.setItem(BADGES_SEEN_KEY, JSON.stringify(list)); } catch { /* This visit only. */ } };
+    if (!Array.isArray(seen)) { save(keys); return; }
+    const fresh = newBadges(badges, new Set(seen));
+    save(keys);
+    for (const item of fresh.slice(0, 3)) {
+      if (chat.page !== 'pet' || petPage !== 'room') break;
+      await celebrateBadge(badges.find(badge => badge.id === item.id), item.tier);
+    }
+  }
   // The squirrel's home (phone, middle tab): its tree-hollow room fills the top of the screen with the squirrel in the
   // middle, two chips (fed today, pine cones), a frosted "little world" panel and a short daily note written from the
   // day's reviews. Feeding = reviewing toward the daily goal; the store = pine cones earned by learning (pet.js).
@@ -424,14 +451,14 @@ function boot() {
       : mood === 'full' ? pick('吃得好饱！仓库里已经有 {n} 颗松果了。', 'So full! My store now holds {n} pine cones.', { n: cones.total })
       : mood === 'eating' ? pick('再复习 {n} 张就吃饱啦。', '{n} more cards and I’m full.', { n: left })
       : pick('今天还没吃东西呢，复习几张卡片就能喂饱我。', 'I haven’t eaten today. Review a few cards to feed me.');
-    const pose = MOOD_POSE[mood], fed = Math.min(100, Math.round(done / Math.max(1, goal) * 100));
+    const pose = MOOD_POSE[mood], fed = Math.min(100, Math.round(done / Math.max(1, goal) * 100)), progress = petProgress();
     return `<section class="pet-scene-wrap"><img class="home-scene pet-scene" src="/illustrations/pet-nest.webp" alt="" decoding="async">
         <div class="pet-hello"><h1>${pick('嗨，我是小回', 'Hi, I’m Backy')}</h1><p>${greeting}</p></div>
         <div class="pet-row"><div class="pet-status"><span class="pet-status-avatar"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async"></span><span class="pet-status-text"><strong>${statusTitle}</strong><span>${statusSub}</span></span></div><span class="pet-chip">🍽 ${done}/${goal}</span></div>
         <button type="button" class="today-mascot pet-mascot" data-pose="${pose}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async" draggable="false"></button>
         <div class="pet-floor"><button type="button" class="pet-jar" data-pet-jar="${cones.total}" aria-label="${pick('松果罐，{n} 颗', 'Pine-cone jar, {n}', { n: cones.total })}"><img class="pet-jar-glass" src="/illustrations/pine-jar.webp" alt="" decoding="async"><span class="pet-jar-pile" aria-hidden="true"></span><span class="pet-jar-tag" aria-hidden="true"></span></button></div></section>
       <section class="m-section frost-panel pet-world"><div class="section-heading"><h2>${pick('小回的小世界', 'Backy’s little world')}</h2></div><div class="pet-tiles">
-        <div class="pet-tile"><span class="pet-tile-icon">${PINE_ICON}</span><strong>${pick('仓库', 'Store')}</strong><span class="pet-tile-value">${cones.total}</span><span class="muted">${pick('今天 +{n}', '+{n} today', { n: cones.today })}</span></div>
+        <button type="button" class="pet-tile" data-pet-store><span class="pet-tile-icon"><img class="pet-tile-badge" src="/illustrations/badges/learned.webp" alt="" decoding="async"></span><strong>${pick('仓库', 'Store')}</strong><span class="pet-tile-value">Lv.${progress.level.level}</span><span class="muted">${pick('徽章 {n}', '{n} badges', { n: progress.badges.reduce((sum, badge) => sum + badge.tier, 0) })}</span></button>
         <button type="button" class="pet-tile" data-pet-feed><span class="pet-tile-icon">🍽</span><strong>${pick('喂食', 'Feed')}</strong><span class="pet-tile-value">${done}/${goal}</span><span class="pet-meter" role="presentation"><i data-fed="${fed}"></i></span></button>
         <div class="pet-tile"><span class="pet-tile-icon">🔥</span><strong>${pick('连续', 'Streak')}</strong><span class="pet-tile-value">${streak}</span><span class="muted">${pick('{n} 天', '{n} days', { n: streak })}</span></div>
         <div class="pet-tile is-soon" aria-disabled="true"><span class="pet-tile-icon">🛒</span><strong>${pick('商城', 'Shop')}</strong><span class="muted">${pick('即将开放', 'Coming soon')}</span></div>
@@ -483,10 +510,14 @@ function boot() {
     app.innerHTML = `
       <header class="header"><a class="brand" href="${phone ? '/m/' : '/'}" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
         ${tabs ? '' : `<div class="header-actions">${inApp && profile && !editing && !guide ? chat.nav() : ''}${themeButton()}<button class="text-button" id="language" aria-haspopup="dialog" aria-label="${pick('界面语言', 'Interface language')}" ${locked ? 'disabled' : ''}><span aria-hidden="true">🌐</span> ${localeName(locale)}</button></div>`}</header>
-      <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? meView() : tabs && chat.page === 'pet' ? petView() : tabs && ['library', 'discover', 'recommend', 'square'].includes(chat.page) ? librarySwitch() + chat.view() : chat.isHome ? homeView() : chat.view()}</main>
+      <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? meView() : tabs && chat.page === 'pet' ? (petPage === 'store' ? petStoreView() : petView()) : tabs && ['library', 'discover', 'recommend', 'square'].includes(chat.page) ? librarySwitch() + chat.view() : chat.isHome ? homeView() : chat.view()}</main>
       ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
-    document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => chat.go(button.dataset.tab); });
+    document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => { petPage = 'room'; chat.go(button.dataset.tab); }; });
+    document.querySelectorAll('[data-pet-store]').forEach(button => { button.onclick = () => { petPage = 'store'; render(); window.scrollTo(0, 0); }; });
+    document.querySelectorAll('[data-store-back]').forEach(button => { button.onclick = () => { petPage = 'room'; render(); window.scrollTo(0, 0); }; });
+    document.querySelectorAll('.level-bar i[data-level]').forEach(bar => { bar.style.width = `${bar.dataset.level}%`; });
+    document.querySelectorAll('[data-badge]').forEach(button => { button.onclick = () => { const badge = petProgress().badges.find(item => item.id === button.dataset.badge); if (badge) showBadge(badge).then(() => button.focus({ preventScroll: true })); }; });
     document.querySelectorAll('[data-lib-page]').forEach(button => { button.onclick = () => chat.go(button.dataset.libPage); });
     document.querySelectorAll('[data-pet-feed]').forEach(button => { button.onclick = () => chat.go('review'); });
     // The feed meter's width goes through the CSSOM (the page's CSP blocks style attributes).

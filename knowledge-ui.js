@@ -142,6 +142,8 @@ export function createKnowledgeUI({ locale, enabled, moduleName, extract, refres
       });
     });
     document.querySelector('[data-book-open]')?.addEventListener('click', event => openBook(event.currentTarget.dataset.bookOpen));
+    // A tap on the shelf itself (not a book) turns the chosen book back into its spine.
+    document.querySelector('.shelf')?.addEventListener('click', event => { if (shelf.selected && !event.target.closest('button')) { Object.assign(shelf, { last: shelf.selected, selected: null }); refresh(); } });
     document.querySelector('[data-shelf-mode]')?.addEventListener('click', () => { shelf.mode = shelf.mode === 'cover' ? 'spine' : 'cover'; try { localStorage.setItem(SHELF_MODE_KEY, shelf.mode); } catch { /* This visit only. */ } refresh(); });
     document.querySelector('[data-shelf-menu]')?.addEventListener('click', () => { shelf.menu = true; refresh(); });
     document.querySelector('[data-shelf-done]')?.addEventListener('click', () => { Object.assign(shelf, { editing: false, sheet: null }); refresh(); });
