@@ -96,3 +96,4 @@ elevation:
 
 - < 700px: single column, page title 28px, panels padding 20px, touch targets ≥ 44px, tables scroll inside their container (never the page).
 - Respect `prefers-reduced-motion`: no decorative animation.
+- **Squirrel actions** (phone home): a tap makes the squirrel hop; a long press (480 ms; Enter/Space on a keyboard) opens a ring of six round buttons (wave, cheer, think, shy, stash a card, sleep) around a larger copy of it in the middle of the screen; choosing one plays that pose with a short motion for about 3 s, then it returns to its usual pose. Actions trimmed from the dsh-pet desktop-pet reference to what fits a learning app; no food, dance or festival actions.

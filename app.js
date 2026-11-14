@@ -268,6 +268,61 @@ function boot() {
       <progress max="${goal}" value="${Math.min(done, goal)}" aria-label="${pick('今日目标进度', 'Today’s goal progress')}"></progress>${reached ? shareButton('text-button goal-share') : ''}</div>`;
   }
   // Phone home, in the style of study apps: one task card with progress, today's list, then modules to ask in.
+  // Squirrel actions (phone home). A tap makes the squirrel hop; a long press (or Enter / Space) opens a ring of six
+  // round buttons around a larger copy of it in the middle of the screen, each showing one action. Choosing one
+  // plays it on the home squirrel for a few seconds, then it returns to its usual pose for the day.
+  const MASCOT_ACTIONS = [
+    ['wave', () => pick('挥手', 'Wave')], ['cheer', () => pick('开心', 'Cheer')], ['think', () => pick('思考', 'Think')],
+    ['shy', () => pick('害羞', 'Shy')], ['stash', () => pick('藏卡片', 'Stash a card')], ['sleep', () => pick('睡觉', 'Sleep')],
+  ];
+  const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function playMascot(button, pose, hold = 3200) {
+    const img = button.querySelector('img'), usual = button.dataset.pose;
+    clearTimeout(button.mascotTimer);
+    img.src = `/illustrations/mascot-${pose}.webp`;
+    button.className = 'today-mascot';
+    void button.offsetWidth; // restart the animation when the same action is chosen twice
+    if (!reducedMotion()) button.classList.add(`acting-${pose}`);
+    button.mascotTimer = setTimeout(() => { if (button.isConnected) { img.src = `/illustrations/mascot-${usual}.webp`; button.className = 'today-mascot'; } }, hold);
+  }
+  function openMascotRing(button) {
+    if (document.querySelector('.mascot-ring')) return;
+    navigator.vibrate?.(12);
+    const from = button.getBoundingClientRect(), current = button.querySelector('img').getAttribute('src');
+    const layer = document.createElement('div');
+    layer.className = 'mascot-ring'; layer.setAttribute('role', 'dialog'); layer.setAttribute('aria-modal', 'true'); layer.setAttribute('aria-label', pick('松鼠的动作', 'Squirrel actions'));
+    layer.innerHTML = `<div class="ring-stage"><img class="ring-center" src="${current}" alt="">${MASCOT_ACTIONS.map(([pose, name], i) => `<button type="button" class="ring-item" data-action="${pose}" aria-label="${name()}"><img src="/illustrations/mascot-${pose}.webp" alt="" draggable="false"></button>`).join('')}</div>`;
+    // Positions go through the CSSOM (the page's CSP blocks style attributes).
+    layer.querySelectorAll('.ring-item').forEach((item, i) => { item.style.setProperty('--angle', `${i * 60 - 90}deg`); item.style.setProperty('--delay', `${i * 35}ms`); });
+    document.body.append(layer);
+    const center = layer.querySelector('.ring-center'), to = center.getBoundingClientRect();
+    if (!reducedMotion() && center.animate) center.animate([{ transform: `translate(${from.left + from.width / 2 - (to.left + to.width / 2)}px, ${from.top + from.height / 2 - (to.top + to.height / 2)}px) scale(${from.width / to.width})` }, { transform: 'none' }], { duration: 380, easing: TAB_SPRING });
+    void layer.offsetWidth; layer.classList.add('open'); // a forced layout lets the transition start from the closed state
+    const close = () => { layer.classList.remove('open'); document.removeEventListener('keydown', onKey); setTimeout(() => layer.remove(), reducedMotion() ? 0 : 220); button.focus({ preventScroll: true }); };
+    const onKey = event => { if (event.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    layer.addEventListener('click', event => {
+      const item = event.target.closest('.ring-item');
+      if (item) playMascot(button, item.dataset.action, item.dataset.action === 'sleep' ? 4500 : 3200);
+      close();
+    });
+    layer.querySelector('.ring-item').focus({ preventScroll: true });
+  }
+  function bindMascot() {
+    const button = document.querySelector('.today-mascot');
+    if (!button) return;
+    let press = 0, opened = false;
+    const cancel = () => { clearTimeout(press); press = 0; };
+    button.addEventListener('pointerdown', event => { if (event.button > 0) return; opened = false; cancel(); press = setTimeout(() => { press = 0; opened = true; openMascotRing(button); }, 480); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(type => button.addEventListener(type, cancel));
+    button.addEventListener('contextmenu', event => event.preventDefault());
+    // A short tap hops; Enter / Space (keyboard) opens the ring, since a long press is not possible there.
+    button.addEventListener('click', event => {
+      if (event.detail === 0) { openMascotRing(button); return; }
+      if (opened) { opened = false; return; } // the click that ends a long press
+      playMascot(button, button.dataset.pose, 900);
+    });
+  }
   // Built-in modules have a 3D illustration (illustrations/icon-<id>.webp); custom modules keep their line icon.
   const MODULE_ART = ['coding', 'english', 'work', 'life'];
   function homePhoneView() {
@@ -284,7 +339,7 @@ function boot() {
     const goalText = reached ? pick('今日目标完成 ✓', 'Goal reached ✓') : pick('今日目标 {v0} / {goal} 张', 'Today’s goal {v0} / {goal}', { v0: Math.min(done, goal), goal });
     return `<section class="home-scene-wrap"><img class="home-scene" src="/illustrations/home-desk.webp" alt="" decoding="async">
         <div class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1></div>
-        <div class="today-status"><img class="today-mascot" src="/illustrations/mascot-${due ? 'wave' : total ? 'cheer' : 'think'}.webp" alt="" decoding="async">${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
+        <div class="today-status"><button type="button" class="today-mascot" data-pose="${due ? 'wave' : total ? 'cheer' : 'think'}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${due ? 'wave' : total ? 'cheer' : 'think'}.webp" alt="" decoding="async" draggable="false"></button>${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
           <div class="today-meta"><span class="today-goal"><span class="task-ring" aria-hidden="true">${ring}</span>${goalText}</span><span><b>${streak}</b>${pick(' 天连续', ' day streak')}</span><span><b>${met}</b>${pick(' 天达成', ' days met')}</span></div></div>
         ${total ? `<button class="task-start" data-review>${due ? (pick('开始复习', 'Start review')) : (pick('再练一会', 'Practise more'))} →</button>` : `<button class="task-start" data-open-module="${activeModuleIds(profile)[0]}">${pick('去提问', 'Ask a question')} →</button>`}${reached ? shareButton('task-share') : ''}</section>
       ${chat.starterHome() ? `<div class="m-section">${chat.starterHome()}</div>` : ''}
@@ -308,6 +363,7 @@ function boot() {
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
     document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => chat.go(button.dataset.tab); });
     placeTabPill();
+    bindMascot();
     document.querySelectorAll('[data-share-card]').forEach(button => { button.onclick = () => openShareDialog({ locale, data: shareData() }); });
     // Day / night switch (theme.js applies it before paint and remembers it per device).
     on('#theme-toggle', () => { window.knowledgeReviewTheme?.toggle(); render(); });
