@@ -1,5 +1,17 @@
 // de interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Backy is asleep": "Backy schläft",
+ "See you tomorrow~": "Bis morgen~",
+ "Backy is full": "Backy ist satt",
+ "Happy and content": "Rundum zufrieden",
+ "Backy is eating": "Backy frisst gerade",
+ "Taking its time": "Ganz gemütlich",
+ "Backy is a bit hungry": "Backy ist ein bisschen hungrig",
+ "Waiting for you": "Wartet auf Sie",
+ "Good morning~": "Guten Morgen~",
+ "Good afternoon~": "Guten Tag~",
+ "Good evening~": "Guten Abend~",
+ "Pine-cone jar, {n}": "Tannenzapfenglas, {n}",
  "{n} days": "{n} Tage",
  "{n} more cards and I’m full.": "Noch {n} Karten und ich bin satt.",
  "+{n} today": "+{n} heute",

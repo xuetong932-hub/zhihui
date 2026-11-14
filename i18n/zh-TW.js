@@ -1,5 +1,17 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Backy is asleep": "小回在睡覺",
+ "See you tomorrow~": "明天見～",
+ "Backy is full": "小回吃飽啦",
+ "Happy and content": "心滿意足",
+ "Backy is eating": "小回正在吃",
+ "Taking its time": "慢慢吃著呢",
+ "Backy is a bit hungry": "小回有點餓",
+ "Waiting for you": "等你來餵",
+ "Good morning~": "早安呀～",
+ "Good afternoon~": "午安呀～",
+ "Good evening~": "晚上好呀～",
+ "Pine-cone jar, {n}": "松果罐，{n} 顆",
  "{n} days": "{n} 天",
  "{n} more cards and I’m full.": "再複習 {n} 張就吃飽啦。",
  "+{n} today": "今天 +{n}",

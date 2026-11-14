@@ -47,6 +47,30 @@ export function throwVelocity(samples, now) {
 }
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+// WAAPI with a timer fallback: animations do not advance in a hidden page, the sequence must still go on.
+const played = (animation, ms) => Promise.race([animation.finished.catch(() => {}), wait(ms + 60)]);
+
+// A pine cone flying on an arc from one screen point to another (also used by app.js for the review page).
+export function flyCone(svg, from, to, { ms = 520, lift = 70, spin = 1 } = {}) {
+  const el = document.createElement('div');
+  el.className = 'pet-cone-fly'; el.innerHTML = svg; document.body.append(el);
+  const frames = [];
+  for (let i = 0; i <= 12; i++) {
+    const t = i / 12, x = from.x + (to.x - from.x) * t - 12, y = from.y + (to.y - from.y) * t - lift * 4 * t * (1 - t) - 12;
+    frames.push({ transform: `translate(${x}px, ${y}px) rotate(${t * 360 * spin}deg) scale(${1 - t * 0.25})` });
+  }
+  el.style.transform = frames[0].transform;
+  return played(el.animate(frames, { duration: ms, easing: 'cubic-bezier(.35,.1,.6,1)' }), ms).then(() => el.remove());
+}
+
+function sparkle(at) {
+  const el = document.createElement('div');
+  el.className = 'pet-cone-spark'; el.textContent = '✦'; document.body.append(el);
+  const base = `translate(${at.x + 10}px, ${at.y - 18}px)`;
+  el.style.transform = base;
+  played(el.animate([{ transform: `${base} scale(.3)`, opacity: 0 }, { transform: `${base} scale(1.3) rotate(25deg)`, opacity: 1, offset: 0.4 }, { transform: `${base} translateY(-10px) scale(.8) rotate(45deg)`, opacity: 0 }], { duration: 600, easing: 'ease-out' }), 600).then(() => el.remove());
+}
 let current = null;   // the running world; a re-render replaces it at once so two squirrels never show
 let saved = null;     // where the squirrel was, kept across re-renders of the page
 
@@ -71,7 +95,7 @@ export function startPetPlay(button, scene, hooks) {
   const squash = { p: 0, v: 0 }, tilt = { p: 0, v: 0 };
   let origin = 'bottom', running = true, last = performance.now(), height = holder.offsetHeight || w;
   let flash = 0, spin = null, spins = 0, lastSpin = 0, idleAt = last + 2500, walkTo = null, peek = null, peekUntil = 0, peekBack = false, facing = 1, bobT = 0, dizzy = false;
-  let pointer = null, lastTap = 0, pressTimer = 0, samples = [];
+  let pointer = null, lastTap = 0, pressTimer = 0, samples = [], stashing = false;
 
   const box = () => {
     // Walls are the app's own edges (the room's content box is inset), the floor is where the cushion is.
@@ -123,7 +147,7 @@ export function startPetPlay(button, scene, hooks) {
     for (let t = 0; t < dt; t += 1 / 120) stepBody(body, Math.min(1 / 120, dt - t), b).forEach(hit);
     if (!body.held && !body.walking && !peek && flash && now > flash) { flash = 0; settle(); }
     if (!body.held && body.grounded && walkTo === null && img.getAttribute('src')?.includes('lifted')) { if (dizzy) show('think', 1000); else settle(); dizzy = false; }
-    if (body.grounded && !body.held && walkTo === null && !peek && now > idleAt && !document.querySelector('.mascot-ring')) idle(now);
+    if (!stashing && body.grounded && !body.held && walkTo === null && !peek && now > idleAt && !document.querySelector('.mascot-ring')) idle(now);
 
     // Jelly: one squash spring (positive flattens toward the last hit side), stretch along the flight direction,
     // a tilt that follows the drag or the flight, and an optional spin (double tap).
@@ -148,7 +172,7 @@ export function startPetPlay(button, scene, hooks) {
   // Gestures: tap = poke (jelly + hop), double tap = somersault (faster each time in a row), long press = actions
   // ring, press and drag = pick it up, let go = drop or throw.
   function down(event) {
-    if (event.button > 0 || pointer) return;
+    if (event.button > 0 || pointer || stashing) return;
     pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, dx: event.clientX - body.x, dy: event.clientY - body.y, dragging: false, long: false };
     samples = [{ x: event.clientX, y: event.clientY, t: event.timeStamp }];
     holder.setPointerCapture?.(event.pointerId);
@@ -207,7 +231,47 @@ export function startPetPlay(button, scene, hooks) {
     layer.remove();
     if (current === world) current = null;
   }
-  const world = { stop };
+  // New pine cones: one pops out above its head (learning bore fruit), it hugs it, walks to the jar and tosses it in.
+  // The first cone gets the whole scene, up to four more follow quickly, the rest go in at once.
+  // drop(k) is called as k cones land in the jar.
+  const until = test => new Promise(resolve => { const timer = setInterval(() => { if (!running || test()) { clearInterval(timer); resolve(); } }, 40); });
+  async function stash(count, jar, drop, svg) {
+    if (stashing || count <= 0) return;
+    stashing = true;
+    await wait(700);
+    const shown = Math.min(count, 5);
+    for (let i = 0; i < shown && running; i++) {
+      await until(() => body.grounded && !body.held);
+      walkTo = null; peek = null; peekUntil = 0; peekBack = false;
+      const head = { x: body.x, y: body.y - height - 14 };
+      const pop = document.createElement('div');
+      pop.className = 'pet-cone-fly'; pop.innerHTML = svg; document.body.append(pop);
+      const at = (x, y, s) => `translate(${x - 12}px, ${y - 12}px) scale(${s})`;
+      if (!i) pose('cheer');
+      sparkle(head);
+      await played(pop.animate([{ transform: at(head.x, head.y, 0), opacity: 0 }, { transform: at(head.x, head.y - 8, 1.35), opacity: 1, offset: 0.35 }, { transform: at(head.x, head.y, 1), offset: 0.65 }, { transform: at(body.x, body.y - height * 0.45, 0.8), opacity: 1 }], { duration: i ? 420 : 760, easing: 'ease-out', fill: 'forwards' }), i ? 420 : 760);
+      pop.remove();
+      pose('stash'); flash = 0; kick(i ? 3 : 6);
+      if (!i && body.grounded) { body.vy = -380; body.grounded = false; }
+      const r = jar.getBoundingClientRect(), spot = r.left + r.width * 0.62 + body.w / 2 + 4;
+      if (Math.abs(body.x - spot) > 10) {
+        await until(() => body.grounded);
+        walkTo = spot;
+        await until(() => walkTo === null);
+        pose('stash');
+      }
+      await wait(i ? 60 : 260);
+      kick(4);
+      const mouth = jar.getBoundingClientRect();
+      await flyCone(svg, { x: body.x - w * 0.2, y: body.y - height * 0.5 }, { x: mouth.left + mouth.width * 0.31, y: mouth.top + mouth.height * 0.22 }, { ms: i ? 380 : 540, lift: 54, spin: -1 });
+      if (!running) break;
+      drop(1);
+      await wait(i ? 140 : 360);
+    }
+    if (running && count > shown) drop(count - shown);
+    idleAt = performance.now() + 3000; flash = 0; settle(); stashing = false;
+  }
+  const world = { stop, stash };
   current = world;
   requestAnimationFrame(frame);
   return world;

@@ -1,5 +1,17 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Backy is asleep": "Backy는 자는 중",
+ "See you tomorrow~": "내일 봐요~",
+ "Backy is full": "Backy는 배불러요",
+ "Happy and content": "만족스러워요",
+ "Backy is eating": "Backy는 먹는 중",
+ "Taking its time": "천천히 먹고 있어요",
+ "Backy is a bit hungry": "Backy는 조금 배고파요",
+ "Waiting for you": "밥 주길 기다려요",
+ "Good morning~": "좋은 아침이에요~",
+ "Good afternoon~": "좋은 오후예요~",
+ "Good evening~": "좋은 저녁이에요~",
+ "Pine-cone jar, {n}": "솔방울 병, {n}개",
  "{n} days": "{n}일",
  "{n} more cards and I’m full.": "{n}장만 더 복습하면 배불러요.",
  "+{n} today": "오늘 +{n}",

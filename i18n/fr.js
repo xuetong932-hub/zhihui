@@ -1,5 +1,17 @@
 // fr interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Backy is asleep": "Backy dort",
+ "See you tomorrow~": "À demain~",
+ "Backy is full": "Backy est rassasié",
+ "Happy and content": "Comblé",
+ "Backy is eating": "Backy mange",
+ "Taking its time": "Il prend son temps",
+ "Backy is a bit hungry": "Backy a un peu faim",
+ "Waiting for you": "Il t’attend",
+ "Good morning~": "Bonjour~",
+ "Good afternoon~": "Bon après-midi~",
+ "Good evening~": "Bonsoir~",
+ "Pine-cone jar, {n}": "Bocal de pommes de pin, {n}",
  "{n} days": "{n} jours",
  "{n} more cards and I’m full.": "Encore {n} cartes et je suis rassasié.",
  "+{n} today": "+{n} aujourd'hui",

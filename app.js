@@ -5,7 +5,7 @@ import { localDay } from './knowledge-store.js';
 import { streakDays } from './review-store.js';
 import { DAILY_GOALS, DEFAULT_GOAL, goalOf, doneToday, goalStreak, openShareDialog } from './habit.js';
 import { pineCones, petMood, MOOD_POSE } from './pet.js';
-import { startPetPlay } from './pet-physics.js';
+import { startPetPlay, flyCone } from './pet-physics.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
 import { createAuthGate } from './auth-ui.js';
@@ -320,14 +320,57 @@ function boot() {
     });
     layer.querySelector('.ring-item').focus({ preventScroll: true });
   }
+  // The pine-cone jar on the pet page shows the cones the squirrel has already carried in. That number is kept on
+  // this device only; the real count always comes from the review history (pet.js), so the jar catches up by playing
+  // the stash scene for the difference.
+  const JAR_KEY = 'knowledge-review.pet-jar.v1';
+  function jarCount(total) {
+    let n = NaN;
+    try { n = Number.parseInt(localStorage.getItem(JAR_KEY), 10); } catch { /* This visit only. */ }
+    return Number.isFinite(n) && n >= 0 ? Math.min(n, total) : 0;
+  }
+  function saveJarCount(n) { try { localStorage.setItem(JAR_KEY, String(n)); } catch { /* This visit only. */ } }
+  // Cones pile up from the bottom of the jar (12 places); the tag shows the number.
+  const JAR_SPOTS = [[0, 0], [15, 0], [30, 0], [7, 10], [23, 10], [0, 19], [15, 19], [30, 19], [7, 28], [23, 28], [4, 36], [26, 36]];
+  function renderJar(jar, count, fresh = 0) {
+    const pile = jar.querySelector('.pet-jar-pile'), shown = Math.min(count, JAR_SPOTS.length);
+    pile.innerHTML = Array.from({ length: shown }, () => PINE_ICON).join('');
+    [...pile.children].forEach((cone, i) => {
+      cone.style.left = `${JAR_SPOTS[i][0]}px`; cone.style.bottom = `${JAR_SPOTS[i][1]}px`;
+      cone.style.transform = `rotate(${(i * 47) % 50 - 25}deg)`;
+      if (fresh && i >= shown - Math.min(fresh, shown) && count <= JAR_SPOTS.length) cone.classList.add('is-new');
+    });
+    jar.querySelector('.pet-jar-tag').textContent = String(count);
+  }
+  function bumpJar(jar) { jar.classList.remove('is-bump'); void jar.offsetWidth; jar.classList.add('is-bump'); }
+  // While reviewing, every new pine cone flies from the middle of the screen to the squirrel in the tab bar.
+  let lastCones = null;
+  function flyNewCones() {
+    if (!chat || !profile) return;
+    const total = pineCones(chat.reviewEvents(), goalOf(profile)).total, before = lastCones;
+    lastCones = total;
+    const avatar = document.querySelector('.tab-pet .pet-avatar');
+    if (before === null || total <= before || !avatar || chat.page === 'pet' || reducedMotion()) return;
+    const to = avatar.getBoundingClientRect();
+    flyCone(PINE_ICON, { x: innerWidth / 2, y: innerHeight * 0.42 }, { x: to.left + to.width / 2, y: to.top + to.height / 2 }, { ms: 700, lift: 120 })
+      .then(() => { const tab = document.querySelector('.tab-pet'); if (tab) { tab.classList.remove('is-fed'); void tab.offsetWidth; tab.classList.add('is-fed'); } });
+  }
   function bindMascot() {
     const button = document.querySelector('.today-mascot');
     if (!button) return;
     // On its own page the squirrel roams free (pet-physics.js); with reduced motion it stays on its cushion.
-    const scene = button.closest('.pet-scene-wrap');
-    if (scene && !reducedMotion()) {
-      startPetPlay(button, scene, { usual: () => button.dataset.pose, sleepy: () => button.dataset.pose === 'sleep', ring: () => openMascotRing(button) });
-      return;
+    const scene = button.closest('.pet-scene-wrap'), jar = scene?.querySelector('[data-pet-jar]');
+    if (scene && jar) {
+      const total = Number(jar.dataset.petJar) || 0;
+      let stashed = jarCount(total);
+      jar.onclick = () => bumpJar(jar);
+      if (reducedMotion()) { stashed = total; saveJarCount(total); }
+      renderJar(jar, stashed);
+      if (!reducedMotion()) {
+        const world = startPetPlay(button, scene, { usual: () => button.dataset.pose, sleepy: () => button.dataset.pose === 'sleep', ring: () => openMascotRing(button) });
+        if (total > stashed) world.stash(total - stashed, jar, k => { stashed += k; saveJarCount(stashed); renderJar(jar, stashed, k); bumpJar(jar); }, PINE_ICON);
+        return;
+      }
     }
     let press = 0, opened = false, lastTap = 0;
     const cancel = () => { clearTimeout(press); press = 0; };
@@ -355,7 +398,14 @@ function boot() {
     const events = chat.reviewEvents(), today = localDay(new Date()), goal = goalOf(profile);
     const done = new Set(events.filter(event => localDay(event.at) === today).map(event => event.cardId)).size;
     const cones = pineCones(events, goal), mood = petMood(done, goal), streak = streakDays(events), left = Math.max(0, goal - done);
-    const status = { sleep: pick('睡着了，明天见', 'Asleep. See you tomorrow'), full: pick('今天吃饱啦', 'Full for today'), eating: pick('还想再吃一点', 'A little more, please'), hungry: pick('有点饿了', 'A bit hungry') }[mood];
+    const [statusTitle, statusSub] = {
+      sleep: [pick('小回在睡觉', 'Backy is asleep'), pick('明天见～', 'See you tomorrow~')],
+      full: [pick('小回吃饱啦', 'Backy is full'), pick('心满意足', 'Happy and content')],
+      eating: [pick('小回正在吃', 'Backy is eating'), pick('慢慢吃着呢', 'Taking its time')],
+      hungry: [pick('小回有点饿', 'Backy is a bit hungry'), pick('等你来喂', 'Waiting for you')],
+    }[mood];
+    const hour = new Date().getHours();
+    const greeting = hour >= 5 && hour < 11 ? pick('早上好呀～', 'Good morning~') : hour >= 11 && hour < 14 ? pick('中午好呀～', 'Good afternoon~') : hour >= 14 && hour < 18 ? pick('下午好呀～', 'Good afternoon~') : pick('晚上好呀～', 'Good evening~');
     const note = mood === 'sleep' ? pick('晚安，明天一起复习吧。', 'Good night. Let’s review together tomorrow.')
       : cones.learnedToday ? pick('今天你学会了 {n} 个知识点，我把 {n} 颗松果收进仓库啦。', 'You learned {n} ideas today, so I tucked {n} pine cones into my store.', { n: cones.learnedToday })
       : mood === 'full' ? pick('吃得好饱！仓库里已经有 {n} 颗松果了。', 'So full! My store now holds {n} pine cones.', { n: cones.total })
@@ -363,9 +413,10 @@ function boot() {
       : pick('今天还没吃东西呢，复习几张卡片就能喂饱我。', 'I haven’t eaten today. Review a few cards to feed me.');
     const pose = MOOD_POSE[mood], fed = Math.min(100, Math.round(done / Math.max(1, goal) * 100));
     return `<section class="pet-scene-wrap"><img class="home-scene pet-scene" src="/illustrations/pet-nest.webp" alt="" decoding="async">
-        <div class="m-hello pet-hello"><h1>${pick('嗨，我是小回', 'Hi, I’m Backy')}</h1><p>${status}</p></div>
-        <div class="pet-chips"><span class="pet-chip">🍽 ${done}/${goal}</span><span class="pet-chip">${PINE_ICON} ${cones.total}</span></div>
-        <button type="button" class="today-mascot pet-mascot" data-pose="${pose}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async" draggable="false"></button></section>
+        <div class="pet-hello"><h1>${pick('嗨，我是小回', 'Hi, I’m Backy')}</h1><p>${greeting}</p></div>
+        <div class="pet-row"><div class="pet-status"><span class="pet-status-avatar"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async"></span><span class="pet-status-text"><strong>${statusTitle}</strong><span>${statusSub}</span></span></div><span class="pet-chip">🍽 ${done}/${goal}</span></div>
+        <button type="button" class="today-mascot pet-mascot" data-pose="${pose}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async" draggable="false"></button>
+        <div class="pet-floor"><button type="button" class="pet-jar" data-pet-jar="${cones.total}" aria-label="${pick('松果罐，{n} 颗', 'Pine-cone jar, {n}', { n: cones.total })}"><img class="pet-jar-glass" src="/illustrations/pine-jar.webp" alt="" decoding="async"><span class="pet-jar-pile" aria-hidden="true"></span><span class="pet-jar-tag" aria-hidden="true"></span></button></div></section>
       <section class="m-section frost-panel pet-world"><div class="section-heading"><h2>${pick('小回的小世界', 'Backy’s little world')}</h2></div><div class="pet-tiles">
         <div class="pet-tile"><span class="pet-tile-icon">${PINE_ICON}</span><strong>${pick('仓库', 'Store')}</strong><span class="pet-tile-value">${cones.total}</span><span class="muted">${pick('今天 +{n}', '+{n} today', { n: cones.today })}</span></div>
         <button type="button" class="pet-tile" data-pet-feed><span class="pet-tile-icon">🍽</span><strong>${pick('喂食', 'Feed')}</strong><span class="pet-tile-value">${done}/${goal}</span><span class="pet-meter" role="presentation"><i data-fed="${fed}"></i></span></button>
@@ -429,6 +480,7 @@ function boot() {
     document.querySelectorAll('.pet-meter i[data-fed]').forEach(bar => { bar.style.width = `${bar.dataset.fed}%`; });
     placeTabPill();
     bindMascot();
+    if (tabs) flyNewCones();
     document.querySelectorAll('[data-share-card]').forEach(button => { button.onclick = () => openShareDialog({ locale, data: shareData() }); });
     // Day / night switch (theme.js applies it before paint and remembers it per device).
     on('#theme-toggle', () => { window.knowledgeReviewTheme?.toggle(); render(); });

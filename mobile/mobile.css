@@ -345,3 +345,43 @@ button.pet-tile{cursor:pointer}
 [data-theme="dark"] .splash-slow{color:#8d8a84}
 @media (prefers-reduced-motion:reduce){.splash-stage *,.splash-stage *::before,.splash-stage *::after{animation:none!important}.splash-card,.splash-drop,.splash-spark{display:none}.splash-dots svg{animation:splash-pulse 1.4s ease-in-out infinite}}
 @keyframes splash-pulse{0%,100%{opacity:.35}50%{opacity:1}}
+/* Pet page header (after the "healing pet" reference): a lighter title in warm brown with a small greeting under it,
+   and a frosted status card (avatar + two short lines) beside the feed chip. */
+.pet-floor{position:relative;height:0;flex:none}
+.pet-hello{margin:14px 4px 0}
+.pet-hello h1{margin:0;font-size:25px;line-height:1.25;letter-spacing:.04em;color:#3b2a1a;text-shadow:0 0 12px #fbf5ea,0 0 3px #fbf5eacc!important}
+.pet-hello p{display:block;margin:5px 0 0;padding:0;border-radius:0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;font-size:13px;font-weight:500;letter-spacing:.03em;color:#4f3c28;text-shadow:0 0 8px #fbf5ea,0 0 2px #fbf5ea!important}
+[data-theme="dark"] .pet-hello h1{color:#f3eadb;text-shadow:0 1px 10px #000c!important}
+[data-theme="dark"] .pet-hello p{color:#d7cbb8;text-shadow:0 1px 6px #000c!important}
+.pet-row{display:flex;align-items:center;gap:8px;margin:16px 2px 0}
+.pet-status{display:flex;align-items:center;gap:9px;padding:7px 14px 7px 7px;border-radius:16px;background:rgba(255,250,242,.58);-webkit-backdrop-filter:blur(10px) saturate(1.2);backdrop-filter:blur(10px) saturate(1.2);box-shadow:0 4px 14px rgba(86,64,32,.08),inset 0 0 0 1px rgba(255,255,255,.55)}
+.pet-status-avatar{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#fff8ec;overflow:hidden}
+.pet-status-avatar img{width:30px;height:30px;object-fit:contain}
+.pet-status-text{display:flex;flex-direction:column;line-height:1.3}
+.pet-status-text strong{font-size:13px;font-weight:600;color:#3b2a1a}
+.pet-status-text span{font-size:11.5px;color:#7a6650}
+.pet-row .pet-chip{align-self:stretch;padding:0 12px;border-radius:16px;background:rgba(255,250,242,.58);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 4px 14px rgba(86,64,32,.08),inset 0 0 0 1px rgba(255,255,255,.55);font-size:12.5px;font-weight:600;color:#3b2a1a}
+[data-theme="dark"] .pet-status,[data-theme="dark"] .pet-row .pet-chip{background:rgba(27,31,35,.62);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+[data-theme="dark"] .pet-status-avatar{background:#2a2620}
+[data-theme="dark"] .pet-status-text strong,[data-theme="dark"] .pet-row .pet-chip{color:#f3eadb}
+[data-theme="dark"] .pet-status-text span{color:#b9ad9a}
+/* The pine-cone jar sits on the floor left of the cushion; cones pile up inside (app.js renderJar), the count is on its tag. */
+.pet-jar{position:absolute;left:10px;bottom:-4px;width:92px;padding:0;border:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transform-origin:30% 100%;filter:drop-shadow(0 6px 8px rgba(70,48,24,.18))}
+.pet-jar-glass{display:block;width:100%;height:auto;pointer-events:none}
+.pet-jar-pile{position:absolute;left:7%;bottom:24%;width:52%;height:46%;pointer-events:none}
+.pet-jar-pile svg{position:absolute;width:17px;height:17px;transform-origin:50% 60%}
+.pet-jar::after{content:"";position:absolute;left:8%;top:30%;width:14%;height:42%;border-radius:40%;background:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,0));pointer-events:none}
+.pet-jar-tag{position:absolute;left:47%;top:37%;width:17%;font-size:11px;font-weight:700;line-height:1;text-align:center;color:#5a3a1c;transform:rotate(-14deg);pointer-events:none}
+.pet-jar.is-bump{animation:jar-bump .5s cubic-bezier(.3,.7,.4,1)}
+.pet-jar.is-bump .pet-jar-tag{animation:tag-bump .5s ease}
+@keyframes jar-bump{0%{transform:scale(1,1)}25%{transform:scale(1.08,.9)}50%{transform:scale(.95,1.06) rotate(-3deg)}75%{transform:scale(1.02,.98) rotate(1.5deg)}100%{transform:none}}
+@keyframes tag-bump{0%,100%{transform:rotate(-14deg) scale(1)}40%{transform:rotate(-14deg) scale(1.5)}}
+.pet-jar-pile svg.is-new{animation:cone-in .35s cubic-bezier(.3,.7,.4,1)}
+@keyframes cone-in{from{transform:translateY(-26px) scale(.6);opacity:0}}
+/* A cone that pops out above the squirrel and flies into the jar (pet-physics.js), and the one that flies to the
+   centre tab while reviewing. */
+.pet-cone-fly{position:fixed;left:0;top:0;z-index:40;width:24px;height:24px;pointer-events:none}
+.pet-cone-fly svg{display:block;width:100%;height:100%}
+.pet-cone-spark{position:fixed;left:0;top:0;z-index:40;color:#e0a43a;font-size:16px;pointer-events:none}
+.tab-pet.is-fed .pet-avatar{animation:jar-bump .5s cubic-bezier(.3,.7,.4,1)}
+@media (prefers-reduced-motion:reduce){.pet-jar.is-bump,.pet-jar.is-bump .pet-jar-tag,.pet-jar-pile svg.is-new,.tab-pet.is-fed .pet-avatar{animation:none}}

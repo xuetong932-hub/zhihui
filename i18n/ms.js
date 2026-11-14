@@ -1,5 +1,17 @@
 // ms interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Backy is asleep": "Backy sedang tidur",
+ "See you tomorrow~": "Jumpa esok~",
+ "Backy is full": "Backy sudah kenyang",
+ "Happy and content": "Puas hati",
+ "Backy is eating": "Backy sedang makan",
+ "Taking its time": "Makan perlahan-lahan",
+ "Backy is a bit hungry": "Backy agak lapar",
+ "Waiting for you": "Menunggu anda",
+ "Good morning~": "Selamat pagi~",
+ "Good afternoon~": "Selamat petang~",
+ "Good evening~": "Selamat malam~",
+ "Pine-cone jar, {n}": "Balang buah pain, {n}",
  "{n} days": "{n} hari",
  "{n} more cards and I’m full.": "{n} kad lagi dan saya kenyang.",
  "+{n} today": "+{n} hari ini",

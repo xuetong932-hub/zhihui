@@ -20,7 +20,7 @@ const files = new Map([
   ['/zhihui.apk', ['downloads/zhihui.apk', 'application/vnd.android.package-archive']], ['/.well-known/assetlinks.json', ['.well-known/assetlinks.json', 'application/json']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   // Interface illustrations and the squirrel mascot (generated in LibTV; source PNGs and convert.py live in store-assets/libtv/ui, untracked).
-  ...['home-desk','pet-nest','home-hero','review-hero','icon-coding','icon-english','icon-work','icon-life','mascot-wave','mascot-think','mascot-cheer','mascot-sleep','mascot-shy','mascot-stash','mascot-lifted','mascot-walk'].map(name => [`/illustrations/${name}.webp`, [`illustrations/${name}.webp`, 'image/webp']]),
+  ...['home-desk','pet-nest','home-hero','review-hero','icon-coding','icon-english','icon-work','icon-life','mascot-wave','mascot-think','mascot-cheer','mascot-sleep','mascot-shy','mascot-stash','mascot-lifted','mascot-walk','pine-jar'].map(name => [`/illustrations/${name}.webp`, [`illustrations/${name}.webp`, 'image/webp']]),
   // Display font for headings: Smiley Sans / 得意黑 v2.0.1 (OFL-1.1, unmodified; licence in fonts/SmileySans-OFL.txt).
   ['/fonts/SmileySans-Oblique.woff2', ['fonts/SmileySans-Oblique.woff2', 'font/woff2']],
   // Phone layout: same app, its own entry page and styles (mobile/).

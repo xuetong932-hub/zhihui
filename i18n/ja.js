@@ -1,5 +1,17 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Backy is asleep": "Backy はおやすみ中",
+ "See you tomorrow~": "また明日ね～",
+ "Backy is full": "Backy はおなかいっぱい",
+ "Happy and content": "まんぞく",
+ "Backy is eating": "Backy はもぐもぐ中",
+ "Taking its time": "ゆっくり食べてるよ",
+ "Backy is a bit hungry": "Backy はちょっとおなかすいた",
+ "Waiting for you": "ごはん待ってるよ",
+ "Good morning~": "おはよう～",
+ "Good afternoon~": "こんにちは～",
+ "Good evening~": "こんばんは～",
+ "Pine-cone jar, {n}": "松ぼっくりの瓶、{n} 個",
  "{n} days": "{n} 日",
  "{n} more cards and I’m full.": "あと {n} 枚でおなかいっぱい。",
  "+{n} today": "今日 +{n}",

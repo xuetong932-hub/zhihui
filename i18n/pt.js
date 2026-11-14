@@ -1,5 +1,17 @@
 // pt interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Backy is asleep": "Backy está dormindo",
+ "See you tomorrow~": "Até amanhã~",
+ "Backy is full": "Backy está satisfeito",
+ "Happy and content": "Feliz e contente",
+ "Backy is eating": "Backy está comendo",
+ "Taking its time": "Comendo com calma",
+ "Backy is a bit hungry": "Backy está com um pouco de fome",
+ "Waiting for you": "Esperando por você",
+ "Good morning~": "Bom dia~",
+ "Good afternoon~": "Boa tarde~",
+ "Good evening~": "Boa noite~",
+ "Pine-cone jar, {n}": "Pote de pinhas, {n}",
  "{n} days": "{n} dias",
  "{n} more cards and I’m full.": "Mais {n} cartões e fico satisfeito.",
  "+{n} today": "+{n} hoje",
