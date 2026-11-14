@@ -8,6 +8,7 @@ import { pineCones, petMood, MOOD_POSE } from './pet.js';
 import { startPetPlay, flyCone } from './pet-physics.js';
 import { achievements, newBadges } from './achievements.js';
 import { storeView, showBadge, celebrateBadge } from './badges-ui.js';
+import { SCENES, SCENE_CATEGORIES, savedScene, saveScene, sceneImage, sceneThumb } from './scenes.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
 import { createAuthGate } from './auth-ui.js';
@@ -408,6 +409,30 @@ function boot() {
       button.mascotTimer = setTimeout(() => button.classList.remove('acting-jelly', 'acting-flip'), 900);
     });
   }
+  // Home background picker (phone home only): day / night at the top (the app's own two modes), then the scenes by
+  // category as thumbnails. Choosing one swaps the home scene at once; the sheet stays open to try others.
+  function openScenePicker(opener) {
+    if (document.querySelector('.scene-sheet-layer')) return;
+    const layer = document.createElement('div');
+    layer.className = 'scene-sheet-layer';
+    const draw = () => {
+      const dark = document.documentElement.dataset.theme === 'dark', current = savedScene().id;
+      layer.innerHTML = `<div class="scene-sheet" role="dialog" aria-modal="true" aria-label="${pick('背景', 'Background')}">
+        <div class="scene-sheet-head"><h2>${pick('背景', 'Background')}</h2><button type="button" class="scene-close" data-scene-close aria-label="${pick('关闭', 'Close')}">✕</button></div>
+        <div class="scene-mode" role="radiogroup" aria-label="${pick('白天 / 黑夜', 'Day / night')}"><button type="button" role="radio" aria-checked="${!dark}" data-scene-mode="light">☀ ${pick('白天', 'Day')}</button><button type="button" role="radio" aria-checked="${dark}" data-scene-mode="dark">☾ ${pick('黑夜', 'Night')}</button></div>
+        <div class="scene-grid">${SCENES.map(scene => { const cat = SCENE_CATEGORIES.find(([id]) => id === scene.cat)[1](); return `<button type="button" class="scene-pick ${scene.id === current ? 'active' : ''}" data-scene="${scene.id}" aria-pressed="${scene.id === current}" aria-label="${cat} · ${scene.name()}"><img src="${sceneThumb(scene, dark)}" alt="" loading="lazy" decoding="async"><span>${scene.name()}</span><em>${cat}</em></button>`; }).join('')}</div>
+      </div>`;
+      layer.querySelectorAll('[data-scene]').forEach(button => { button.onclick = () => { saveScene(button.dataset.scene); render(); draw(); }; });
+      layer.querySelectorAll('[data-scene-mode]').forEach(button => { button.onclick = () => { if (document.documentElement.dataset.theme !== button.dataset.sceneMode) window.knowledgeReviewTheme?.toggle(); render(); draw(); }; });
+      layer.querySelector('[data-scene-close]').onclick = close;
+    };
+    const close = () => { layer.classList.remove('open'); document.removeEventListener('keydown', onKey); setTimeout(() => layer.remove(), 220); document.querySelector('[data-scene-picker]')?.focus({ preventScroll: true }); };
+    const onKey = event => { if (event.key === 'Escape') close(); };
+    layer.addEventListener('click', event => { if (event.target === layer) close(); });
+    document.addEventListener('keydown', onKey);
+    draw(); document.body.append(layer); void layer.offsetWidth; layer.classList.add('open');
+    layer.querySelector('.scene-pick.active, .scene-pick')?.focus({ preventScroll: true });
+  }
   // The squirrel's level and badges (achievements.js), and its store page (pet tab → 仓库).
   let petPage = 'room';
   const petProgress = () => achievements({ events: chat.reviewEvents(), goal: goalOf(profile), cards: chat.knowledgeCards(), questions: chat.questionDates(), books: Object.keys(profile?.modules || {}).filter(isCustomModule).length });
@@ -479,8 +504,9 @@ function boot() {
     // view until the frosted module panel rises over the faded bottom of the scene.
     const status = due ? '' : total ? (pick('今天的复习完成了', 'Review done for today')) : (pick('还没有要复习的知识', 'Nothing to review yet'));
     const goalText = reached ? pick('今日目标完成 ✓', 'Goal reached ✓') : pick('今日目标 {v0} / {goal} 张', 'Today’s goal {v0} / {goal}', { v0: Math.min(done, goal), goal });
-    return `<section class="home-scene-wrap"><img class="home-scene" src="/illustrations/home-desk.webp" alt="" decoding="async">
-        <div class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1></div>
+    const dark = document.documentElement.dataset.theme === 'dark', picture = sceneImage(savedScene(), dark);
+    return `<section class="home-scene-wrap"><img class="home-scene ${picture.own ? 'is-night' : ''}" src="${picture.src}" alt="" decoding="async">
+        <div class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1><button type="button" class="scene-button" data-scene-picker aria-haspopup="dialog" aria-label="${pick('换背景', 'Change background')}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m4 17 4.5-4.5 3.5 3.5 2.5-2.5 5.5 5"/></svg></button></div>
         <div class="today-status"><button type="button" class="today-mascot" data-pose="${due ? 'wave' : total ? 'cheer' : 'think'}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${due ? 'wave' : total ? 'cheer' : 'think'}.webp" alt="" decoding="async" draggable="false"></button>${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
           <div class="today-meta"><span class="today-goal"><span class="task-ring" aria-hidden="true">${ring}</span>${goalText}</span><span><b>${streak}</b>${pick(' 天连续', ' day streak')}</span><span><b>${met}</b>${pick(' 天达成', ' days met')}</span></div></div>
         ${total ? `<button class="task-start" data-review>${due ? (pick('开始复习', 'Start review')) : (pick('再练一会', 'Practise more'))} →</button>` : `<button class="task-start" data-open-module="${activeModuleIds(profile)[0]}">${pick('去提问', 'Ask a question')} →</button>`}${reached ? shareButton('task-share') : ''}</section>
@@ -514,6 +540,7 @@ function boot() {
       ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
     document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => { petPage = 'room'; chat.go(button.dataset.tab); }; });
+    document.querySelectorAll('[data-scene-picker]').forEach(button => { button.onclick = () => openScenePicker(button); });
     document.querySelectorAll('[data-pet-store]').forEach(button => { button.onclick = () => { petPage = 'store'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('[data-store-back]').forEach(button => { button.onclick = () => { petPage = 'room'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('.level-bar i[data-level]').forEach(bar => { bar.style.width = `${bar.dataset.level}%`; });

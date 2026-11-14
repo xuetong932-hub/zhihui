@@ -598,3 +598,30 @@ main:has(.book-page) .library-switch{display:none}
 .home-scene,.pet-scene{background:#e9dcc6}
 .home-scene-wrap::after,.pet-scene-wrap::after{content:"";position:absolute;left:0;right:0;top:0;height:min(62vh,520px);background:linear-gradient(180deg,rgba(70,46,22,.30),rgba(70,46,22,.12) 55%,rgba(70,46,22,0));z-index:-1;pointer-events:none}
 [data-theme="dark"] .home-scene-wrap::after,[data-theme="dark"] .pet-scene-wrap::after{background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,0))}
+/* Home background picker (scenes.js): a small round button on the home scene and a bottom sheet with day / night and
+   the scenes by category. A real night picture is not dimmed again in night mode. */
+.home-scene-wrap .m-hello{position:relative;padding-right:var(--sp-48)}
+.scene-button{position:absolute;right:0;top:0;display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:rgba(255,250,242,.22);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#fffaf2;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 4px 12px rgba(64,40,16,.18)}
+[data-theme="dark"] .home-scene.is-night{filter:none}
+.scene-sheet-layer{position:fixed;inset:0;z-index:66;display:flex;align-items:flex-end;background:rgba(30,22,12,0);transition:background .22s ease}
+.scene-sheet-layer.open{background:rgba(30,22,12,.32)}
+.scene-sheet{width:100%;max-width:640px;max-height:82vh;margin:0 auto;padding:var(--sp-16) var(--sp-16) calc(var(--sp-24) + env(safe-area-inset-bottom));overflow-y:auto;border-radius:24px 24px 0 0;background:#fffdf9;transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.9,.25,1)}
+.scene-sheet-layer.open .scene-sheet{transform:none}
+[data-theme="dark"] .scene-sheet{background:#1b1f23}
+.scene-sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-12)}
+.scene-sheet-head h2{margin:0;font-size:20px}
+.scene-close{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:var(--surface,#f1ece2);color:var(--ink);font-size:14px}
+.scene-mode{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);padding:var(--sp-4);border-radius:999px;background:var(--surface,#f1ece2)}
+.scene-mode button{min-height:40px;border:0;border-radius:999px;background:none;color:var(--muted);font-weight:600}
+.scene-mode button[aria-checked="true"]{background:#fffdf9;color:var(--ink);box-shadow:0 2px 8px rgba(86,64,32,.12)}
+[data-theme="dark"] .scene-mode button[aria-checked="true"]{background:#2b3036}
+.scene-sheet h3{margin:var(--sp-16) 0 var(--sp-8);font-size:13px;color:var(--muted)}
+.scene-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-12)}
+.scene-pick{display:flex;flex-direction:column;gap:var(--sp-4);padding:0;border:0;background:none;color:var(--ink);font-size:12px;text-align:center}
+.scene-pick img{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:12px;box-shadow:0 4px 12px rgba(86,64,32,.12);transition:transform .2s}
+.scene-pick:active img{transform:scale(.96)}
+.scene-pick.active img{box-shadow:0 0 0 3px #fffdf9,0 0 0 5px var(--accent)}
+[data-theme="dark"] .scene-pick.active img{box-shadow:0 0 0 3px #1b1f23,0 0 0 5px var(--accent)}
+@media (prefers-reduced-motion:reduce){.scene-sheet,.scene-sheet-layer{transition:none}}
+.scene-sheet .scene-grid{margin-top:var(--sp-16);row-gap:var(--sp-16)}
+.scene-pick em{font-style:normal;font-size:11px;color:var(--muted)}
