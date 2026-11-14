@@ -35,7 +35,7 @@ typography:
   button: { size: 14px, weight: 500 }
 
 rounded: { xs: 4px, sm: 6px, md: 8px, lg: 12px, full: 9999px }
-spacing: { xxs: 4px, xs: 8px, sm: 12px, md: 16px, lg: 20px, xl: 24px, xxl: 32px, section: 48px }
+spacing: { xxs: 4px, xs: 8px, sm: 12px, md: 16px, xl: 24px, xxl: 32px, section: 48px }   # tokens --sp-4 … --sp-48 in styles.css; 20px retired 2026-11-15
 elevation:
   flat: "none + 1px hairline border"            # default cards, inputs, rows
   subtle: "rgba(0,0,0,0.04) 0 1px 2px"           # hover on cards
@@ -47,6 +47,7 @@ elevation:
 
 - **Canvas** warm cream `#f6f2ea` (light); cards `#fffdf9` with no border and a soft warm shadow `0 6px 22px rgba(86,64,32,.08)`. Night mode keeps the v1 dark palette; cards there are flat `#1a1d21`.
 - **No white cards** (2026-11-14): sections, lists, settings groups, knowledge cards, forms and the home module row sit straight on the canvas, separated by spacing and a 1px `--divider` line (warm `rgba(86,64,32,.12)`, night `rgba(255,255,255,.08)`). Surfaces stay only on inputs, buttons, chips, selectable options, dialogs and popovers, chat bubbles, the review answering card and consent notices.
+- **Spacing grid** (2026-11-15; after Material 3, Apple HIG, Adobe Spectrum, Refactoring UI): margins, paddings and gaps use 4px steps up to 16px, then 8px steps (4 8 12 16 24 32 48 …), written as `var(--sp-N)` for the common steps; `tests/spacing-grid.test.js` fails on anything else. Hierarchy from near to far: 4 icon–text, 8 title–body and related lines, 12 list items, 16 paragraphs, card padding and phone page margins, 24 between cards, 32 between page sections. Small components scale their own padding (chips 4/12, buttons 12/24) instead of the card value; touch targets stay ≥ 44px. Not spacing: 1px hairlines, safe-area insets, font sizes, line heights, and the 72px ring buttons' −36px centring margin.
 - **Radii**: floating chips 20px; buttons and chips stay full pills.
 - **One scene per page.** Phone home: a first-person desk scene (`illustrations/home-desk.webp`, soft realistic 3D, 9:16) fills the top of the screen behind a transparent header and fades into the canvas; the greeting, the large due count (76px/800, no card) with a small goal pill, and the main action sit on its calm wall; a frosted module panel rises over its faded bottom. Night mode dims the scene. Desktop home shows the clay island beside the greeting; review shows a small illustration beside its title.
 - **Mascot**: a chibi squirrel painted in a soft Japanese anime "healing" style since 2026-11-14 (thin soft brown line art, painterly fur, warm upper-left light with a rim light, so it sits inside the painted pet room; earlier it was a flat sticker) (apricot + cream, green leaf sprout, cream knowledge card instead of a nut, tail curling into a rounded square "回" spiral; no clothes). Stickers `illustrations/mascot-{wave,think,cheer,sleep}.webp`: wave beside the phone home due count, cheer there once today's review is done and in the review "plan complete" state, think on the ask page and when there are no cards yet, sleep when nothing is due. Sources in `store-assets/libtv/mascot`. Keep it small and decorative; no speech bubbles with text. Never more than one large illustration per view.
