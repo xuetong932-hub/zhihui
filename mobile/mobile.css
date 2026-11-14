@@ -589,3 +589,12 @@ main:has(.book-page) .library-switch{display:none}
 @keyframes badge-pop{0%{transform:scale(0) rotate(-200deg);opacity:0}60%{transform:scale(1.15) rotate(10deg);opacity:1}100%{transform:none}}
 @keyframes badge-rays{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.badge-big img,.badge-sheen,.badge-rays,.badge-celebrate .badge-big{animation:none}.badge-detail,.badge-celebrate{transition:none}}
+/* White text on the scenes (home desk, pet nest), 2026-11-15: warm white with a soft brown shadow instead of black
+   with a cream halo. The display font stays Smiley Sans; small lines use the UI font at 600 for legibility.
+   A light warm scrim at the top of each scene keeps the contrast up without dimming the whole picture. */
+.home-scene-wrap,.pet-scene-wrap{--scene-ink:#fffaf2;--scene-shadow:0 1px 2px rgba(64,40,16,.38),0 2px 12px rgba(64,40,16,.42),0 0 28px rgba(64,40,16,.22)}
+.home-scene-wrap .m-hello h1,.home-scene-wrap .m-hello .eyebrow,.home-scene-wrap .today-big,.home-scene-wrap .today-big span,.home-scene-wrap .today-meta>span:not(.today-goal),.home-scene-wrap .today-meta>span:not(.today-goal) b,.pet-hello h1,.pet-hello p{color:var(--scene-ink)!important;text-shadow:var(--scene-shadow)!important}
+.home-scene-wrap .m-hello .eyebrow,.home-scene-wrap .today-meta>span:not(.today-goal),.pet-hello p{font-weight:600;opacity:.96}
+.home-scene,.pet-scene{background:#e9dcc6}
+.home-scene-wrap::after,.pet-scene-wrap::after{content:"";position:absolute;left:0;right:0;top:0;height:min(62vh,520px);background:linear-gradient(180deg,rgba(70,46,22,.30),rgba(70,46,22,.12) 55%,rgba(70,46,22,0));z-index:-1;pointer-events:none}
+[data-theme="dark"] .home-scene-wrap::after,[data-theme="dark"] .pet-scene-wrap::after{background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,0))}
