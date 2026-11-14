@@ -161,5 +161,5 @@ export function createAuthGate({auth,locale,refresh,onReady}){
     on('#denied-delete',()=>run(async()=>{if(!deleteConsent){message=tr('请先勾选确认。','Confirm first.');return;}await auth.deleteAccount();await auth.signOut();deleteConsent=false;stage='signin';message=tr('账号已注销。','The account was deleted.');}));
     document.querySelectorAll('main button,main input,main select').forEach(element=>{if(busy)element.disabled=true;});
   }
-  return {view,bind,start,get ready(){return stage==='ready';},get busy(){return busy;}};
+  return {view,bind,start,get ready(){return stage==='ready';},get loading(){return stage==='loading';},get busy(){return busy;}};
 }

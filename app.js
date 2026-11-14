@@ -398,11 +398,21 @@ function boot() {
       <section class="m-section"><div class="section-heading"><h2>${pick('今日清单', 'Today’s list')}</h2></div>${reviewPreview()}</section>`;
   }
 
+  function hideSplash() {
+    const splash = document.getElementById('splash');
+    if (!splash || splash.classList.contains('is-done')) return;
+    // Ready before it faded in (fast start): drop it without ever showing it.
+    if (parseFloat(getComputedStyle(splash).opacity) < 0.05) { splash.remove(); return; }
+    splash.classList.add('is-done');
+    setTimeout(() => splash.remove(), 320);
+  }
   function renderPage() {
     setLocale(locale);
     // A saved language other than Chinese/English needs its catalog: load it, then render again in that language.
     if (needsCatalog(locale)) loadCatalog(locale).then(render);
     document.title = t('brand');
+    // The phone loading screen (squirrel animation in mobile/index.html) stays up until the sign-in check is done.
+    if (choosingLanguage || chat || !gate.loading) hideSplash();
     // The first-run guide is full-screen: no tab bar and no page navigation until it is finished or skipped.
     if (choosingLanguage) { renderLanguageChoice(); return; }
     const inApp = Boolean(chat), locked = inApp ? chat.locked : gate.busy, guide = inApp && chat.page === 'onboarding', tabs = phone && inApp && profile && !editing && !guide;
