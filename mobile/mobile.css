@@ -233,3 +233,48 @@ a.me-row{text-decoration:none}
 [data-theme="dark"] .mascot-ring.open{background:rgba(15,17,19,.72)}
 [data-theme="dark"] .ring-item{background:#23292e;box-shadow:0 8px 20px #0007}
 @media (prefers-reduced-motion:reduce){.today-mascot[class*="acting-"]{animation:none}.ring-item{transition:none}}
+/* Middle tab: the squirrel as a raised round avatar (the flowing capsule hides while its page is open). */
+.tab-pet .pet-avatar{display:grid;place-items:center;width:60px;height:60px;margin-top:-30px;border-radius:50%;background:#fffdf9;border:3px solid #f6f2ea;box-shadow:0 6px 16px rgba(86,64,32,.18);overflow:hidden;transition:transform .2s ease}
+.tab-pet .pet-avatar img{width:50px;height:auto;margin-top:4px}
+.tab-pet.active .pet-avatar{border-color:var(--accent);transform:translateY(-2px)}
+.tabbar:has(.tab-pet.active) .tab-pill{opacity:0}
+[data-theme="dark"] .tab-pet .pet-avatar{background:#23292e;border-color:#0f1113}
+[data-theme="dark"] .tab-pet.active .pet-avatar{border-color:#7cc4a0}
+/* 知识库 | 推荐 | 广场 */
+.library-switch{display:flex;width:100%;margin:2px 0 14px}
+.library-switch button{flex:1;min-height:40px}
+/* Pine-cone icon */
+.pine-icon{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.22em}
+/* Ring: emoji / icon instead of the pose pictures */
+.ring-icon{display:grid;place-items:center;width:100%;height:100%;font-size:30px;line-height:1}
+.ring-icon .pine-icon{width:36px;height:36px;vertical-align:0}
+/* Pet home */
+.pet-scene-wrap{display:flex;flex-direction:column;min-height:calc(min(100vw,640px) * 16 / 9 * .8 - 68px)}
+.pet-scene{-webkit-mask-image:linear-gradient(#000 80%,transparent 100%);mask-image:linear-gradient(#000 80%,transparent 100%)}
+.pet-hello p{display:inline-block;margin:8px 0 0;padding:4px 12px;border-radius:999px;background:#ffffffc2;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:14px;font-weight:600;color:var(--ink);text-shadow:none!important}
+[data-theme="dark"] .pet-hello p{background:#1b1f23c2}
+.pet-chips{display:flex;gap:8px;margin:12px 2px 0}
+.pet-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;background:#ffffffc2;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:14px;font-weight:600;color:var(--ink)}
+.pet-mascot{position:relative;right:auto;top:auto;align-self:center;width:156px;margin:auto 0 0}
+.pet-world .pet-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pet-tile{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 2px;border:0;border-radius:16px;background:transparent;color:var(--ink);font:inherit;text-align:center}
+button.pet-tile{cursor:pointer}
+.pet-tile-icon{display:grid;place-items:center;width:52px;height:52px;margin-bottom:4px;border-radius:50%;background:#ffffffb3;box-shadow:0 4px 14px rgba(86,64,32,.08);font-size:26px}
+.pet-tile-icon .pine-icon{width:30px;height:30px;vertical-align:0}
+.pet-tile strong{font-size:13px;font-weight:600}
+.pet-tile-value{font-family:var(--font-display);font-size:20px;line-height:1.1}
+.pet-tile .muted{font-size:11px}
+.pet-meter{display:block;width:70%;height:5px;margin-top:3px;border-radius:3px;background:rgba(86,64,32,.12);overflow:hidden}
+.pet-meter i{display:block;height:100%;width:0;border-radius:3px;background:var(--accent)}
+.pet-tile.is-soon{opacity:.5}
+.pet-letter{display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid var(--divider)}
+.pet-letter-avatar{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:#ffffffb3;overflow:hidden}
+.pet-letter-avatar img{width:44px;height:auto;margin-top:4px}
+.pet-letter h2{margin:0 0 2px;font-size:15px}
+.pet-letter p{margin:0;font-size:14px;line-height:1.5;color:var(--slate)}
+.pet-letter-mark{margin-left:auto;font-size:22px}
+[data-theme="dark"] .pet-chip{background:#1b1f23c2}
+[data-theme="dark"] .pet-tile-icon,[data-theme="dark"] .pet-letter-avatar{background:#ffffff14;box-shadow:none}
+[data-theme="dark"] .pet-meter{background:#ffffff1a}
+.pet-scene-wrap .m-hello h1{text-shadow:0 0 14px #fbf7f0,0 0 4px #fbf7f0}
+[data-theme="dark"] .pet-scene-wrap .m-hello h1{text-shadow:0 1px 10px #000c}

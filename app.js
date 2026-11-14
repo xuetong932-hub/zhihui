@@ -4,6 +4,7 @@ import { moduleIcon, iconSvg, CUSTOM_ICONS } from './module-icons.js';
 import { localDay } from './knowledge-store.js';
 import { streakDays } from './review-store.js';
 import { DAILY_GOALS, DEFAULT_GOAL, goalOf, doneToday, goalStreak, openShareDialog } from './habit.js';
+import { pineCones, petMood, MOOD_POSE } from './pet.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
 import { createAuthGate } from './auth-ui.js';
@@ -193,17 +194,24 @@ function boot() {
   // Phone layout (/m/): pages are switched from an icon tab bar at the bottom; appearance, language, account,
   // device and model settings move to the 我的 tab. The web layout is unchanged.
   const phone = document.documentElement.dataset.layout === 'mobile';
+  // Five tabs with the squirrel's home in the middle as a raised round avatar; 发现 (recommendations and the square)
+  // lives inside 知识库 on the phone, switched from the top of that page.
   const TABS = [
-    ['home', 'house', ['home', 'chat'], () => pick('首页', 'Home')], ['review', 'repeat', ['review'], () => pick('复习', 'Review')], ['library', 'book', ['library'], () => pick('知识库', 'Knowledge')],
-    ['discover', 'compass', ['discover', 'recommend', 'square'], () => pick('发现', 'Discover')], ['me', 'user', ['me', 'device', 'cloud', 'admin', 'model'], () => pick('我的', 'Me')],
+    ['home', 'house', ['home', 'chat'], () => pick('首页', 'Home')], ['review', 'repeat', ['review'], () => pick('复习', 'Review')],
+    ['pet', '', ['pet'], () => pick('小回', 'Backy')],
+    ['library', 'book', ['library', 'discover', 'recommend', 'square'], () => pick('知识库', 'Knowledge')], ['me', 'user', ['me', 'device', 'cloud', 'admin', 'model'], () => pick('我的', 'Me')],
   ];
   // Icon on top, its name below in the current language only (Chinese or English, never both).
   function tabBar(locked) {
     return `<nav class="tabbar" aria-label="${pick('主导航', 'Main')}"><span class="tab-pill" aria-hidden="true"></span>${TABS.map(([id, icon, pages, name]) => {
       const on = pages.includes(chat.page), label = name();
+      if (id === 'pet') return `<button class="tab tab-pet ${on ? 'active' : ''}" data-tab="pet" aria-label="${label}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}><span class="pet-avatar"><img src="/illustrations/mascot-wave.webp" alt="" draggable="false"></span></button>`;
       return `<button class="tab ${on ? 'active' : ''}" data-tab="${id}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}>${iconSvg(icon, 24)}<span class="tab-label">${label}</span></button>`;
     }).join('')}</nav>`;
   }
+  // 知识库 | 推荐 | 广场 switch at the top of those pages on the phone.
+  const LIBRARY_PAGES = [['library', () => pick('知识库', 'Knowledge')], ['recommend', () => pick('推荐', 'For you')], ['square', () => pick('广场', 'Square')]];
+  const librarySwitch = () => `<div class="segmented library-switch" role="group" aria-label="${pick('知识库', 'Knowledge')}">${LIBRARY_PAGES.map(([id, name]) => { const on = chat.page === id || (id === 'recommend' && chat.page === 'discover'); return `<button type="button" class="${on ? 'active' : ''}" data-lib-page="${id}" aria-pressed="${on}">${name()}</button>`; }).join('')}</div>`;
   // Tab switch motion: the capsule flows to the new tab like a drop. The leading edge arrives first and the trailing
   // edge follows a beat later, so it stretches (and flattens a little) on the way, then both settle with a small
   // spring. The new icon dips and pops back, the label colours cross-fade and the page is nudged in from the side
@@ -271,19 +279,22 @@ function boot() {
   // Squirrel actions (phone home). A tap makes the squirrel hop; a long press (or Enter / Space) opens a ring of six
   // round buttons around a larger copy of it in the middle of the screen, each showing one action. Choosing one
   // plays it on the home squirrel for a few seconds, then it returns to its usual pose for the day.
+  // The pine cone (the squirrel's currency) as a small flat icon; 🌰 would read as a chestnut.
+  const PINE_ICON = '<svg class="pine-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2c.5 1 1.7 1.6 2.6 1.4-.3.9-1.2 1.6-2.1 1.7h-1c-.9-.1-1.8-.8-2.1-1.7.9.2 2.1-.4 2.6-1.4Z" fill="#4f8a5b"/><path d="M12 6.4c3.4 0 5.6 3.2 5.6 7 0 4.2-2.6 7.4-5.6 7.4s-5.6-3.2-5.6-7.4c0-3.8 2.2-7 5.6-7Z" fill="#b8733d" stroke="#6b3f1f" stroke-width="1.2"/><path d="M7.6 11.2c1.4 1 3 1.4 4.4 1.4s3-.4 4.4-1.4M6.9 14.6c1.6 1.1 3.3 1.6 5.1 1.6s3.5-.5 5.1-1.6M8.1 18c1.2.8 2.5 1.2 3.9 1.2s2.7-.4 3.9-1.2M12 6.6v13.9" fill="none" stroke="#6b3f1f" stroke-width=".9" stroke-linecap="round" opacity=".75"/><path d="M9.4 9.4c.6-.8 1.5-1.3 2.4-1.4" fill="none" stroke="#f3d3a8" stroke-width="1" stroke-linecap="round"/></svg>';
   const MASCOT_ACTIONS = [
-    ['wave', () => pick('挥手', 'Wave')], ['cheer', () => pick('开心', 'Cheer')], ['think', () => pick('思考', 'Think')],
-    ['shy', () => pick('害羞', 'Shy')], ['stash', () => pick('藏卡片', 'Stash a card')], ['sleep', () => pick('睡觉', 'Sleep')],
+    ['wave', () => pick('挥手', 'Wave'), '👋'], ['cheer', () => pick('开心', 'Cheer'), '🎉'], ['think', () => pick('思考', 'Think'), '💭'],
+    ['shy', () => pick('害羞', 'Shy'), '😳'], ['stash', () => pick('藏松果', 'Stash a pine cone'), PINE_ICON], ['sleep', () => pick('睡觉', 'Sleep'), '😴'],
   ];
   const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   function playMascot(button, pose, hold = 3200) {
     const img = button.querySelector('img'), usual = button.dataset.pose;
     clearTimeout(button.mascotTimer);
+    const stop = () => button.classList.remove(...[...button.classList].filter(name => name.startsWith('acting-')));
     img.src = `/illustrations/mascot-${pose}.webp`;
-    button.className = 'today-mascot';
+    stop();
     void button.offsetWidth; // restart the animation when the same action is chosen twice
     if (!reducedMotion()) button.classList.add(`acting-${pose}`);
-    button.mascotTimer = setTimeout(() => { if (button.isConnected) { img.src = `/illustrations/mascot-${usual}.webp`; button.className = 'today-mascot'; } }, hold);
+    button.mascotTimer = setTimeout(() => { if (button.isConnected) { img.src = `/illustrations/mascot-${usual}.webp`; stop(); } }, hold);
   }
   function openMascotRing(button) {
     if (document.querySelector('.mascot-ring')) return;
@@ -291,7 +302,7 @@ function boot() {
     const from = button.getBoundingClientRect(), current = button.querySelector('img').getAttribute('src');
     const layer = document.createElement('div');
     layer.className = 'mascot-ring'; layer.setAttribute('role', 'dialog'); layer.setAttribute('aria-modal', 'true'); layer.setAttribute('aria-label', pick('松鼠的动作', 'Squirrel actions'));
-    layer.innerHTML = `<div class="ring-stage"><img class="ring-center" src="${current}" alt="">${MASCOT_ACTIONS.map(([pose, name], i) => `<button type="button" class="ring-item" data-action="${pose}" aria-label="${name()}"><img src="/illustrations/mascot-${pose}.webp" alt="" draggable="false"></button>`).join('')}</div>`;
+    layer.innerHTML = `<div class="ring-stage"><img class="ring-center" src="${current}" alt="">${MASCOT_ACTIONS.map(([pose, name, icon]) => `<button type="button" class="ring-item" data-action="${pose}" aria-label="${name()}"><span class="ring-icon" aria-hidden="true">${icon}</span></button>`).join('')}</div>`;
     // Positions go through the CSSOM (the page's CSP blocks style attributes).
     layer.querySelectorAll('.ring-item').forEach((item, i) => { item.style.setProperty('--angle', `${i * 60 - 90}deg`); item.style.setProperty('--delay', `${i * 35}ms`); });
     document.body.append(layer);
@@ -322,6 +333,32 @@ function boot() {
       if (opened) { opened = false; return; } // the click that ends a long press
       playMascot(button, button.dataset.pose, 900);
     });
+  }
+  // The squirrel's home (phone, middle tab): its tree-hollow room fills the top of the screen with the squirrel in the
+  // middle, two chips (fed today, pine cones), a frosted "little world" panel and a short daily note written from the
+  // day's reviews. Feeding = reviewing toward the daily goal; the store = pine cones earned by learning (pet.js).
+  function petView() {
+    const events = chat.reviewEvents(), today = localDay(new Date()), goal = goalOf(profile);
+    const done = new Set(events.filter(event => localDay(event.at) === today).map(event => event.cardId)).size;
+    const cones = pineCones(events, goal), mood = petMood(done, goal), streak = streakDays(events), left = Math.max(0, goal - done);
+    const status = { sleep: pick('睡着了，明天见', 'Asleep. See you tomorrow'), full: pick('今天吃饱啦', 'Full for today'), eating: pick('还想再吃一点', 'A little more, please'), hungry: pick('有点饿了', 'A bit hungry') }[mood];
+    const note = mood === 'sleep' ? pick('晚安，明天一起复习吧。', 'Good night. Let’s review together tomorrow.')
+      : cones.learnedToday ? pick('今天你学会了 {n} 个知识点，我把 {n} 颗松果收进仓库啦。', 'You learned {n} ideas today, so I tucked {n} pine cones into my store.', { n: cones.learnedToday })
+      : mood === 'full' ? pick('吃得好饱！仓库里已经有 {n} 颗松果了。', 'So full! My store now holds {n} pine cones.', { n: cones.total })
+      : mood === 'eating' ? pick('再复习 {n} 张就吃饱啦。', '{n} more cards and I’m full.', { n: left })
+      : pick('今天还没吃东西呢，复习几张卡片就能喂饱我。', 'I haven’t eaten today. Review a few cards to feed me.');
+    const pose = MOOD_POSE[mood], fed = Math.min(100, Math.round(done / Math.max(1, goal) * 100));
+    return `<section class="pet-scene-wrap"><img class="home-scene pet-scene" src="/illustrations/pet-nest.webp" alt="" decoding="async">
+        <div class="m-hello pet-hello"><h1>${pick('嗨，我是小回', 'Hi, I’m Backy')}</h1><p>${status}</p></div>
+        <div class="pet-chips"><span class="pet-chip">🍽 ${done}/${goal}</span><span class="pet-chip">${PINE_ICON} ${cones.total}</span></div>
+        <button type="button" class="today-mascot pet-mascot" data-pose="${pose}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async" draggable="false"></button></section>
+      <section class="m-section frost-panel pet-world"><div class="section-heading"><h2>${pick('小回的小世界', 'Backy’s little world')}</h2></div><div class="pet-tiles">
+        <div class="pet-tile"><span class="pet-tile-icon">${PINE_ICON}</span><strong>${pick('仓库', 'Store')}</strong><span class="pet-tile-value">${cones.total}</span><span class="muted">${pick('今天 +{n}', '+{n} today', { n: cones.today })}</span></div>
+        <button type="button" class="pet-tile" data-pet-feed><span class="pet-tile-icon">🍽</span><strong>${pick('喂食', 'Feed')}</strong><span class="pet-tile-value">${done}/${goal}</span><span class="pet-meter" role="presentation"><i data-fed="${fed}"></i></span></button>
+        <div class="pet-tile"><span class="pet-tile-icon">🔥</span><strong>${pick('连续', 'Streak')}</strong><span class="pet-tile-value">${streak}</span><span class="muted">${pick('{n} 天', '{n} days', { n: streak })}</span></div>
+        <div class="pet-tile is-soon" aria-disabled="true"><span class="pet-tile-icon">🛒</span><strong>${pick('商城', 'Shop')}</strong><span class="muted">${pick('即将开放', 'Coming soon')}</span></div>
+      </div></section>
+      <section class="m-section pet-letter"><span class="pet-letter-avatar"><img src="/illustrations/mascot-cheer.webp" alt="" decoding="async"></span><div><h2>${pick('小回的信', 'A note from Backy')}</h2><p>${note}</p></div><span class="pet-letter-mark" aria-hidden="true">💌</span></section>`;
   }
   // Built-in modules have a 3D illustration (illustrations/icon-<id>.webp); custom modules keep their line icon.
   const MODULE_ART = ['coding', 'english', 'work', 'life'];
@@ -358,10 +395,14 @@ function boot() {
     app.innerHTML = `
       <header class="header"><a class="brand" href="${phone ? '/m/' : '/'}" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
         ${tabs ? '' : `<div class="header-actions">${inApp && profile && !editing && !guide ? chat.nav() : ''}${themeButton()}<button class="text-button" id="language" aria-haspopup="dialog" aria-label="${pick('界面语言', 'Interface language')}" ${locked ? 'disabled' : ''}><span aria-hidden="true">🌐</span> ${localeName(locale)}</button></div>`}</header>
-      <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? meView() : chat.isHome ? homeView() : chat.view()}</main>
+      <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? meView() : tabs && chat.page === 'pet' ? petView() : tabs && ['library', 'discover', 'recommend', 'square'].includes(chat.page) ? librarySwitch() + chat.view() : chat.isHome ? homeView() : chat.view()}</main>
       ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
     document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => chat.go(button.dataset.tab); });
+    document.querySelectorAll('[data-lib-page]').forEach(button => { button.onclick = () => chat.go(button.dataset.libPage); });
+    document.querySelectorAll('[data-pet-feed]').forEach(button => { button.onclick = () => chat.go('review'); });
+    // The feed meter's width goes through the CSSOM (the page's CSP blocks style attributes).
+    document.querySelectorAll('.pet-meter i[data-fed]').forEach(bar => { bar.style.width = `${bar.dataset.fed}%`; });
     placeTabPill();
     bindMascot();
     document.querySelectorAll('[data-share-card]').forEach(button => { button.onclick = () => openShareDialog({ locale, data: shareData() }); });

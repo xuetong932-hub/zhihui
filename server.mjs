@@ -12,7 +12,7 @@ import { translateText, validateTranslate } from './translate-service.mjs';
 
 const files = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']],
-  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','module-icons.js','discover-ui.js','recommend-data.js','starter-content.js','habit.js','fsrs.js','onboarding.js','tour.js', 'square-ui.js','i18n.js','theme.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','graph-view.js','mindmap.js','viz-edit.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
+  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','module-icons.js','discover-ui.js','recommend-data.js','starter-content.js','habit.js','pet.js','fsrs.js','onboarding.js','tour.js', 'square-ui.js','i18n.js','theme.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','graph-view.js','mindmap.js','viz-edit.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
   ['/manifest.webmanifest',['manifest.webmanifest','application/manifest+json']],['/icon.svg',['icon.svg','image/svg+xml']],
   // PNG icons for installing to a phone (Android app package, home screen); made from icon.svg.
   ...['icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png'].map(name => [`/${name}`, [name, 'image/png']]),
@@ -20,7 +20,7 @@ const files = new Map([
   ['/zhihui.apk', ['downloads/zhihui.apk', 'application/vnd.android.package-archive']], ['/.well-known/assetlinks.json', ['.well-known/assetlinks.json', 'application/json']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   // Interface illustrations and the squirrel mascot (generated in LibTV; source PNGs and convert.py live in store-assets/libtv/ui, untracked).
-  ...['home-desk','home-hero','review-hero','icon-coding','icon-english','icon-work','icon-life','mascot-wave','mascot-think','mascot-cheer','mascot-sleep','mascot-shy','mascot-stash'].map(name => [`/illustrations/${name}.webp`, [`illustrations/${name}.webp`, 'image/webp']]),
+  ...['home-desk','pet-nest','home-hero','review-hero','icon-coding','icon-english','icon-work','icon-life','mascot-wave','mascot-think','mascot-cheer','mascot-sleep','mascot-shy','mascot-stash'].map(name => [`/illustrations/${name}.webp`, [`illustrations/${name}.webp`, 'image/webp']]),
   // Display font for headings: Smiley Sans / 得意黑 v2.0.1 (OFL-1.1, unmodified; licence in fonts/SmileySans-OFL.txt).
   ['/fonts/SmileySans-Oblique.woff2', ['fonts/SmileySans-Oblique.woff2', 'font/woff2']],
   // Phone layout: same app, its own entry page and styles (mobile/).
