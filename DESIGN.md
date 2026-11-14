@@ -1,7 +1,7 @@
 ---
-version: 1
+version: 2
 name: knowledge-review-design
-description: 知回 / KnowBack design system — reading-first, calm and precise. Adapted from the Mintlify analysis in VoltAgent/awesome-design-md (MIT); 知回 keeps its own name, its green accent and system fonts, and is not affiliated with Mintlify.
+description: 知回 / KnowBack design system — warm and friendly on the outside, reading-first inside. v1 was adapted from the Mintlify analysis in VoltAgent/awesome-design-md (MIT); v2 (2026-11-14) adds a warm cream canvas, soft raised cards and 3D clay illustrations. 知回 keeps its own name, its green accent and system fonts, and is not affiliated with Mintlify.
 
 colors:
   brand: "#30694f"          # 知回 green — primary CTA, focus, active states (never body text or large fills)
@@ -42,6 +42,19 @@ elevation:
   card: "rgba(0,0,0,0.08) 0 4px 12px"            # dialogs, floating cards
   brand: "rgba(48,105,79,0.10) 0 8px 24px"       # featured / celebration surfaces only
 ---
+
+## v2: warm layer (overrides v1 where they differ)
+
+- **Canvas** warm cream `#f6f2ea` (light); cards `#fffdf9` with no border and a soft warm shadow `0 6px 22px rgba(86,64,32,.08)`. Night mode keeps the v1 dark palette; cards there are flat `#1a1d21`.
+- **Radii**: cards 20px, the home hero card 28px, floating chips 20px; buttons and chips stay full pills.
+- **One scene per page.** Phone home: a first-person desk scene (`illustrations/home-desk.webp`, soft realistic 3D, 9:16) fills the top of the screen behind a transparent header and fades into the canvas; the greeting, the large due count (76px/800, no card) with a small goal pill, and the main action sit on its calm wall; a frosted module panel rises over its faded bottom. Night mode dims the scene. A custom background photo hides the scene. Desktop home shows the clay island beside the greeting; review shows a small illustration beside its title; empty / done states use the "done" illustration. Never more than one large illustration per view.
+- **Illustrations** live in `illustrations/*.webp` (transparent, made for 知回 in LibTV with Seedream; source PNGs and `convert.py` in `store-assets/libtv/ui`). Style: soft matte clay, rounded chunky shapes, warm studio light, palette cream / sage / 知回 green / warm wood / pale peach, no text or logos. They are decorative: `alt=""`, never carry information the text doesn't.
+- **Greeting** on home: 30px / 800 on the canvas, no card behind it.
+- **Main action** stays 知回 green (pill, 52px tall on phone, soft green shadow) — still one per view.
+- **Phone tab bar** floats 10px above the bottom edge, 24px radius, white with a soft shadow; fixed bars above it add `--tabbar-gap`.
+- **Module tiles** (phone home): one row of four inside the frosted panel, each a round cream thumbnail with the module's 3D icon (custom modules: line icon) and its name below.
+- Gradients are allowed only as the fade at the bottom of the home scene.
+- **Display font**: Smiley Sans / 得意黑 v2.0.1 (OFL-1.1, self-hosted unmodified at `fonts/SmileySans-Oblique.woff2`, licence beside it) via `--font-display`, only for `main h1`, section titles (`.section-heading h2`) and the big due count. It has one weight; never fake bold (font-synthesis is off). Body, buttons, cards and chips keep the UI font. Kana and Hangul fall back to the UI font. This replaces v1's "two typefaces only" rule with three: UI, display, mono.
 
 ## Principles
 

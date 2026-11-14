@@ -21,6 +21,10 @@ const files = new Map([
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
   // Built-in background photos (see docs/BACKGROUNDS.md), each with a small thumbnail for the picker.
   ...['lake','forest','sea','anime-day','anime-night','neon-street','neon-city','silhouette'].flatMap(id => [`/backgrounds/${id}.jpg`, `/backgrounds/${id}-thumb.jpg`]).map(path => [path, [path.slice(1), 'image/jpeg']]),
+  // Interface illustrations (3D clay, generated in LibTV; source PNGs and convert.py live in store-assets/libtv/ui, untracked).
+  ...['home-desk','home-hero','review-hero','done-state','icon-coding','icon-english','icon-work','icon-life'].map(name => [`/illustrations/${name}.webp`, [`illustrations/${name}.webp`, 'image/webp']]),
+  // Display font for headings: Smiley Sans / 得意黑 v2.0.1 (OFL-1.1, unmodified; licence in fonts/SmileySans-OFL.txt).
+  ['/fonts/SmileySans-Oblique.woff2', ['fonts/SmileySans-Oblique.woff2', 'font/woff2']],
   // Phone layout: same app, its own entry page and styles (mobile/).
   // Interface languages beyond Chinese and English (i18n.js loads the chosen one on demand).
   ...['zh-TW', 'ja', 'ko', 'ms', 'es', 'fr', 'pt', 'de'].map(code => [`/i18n/${code}.js`, [`i18n/${code}.js`, 'text/javascript; charset=utf-8']]),
