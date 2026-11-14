@@ -163,6 +163,19 @@ function boot() {
     if (profile) locale = profile.locale; else { openDraft(blankDraft()); editing = true; }
     chat = createChatUI({ getProfile: () => profile, getLocale: () => locale, refresh: () => render(), validateProfile: validProfile, auth, getAccount: () => account,
       shareCheckIn: () => openShareDialog({ locale, data: shareData() }),
+      // The phone bookshelf adds, renames, recolours and removes books (modules). Same rules as the settings page:
+      // removing archives the module (records kept); a custom module without records is deleted outright.
+      // Returns '' on success or an error key.
+      updateModules: change => {
+        const modules = structuredClone(profile.modules);
+        change(modules, { hasData: id => chat.moduleHasData(id) });
+        if (!Object.values(modules).some(item => item.enabled && !item.archived)) return 'keepOne';
+        if (Object.keys(modules).filter(id => isCustomModule(id) && !modules[id].archived).length > MAX_CUSTOM_MODULES) return 'tooMany';
+        if (!validModules(modules)) return 'nameError';
+        const next = { ...profile, modules };
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { return 'storageError'; }
+        profile = next; chat.ensureModule(); render(); return '';
+      },
       signOut: async () => { await auth.signOut(); location.reload(); },
       adaptLevel: (id, level, at) => {
         const next = structuredClone(profile); next.modules[id].level = level; next.modules[id].adaptedAt = at;

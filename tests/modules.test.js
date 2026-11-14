@@ -99,3 +99,9 @@ test('module icons: custom modules may pick a listed icon, built-ins keep theirs
   assert.equal(moduleIconName(profile, 'life'), 'house');
   assert.equal(moduleIconName(profile, 'coding'), 'code');
 });
+
+test('a book-cover colour is optional and must come from the palette', () => {
+  assert.equal(validModules({ ...presets(), coding: { ...presets().coding, color: 'teal' } }), true);
+  assert.equal(validModules({ ...presets(), 'c-books001': { ...custom('读书'), color: 'rose' } }), true);
+  assert.equal(validModules({ ...presets(), coding: { ...presets().coding, color: '#ff0000' } }), false);
+});

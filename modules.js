@@ -7,6 +7,8 @@ export const LEVELS = ['beginner', 'some', 'advanced'];
 export const MAX_CUSTOM_MODULES = 8;
 // Icons a custom module may pick (drawn in module-icons.js). Optional; profiles without one show a bookmark.
 export const CUSTOM_ICONS = ['bookmark', 'bulb', 'flask', 'globe', 'music', 'palette', 'chart', 'heart', 'camera', 'leaf'];
+// Book-cover colours a module may pick on the phone bookshelf (optional; without one a default is used).
+export const COVER_COLORS = ['sky', 'sage', 'honey', 'coral', 'lavender', 'teal', 'rose', 'olive'];
 export const MIN_DAILY_MINUTES = 1, MAX_DAILY_MINUTES = 120;
 const PRESET_NAMES = {
   zh: { coding: '编程', english: '英语', work: '工作知识', life: '生活常识' },
@@ -36,7 +38,7 @@ export function validModules(modules) {
   const names = new Set();
   return PRESET_MODULES.every(id => modules[id])
     && entries.every(([id, item]) => isModuleId(id) && item && typeof item.enabled === 'boolean' && LEVELS.includes(item.level)
-      && (item.archived === undefined || typeof item.archived === 'boolean') && (isPresetModule(id) || validModuleName(item.name)) && (item.icon === undefined || (!isPresetModule(id) && CUSTOM_ICONS.includes(item.icon))))
+      && (item.archived === undefined || typeof item.archived === 'boolean') && (isPresetModule(id) || validModuleName(item.name)) && (item.icon === undefined || (!isPresetModule(id) && CUSTOM_ICONS.includes(item.icon))) && (item.color === undefined || COVER_COLORS.includes(item.color)))
     // Up to 8 visible custom modules, plus room for archived ones that still hold records.
     && custom.filter(([, item]) => !item.archived).length <= MAX_CUSTOM_MODULES && custom.length <= MAX_CUSTOM_MODULES * 3
     && custom.filter(([, item]) => !item.archived).every(([, item]) => { const key = item.name.toLowerCase(); if (names.has(key)) return false; names.add(key); return true; })
