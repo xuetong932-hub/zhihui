@@ -5,6 +5,7 @@ import { localDay } from './knowledge-store.js';
 import { streakDays } from './review-store.js';
 import { DAILY_GOALS, DEFAULT_GOAL, goalOf, doneToday, goalStreak, openShareDialog } from './habit.js';
 import { pineCones, petMood, MOOD_POSE } from './pet.js';
+import { startPetPlay } from './pet-physics.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
 import { createAuthGate } from './auth-ui.js';
@@ -322,16 +323,29 @@ function boot() {
   function bindMascot() {
     const button = document.querySelector('.today-mascot');
     if (!button) return;
-    let press = 0, opened = false;
+    // On its own page the squirrel roams free (pet-physics.js); with reduced motion it stays on its cushion.
+    const scene = button.closest('.pet-scene-wrap');
+    if (scene && !reducedMotion()) {
+      startPetPlay(button, scene, { usual: () => button.dataset.pose, sleepy: () => button.dataset.pose === 'sleep', ring: () => openMascotRing(button) });
+      return;
+    }
+    let press = 0, opened = false, lastTap = 0;
     const cancel = () => { clearTimeout(press); press = 0; };
     button.addEventListener('pointerdown', event => { if (event.button > 0) return; opened = false; cancel(); press = setTimeout(() => { press = 0; opened = true; openMascotRing(button); }, 480); });
     ['pointerup', 'pointerleave', 'pointercancel'].forEach(type => button.addEventListener(type, cancel));
     button.addEventListener('contextmenu', event => event.preventDefault());
-    // A short tap hops; Enter / Space (keyboard) opens the ring, since a long press is not possible there.
+    // A tap wobbles it like jelly, a double tap is a somersault; Enter / Space (keyboard) opens the ring, since a
+    // long press is not possible there.
     button.addEventListener('click', event => {
       if (event.detail === 0) { openMascotRing(button); return; }
       if (opened) { opened = false; return; } // the click that ends a long press
-      playMascot(button, button.dataset.pose, 900);
+      const now = performance.now(), double = now - lastTap < 320;
+      lastTap = double ? 0 : now;
+      if (reducedMotion()) { playMascot(button, button.dataset.pose, 900); return; }
+      button.classList.remove('acting-jelly', 'acting-flip'); void button.offsetWidth;
+      button.classList.add(double ? 'acting-flip' : 'acting-jelly');
+      clearTimeout(button.mascotTimer);
+      button.mascotTimer = setTimeout(() => button.classList.remove('acting-jelly', 'acting-flip'), 900);
     });
   }
   // The squirrel's home (phone, middle tab): its tree-hollow room fills the top of the screen with the squirrel in the
