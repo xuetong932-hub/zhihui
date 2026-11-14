@@ -1,5 +1,5 @@
 // No API bodies, keys, account data or generated responses enter a cache.
-const CACHE='knowledge-review-shell-v31';
+const CACHE='knowledge-review-shell-v32';
 const SHELL=['/','/m/','/m/mobile.css','/styles.css','/app.js','/chat-ui.js','/chat-store.js','/providers.js','/knowledge-ui.js','/knowledge-store.js','/review-ui.js','/review-store.js','/device-ui.js','/cloud-ui.js','/model-help.js','/local-space.js','/snapshot-merge.js','/auth.js','/auth-ui.js','/admin-ui.js','/modules.js','/module-icons.js','/background.js','/discover-ui.js','/recommend-data.js','/starter-content.js','/habit.js','/fsrs.js','/onboarding.js','/tour.js','/square-ui.js','/i18n.js','/i18n/zh-TW.js','/i18n/ja.js','/i18n/ko.js','/i18n/ms.js','/i18n/es.js','/i18n/fr.js','/i18n/pt.js','/i18n/de.js','/memory-viz.js','/memory-ui.js','/docx.js','/google-docs.js','/graph-view.js','/mindmap.js','/viz-edit.js','/theme.js'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));

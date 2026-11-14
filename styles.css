@@ -375,3 +375,11 @@ footer{color:var(--stone);border-top:1px solid var(--hairline-soft);margin-top:4
 .task-start,.task-share,.module-open,.language-first .primary-button{-webkit-tap-highlight-color:transparent;transform:scale(1);transition:transform .45s cubic-bezier(.3,2.2,.5,1),background .15s,border-color .15s,color .15s}
 @supports (transition-timing-function:linear(0,1)){.task-start,.task-share,.module-open,.language-first .primary-button{transition:transform .5s linear(0,.45 12%,.95 24%,1.35 36%,1.5 46%,1.42 56%,1.2 66%,1 76%,.94 84%,.98 92%,1),background .15s,border-color .15s,color .15s}}
 :is(.task-start,.task-share,.module-open,.language-first .primary-button):active:not(:disabled){transform:scale(.96);transition:transform .1s ease-out,background .15s,border-color .15s,color .15s}
+/* Library: the model-call disclosure folds behind an info mark beside the organize button. */
+.backfill-row{position:relative;display:flex;align-items:center;gap:8px}
+.backfill-note{flex:0 0 auto}
+.backfill-note summary{list-style:none;display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--line);border-radius:50%;background:var(--surface,#fff);color:var(--stone,#888);font-size:18px;cursor:pointer}
+.backfill-note summary::-webkit-details-marker{display:none}
+.backfill-note summary:hover,.backfill-note[open] summary{color:var(--ink)}
+.backfill-note p{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:5;margin:0;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff);color:var(--ink);font-size:13px;line-height:1.6;box-shadow:0 8px 24px #0000001f}
+[data-theme="dark"] .backfill-note p{background:#1f2326;color:#e8ece9}

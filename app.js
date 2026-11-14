@@ -250,8 +250,7 @@ function boot() {
     return `<section class="me-head"><span class="me-avatar">${iconSvg('user', 28)}</span><div><h1>${esc(name)}</h1><p>${account?.local ? (pick('记录只保存在这台设备', 'Records stay on this device')) : (pick('学习记录保存在本机，可在账号中加密同步', 'Records are kept here; encrypted sync is in Account'))}</p></div></section>
       <div class="me-group"><h2>${pick('学习', 'Learning')}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), pick('目标 {v0} 张', 'Goal {v0}', { v0: goalOf(profile) }))}${row('id="background-open"', iconSvg('palette'), pick('背景', 'Background'))}${row('id="theme-toggle"', iconSvg('bulb'), pick('外观', 'Appearance'), dark ? (pick('黑夜', 'Night')) : (pick('白天', 'Day')))}${row('id="language"', iconSvg('globe'), pick('语言', 'Language'), localeName(locale))}</div>
       <div class="me-group"><h2>${pick('账号与设备', 'Account & device')}</h2>${account?.local ? row('data-signin', iconSvg('user'), pick('登录 / 注册', 'Sign in / Register')) : row('data-cloud', iconSvg('user'), pick('账号与同步', 'Account & sync'))}${row('data-device', iconSvg('camera'), pick('设备与提醒', 'Device & reminders'))}${account?.is_admin ? row('data-admin', iconSvg('chart'), pick('管理', 'Admin')) : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}${row('data-onboarding', iconSvg('compass'), pick('产品演示', 'Product tour'))}${row('data-tour', iconSvg('bulb'), pick('新手指引', 'Guided tour'))}</div>
-      ${androidBrowser() ? `<div class="me-group"><h2>${pick('安卓 App', 'Android app')}</h2><a class="me-row" href="/zhihui.apk" download="zhihui.apk"><span class="me-icon">${iconSvg('download')}</span><span class="me-label">${pick('下载安卓 App', 'Download the Android app')}</span><span class="me-value">${pick('约 1 MB', 'About 1 MB')}</span><span class="me-chevron" aria-hidden="true">›</span></a><p class="me-note">${pick('安装时手机会提示"未知来源应用"，选择仍然安装即可。App 打开的仍是知回网站，内容随网站自动更新。', 'Your phone will warn about an app from an unknown source; choose to install anyway. The app opens the KnowBack website, so it updates with the site.')}</p></div>` : ''}
-      <p class="development-note">${t('preview')}</p>`;
+      ${androidBrowser() ? `<div class="me-group"><h2>${pick('安卓 App', 'Android app')}</h2><a class="me-row" href="/zhihui.apk" download="zhihui.apk"><span class="me-icon">${iconSvg('download')}</span><span class="me-label">${pick('下载安卓 App', 'Download the Android app')}</span><span class="me-value">${pick('约 1 MB', 'About 1 MB')}</span><span class="me-chevron" aria-hidden="true">›</span></a><p class="me-note">${pick('安装时手机会提示"未知来源应用"，选择仍然安装即可。', 'Your phone will warn about an app from an unknown source; choose to install anyway.')}</p></div>` : ''}`;
   }
   // Daily goal: cards reviewed today against the goal, days in a row it was met, and the check-in image once reached.
   function goalState() {
@@ -279,12 +278,16 @@ function boot() {
     const date = new Intl.DateTimeFormat(intlLocale(currentLocale()), { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
     return `<section class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1></section>
       <section class="task-card"><div class="task-top"><div class="task-ring">${ring}<div class="task-ring-text"><strong>${done}</strong><span>/ ${goal}</span></div></div>
-        <div class="task-info"><h2>${reached ? (pick('今日目标完成 ✓', 'Goal reached ✓')) : (pick('今日目标 {goal} 张', 'Today’s goal: {goal}', { goal }))}</h2><p>${due ? (pick('还有 {due} 个知识点待复习', '{due} ideas left to review', { due })) : total ? (pick('今天的复习完成了', 'Review done for today')) : (pick('还没有要复习的知识', 'Nothing to review yet'))}</p>
+        <div class="task-info">${(() => {
+          // The ring already shows done / goal, so the heading is the status; the goal line only appears once reached.
+          const status = due ? `${due} ${t('zero')}` : total ? (pick('今天的复习完成了', 'Review done for today')) : (pick('还没有要复习的知识', 'Nothing to review yet'));
+          return reached ? `<h2>${pick('今日目标完成 ✓', 'Goal reached ✓')}</h2><p>${status}</p>` : `<h2>${status}</h2>`;
+        })()}
         <div class="task-stats"><span><b>${streak}</b>${pick(' 天连续', ' day streak')}</span><span><b>${met}</b>${pick(' 天达成', ' days met')}</span></div></div></div>
         ${total ? `<button class="task-start" data-review>${due ? (pick('开始复习', 'Start review')) : (pick('再练一会', 'Practise more'))} →</button>` : `<button class="task-start" data-open-module="${activeModuleIds(profile)[0]}">${pick('去提问', 'Ask a question')} →</button>`}${reached ? shareButton('task-share') : ''}</section>
       ${chat.starterHome() ? `<div class="m-section">${chat.starterHome()}</div>` : ''}
-      <section class="m-section"><div class="section-heading"><h2>${pick('今日清单', 'Today’s list')}</h2><span class="pill">${due} ${t('zero')}</span></div>${reviewPreview()}</section>
-      <section class="m-section"><div class="section-heading"><h2>${pick('继续提问', 'Keep asking')}</h2></div><div class="module-strip">${activeModuleIds(profile).map(id => `<button class="strip-card" data-open-module="${id}"><span class="module-badge">${moduleIcon(profile, id, 22)}</span><strong>${esc(moduleLabel(profile, id, locale))}</strong><span class="muted">${chat.messageCount(id)} ${chat.homeText('records')}</span></button>`).join('')}</div></section>`;
+      <section class="m-section"><div class="section-heading"><h2>${pick('今日清单', 'Today’s list')}</h2></div>${reviewPreview()}</section>
+      <section class="m-section"><div class="section-heading"><h2>${pick('继续提问', 'Keep asking')}</h2></div><div class="module-strip">${activeModuleIds(profile).map(id => `<button class="strip-card" data-open-module="${id}"><span class="module-badge">${moduleIcon(profile, id, 22)}</span><strong>${esc(moduleLabel(profile, id, locale))}</strong>${chat.messageCount(id) ? `<span class="muted">${chat.messageCount(id)} ${chat.homeText('records')}</span>` : ''}</button>`).join('')}</div></section>`;
   }
 
   function renderPage() {
@@ -389,27 +392,26 @@ function boot() {
     const styles = moduleStyles([...new Set([...activeModuleIds(profile), ...items.map(item => item.card.module)])]);
     const kinds = { new: pick('新学', 'New'), due: pick('到期', 'Due'), weak: pick('薄弱', 'Weak') };
     const ago = at => {
-      if (!at) return pick('还没复习过', 'Not reviewed yet');
+      if (!at) return ''; // the "New" tag already says it has never been reviewed
       const [y, m, d] = localDay(at).split('-').map(Number), now = new Date();
       const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(y, m - 1, d)) / 86400000);
       const when = days <= 0 ? (pick('今天', 'today')) : days === 1 ? (pick('昨天', 'yesterday')) : pick('{days} 天前', '{days} days ago', { days });
       return pick('上次复习：{when}', 'Last reviewed {when}', { when });
     };
     const rows = shown.map(({ card, last, kind }) => `<li class="preview-item"><div class="preview-main"><span class="preview-title">${esc(card.title)}</span><span class="preview-kind kind-${kind}">${kinds[kind]}</span></div>
-      <div class="preview-meta"><span class="preview-module">${moduleIcon(profile, card.module, 14, styles.get(card.module)?.color)}${esc(moduleLabel(profile, card.module, locale))}</span><span>${ago(last)}</span></div></li>`).join('');
+      <div class="preview-meta"><span class="preview-module">${moduleIcon(profile, card.module, 14, styles.get(card.module)?.color)}${esc(moduleLabel(profile, card.module, locale))}</span>${last ? `<span>${ago(last)}</span>` : ''}</div></li>`).join('');
     const more = items.length > shown.length ? `<p class="preview-more">${pick('还有 {v0} 条', '{v0} more', { v0: items.length - shown.length })}</p>` : '';
     return `<ol class="review-preview">${rows}</ol>${more}<div class="preview-actions">${button}</div>`;
   }
 
   function homeView() {
     const date = new Intl.DateTimeFormat(intlLocale(currentLocale()), { dateStyle: 'full' }).format(new Date());
-    return `<section class="intro home-intro"><div><span class="eyebrow">${date}</span><h1>${t('hello')}</h1><p>${t('homeHint')}</p></div><button class="secondary-button" id="settings">${t('settings')}</button></section>
+    return `<section class="intro home-intro"><div><span class="eyebrow">${date}</span><h1>${t('hello')}</h1></div><button class="secondary-button" id="settings">${t('settings')}</button></section>
       ${new Date().getDay() === 0 ? `<div class="sunday-note">${t('sunday')}</div>` : ''}${chat.starterHome()}
       <div class="dashboard"><section class="panel review-panel"><div class="section-heading"><h2>${t('today')}</h2><span class="pill">${chat.reviewCount()} ${t('zero')}</span></div>
         ${goalBar()}${reviewPreview()}</section>
         <aside class="panel plan-panel"><span class="eyebrow">${t('reviewPlan')}</span><p>${t('batchHint')}</p><hr><h3>${t('weekly')}</h3><p>${t('weekHint')}</p><h3>${t('notifications')}</h3><p>${t('notificationHint')}</p></aside></div>
-      <section class="modules-section"><div class="section-heading"><h2>${t('modulesTitle')}</h2><span class="muted">${t('local')}</span></div><div class="module-grid">${activeModuleIds(profile).map(id => `<article class="panel home-module"><span class="module-badge">${moduleIcon(profile, id, 22)}</span><span class="eyebrow">${t(profile.modules[id].level)}${isCustomModule(id) ? ` · ${t('customHint')}` : ''}</span><h3>${esc(moduleLabel(profile, id, locale))}</h3><p>${t('isolated')}</p><div class="module-count">${chat.messageCount(id)} <span>${chat.homeText('records')}</span></div><button class="secondary-button module-open" data-open-module="${id}">${chat.homeText('open')} →</button></article>`).join('')}</div></section>
-      <p class="development-note">${t('next')}</p>`;
+      <section class="modules-section"><div class="section-heading"><h2>${t('modulesTitle')}</h2></div><div class="module-grid">${activeModuleIds(profile).map(id => `<article class="panel home-module"><span class="module-badge">${moduleIcon(profile, id, 22)}</span><span class="eyebrow">${t(profile.modules[id].level)}${isCustomModule(id) ? ` · ${t('customHint')}` : ''}</span><h3>${esc(moduleLabel(profile, id, locale))}</h3>${chat.messageCount(id) ? `<div class="module-count">${chat.messageCount(id)} <span>${chat.homeText('records')}</span></div>` : ''}<button class="secondary-button module-open" data-open-module="${id}">${chat.homeText('open')} →</button></article>`).join('')}</div></section>`;
   }
 
   function saveProfile(candidate) {
