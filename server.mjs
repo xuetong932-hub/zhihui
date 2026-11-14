@@ -19,8 +19,8 @@ const files = new Map([
   // Android app: the installer, and the file that proves the app and this site belong together (docs/ANDROID_APP.md).
   ['/zhihui.apk', ['downloads/zhihui.apk', 'application/vnd.android.package-archive']], ['/.well-known/assetlinks.json', ['.well-known/assetlinks.json', 'application/json']],
   ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
-  // Interface illustrations (3D clay, generated in LibTV; source PNGs and convert.py live in store-assets/libtv/ui, untracked).
-  ...['home-desk','home-hero','review-hero','done-state','icon-coding','icon-english','icon-work','icon-life'].map(name => [`/illustrations/${name}.webp`, [`illustrations/${name}.webp`, 'image/webp']]),
+  // Interface illustrations and the squirrel mascot (generated in LibTV; source PNGs and convert.py live in store-assets/libtv/ui, untracked).
+  ...['home-desk','home-hero','review-hero','icon-coding','icon-english','icon-work','icon-life','mascot-wave','mascot-think','mascot-cheer','mascot-sleep'].map(name => [`/illustrations/${name}.webp`, [`illustrations/${name}.webp`, 'image/webp']]),
   // Display font for headings: Smiley Sans / 得意黑 v2.0.1 (OFL-1.1, unmodified; licence in fonts/SmileySans-OFL.txt).
   ['/fonts/SmileySans-Oblique.woff2', ['fonts/SmileySans-Oblique.woff2', 'font/woff2']],
   // Phone layout: same app, its own entry page and styles (mobile/).

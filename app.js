@@ -284,7 +284,7 @@ function boot() {
     const goalText = reached ? pick('今日目标完成 ✓', 'Goal reached ✓') : pick('今日目标 {v0} / {goal} 张', 'Today’s goal {v0} / {goal}', { v0: Math.min(done, goal), goal });
     return `<section class="home-scene-wrap"><img class="home-scene" src="/illustrations/home-desk.webp" alt="" decoding="async">
         <div class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1></div>
-        <div class="today-status">${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
+        <div class="today-status"><img class="today-mascot" src="/illustrations/mascot-${due ? 'wave' : total ? 'cheer' : 'think'}.webp" alt="" decoding="async">${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
           <div class="today-meta"><span class="today-goal"><span class="task-ring" aria-hidden="true">${ring}</span>${goalText}</span><span><b>${streak}</b>${pick(' 天连续', ' day streak')}</span><span><b>${met}</b>${pick(' 天达成', ' days met')}</span></div></div>
         ${total ? `<button class="task-start" data-review>${due ? (pick('开始复习', 'Start review')) : (pick('再练一会', 'Practise more'))} →</button>` : `<button class="task-start" data-open-module="${activeModuleIds(profile)[0]}">${pick('去提问', 'Ask a question')} →</button>`}${reached ? shareButton('task-share') : ''}</section>
       ${chat.starterHome() ? `<div class="m-section">${chat.starterHome()}</div>` : ''}
@@ -389,7 +389,7 @@ function boot() {
     const zh = locale === 'zh', items = chat.reviewPreview(), shown = items.slice(0, 5);
     const button = `<button class="primary-button" data-review>${pick('进入复习', 'Open review')} →</button>`;
     const hasCards = activeModuleIds(profile).some(id => chat.knowledgeCount(id));
-    if (!items.length) return `<div class="empty-state">${hasCards ? '<img class="empty-art" src="/illustrations/done-state.webp" alt="" decoding="async">' : '<div class="empty-icon" aria-hidden="true">✧</div>'}<h3>${hasCards ? (pick('今天没有到期的复习', 'Nothing due today')) : t('emptyTitle')}</h3><p>${hasCards ? (pick('新卡片从第二天开始复习；想现在练习，可以进入复习后选择“自主加练”。', 'New cards are reviewed from tomorrow. To practise now, open Review and choose Extra practice.')) : t('emptyHint')}</p>${button}</div>`;
+    if (!items.length) return `<div class="empty-state"><img class="empty-art mascot-art" src="/illustrations/mascot-${hasCards ? 'sleep' : 'think'}.webp" alt="" decoding="async"><h3>${hasCards ? (pick('今天没有到期的复习', 'Nothing due today')) : t('emptyTitle')}</h3><p>${hasCards ? (pick('新卡片从第二天开始复习；想现在练习，可以进入复习后选择“自主加练”。', 'New cards are reviewed from tomorrow. To practise now, open Review and choose Extra practice.')) : t('emptyHint')}</p>${button}</div>`;
     const styles = moduleStyles([...new Set([...activeModuleIds(profile), ...items.map(item => item.card.module)])]);
     const kinds = { new: pick('新学', 'New'), due: pick('到期', 'Due'), weak: pick('薄弱', 'Weak') };
     const ago = at => {

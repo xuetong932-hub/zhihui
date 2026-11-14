@@ -199,3 +199,7 @@ a.me-row{text-decoration:none}
 .frost-panel>.section-heading h2,.frost-panel .strip-card strong{text-shadow:0 0 12px #fbf7f0,0 0 4px #fbf7f0}
 [data-theme="dark"] .frost-panel>.section-heading h2,[data-theme="dark"] .frost-panel .strip-card strong{text-shadow:0 1px 10px #000c}
 
+
+.today-status{position:relative}
+.today-mascot{display:block;position:absolute;right:-6px;top:-18px;width:112px;height:auto;pointer-events:none;filter:drop-shadow(0 6px 10px rgba(86,64,32,.12))}
+[data-theme="dark"] .today-mascot{filter:drop-shadow(0 6px 10px rgba(0,0,0,.35))}

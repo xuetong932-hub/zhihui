@@ -376,3 +376,8 @@ main h1,.section-heading h2,.today-big{font-family:var(--font-display);font-weig
 .panel,html:not([data-layout="mobile"]):not([data-theme="dark"]) .panel{background:transparent;border:0;border-bottom:1px solid var(--divider);border-radius:0;box-shadow:none;padding-left:0;padding-right:0}
 
 .goal-bar{background:transparent;border:0;border-radius:0;padding:4px 0 12px;border-bottom:1px solid var(--divider)}
+
+/* Squirrel mascot (flat stickers in illustrations/mascot-*.webp): wave on home, think while empty, cheer when done,
+   sleep when nothing is due. Decorative only (alt=""). */
+.mascot-art{width:128px;max-width:45%}
+.today-mascot{display:none}
