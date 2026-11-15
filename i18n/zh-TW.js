@@ -1,5 +1,6 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Shows up on": "出現在",
  "Pine-cone sweater set": "松果毛衣套裝",
  "School uniform": "學院制服",
  "Clothes": "衣服",

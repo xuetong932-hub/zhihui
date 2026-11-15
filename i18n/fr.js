@@ -1,5 +1,6 @@
 // fr interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Shows up on": "Apparaît sur",
  "Pine-cone sweater set": "Ensemble pull pomme de pin",
  "School uniform": "Uniforme scolaire",
  "Clothes": "Vêtements",

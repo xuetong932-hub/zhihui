@@ -853,3 +853,17 @@ button.me-head{width:calc(100% - 8px);padding:0;border:0;background:none;color:v
 .dress-msg:empty{display:none}
 @media (prefers-reduced-motion:reduce){.dress-mascot.is-cheer,.dress-mascot.is-hop{animation:none}}
 .dress-msg.is-good{color:var(--brand);font-weight:600}
+/* Backy outside its room (2026-11-15; app.js floatMascot): on the pages chosen in the room it roams over the page with
+   the room's physics, its floor the top of the tab bar. It steps aside while answering a review card, typing, or
+   with a sheet open. With reduced motion it just stands at the bottom right and opens the actions ring on tap. */
+.float-home{position:fixed;right:var(--sp-16);bottom:calc(var(--tabbar-h) + var(--tabbar-gap) + var(--sp-12) + env(safe-area-inset-bottom));z-index:15;width:72px}
+.float-home .today-mascot{position:static;width:100%}
+.today-status .pet-spot{display:none}
+.pet-body .today-mascot.is-free{position:relative;right:auto;top:auto;width:100%;margin:0}
+body:has(.review-session.answering) .pet-play.is-float,body:has(.review-session.answering) .float-home,
+body:has(input:focus,textarea:focus,[contenteditable="true"]:focus) .pet-play.is-float,
+body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
+.pet-where h2{margin:0 0 var(--sp-8);font-size:var(--fs-15)}
+.pet-where-chips{display:flex;flex-wrap:wrap;gap:var(--sp-8)}
+.pet-where-chips .keyword-chip{min-height:40px;padding:0 var(--sp-16);font-size:var(--fs-15)}
+.pet-where-chips .keyword-chip.on{border-color:var(--accent);background:var(--brand-soft);color:var(--brand-deep);font-weight:600}

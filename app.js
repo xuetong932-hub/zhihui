@@ -4,7 +4,7 @@ import { moduleIcon, iconSvg, CUSTOM_ICONS } from './module-icons.js';
 import { localDay } from './knowledge-store.js';
 import { streakDays } from './review-store.js';
 import { DAILY_GOALS, DEFAULT_GOAL, goalOf, doneToday, goalStreak, weekSummary, openShareDialog } from './habit.js';
-import { pineCones, petMood, MOOD_POSE } from './pet.js';
+import { pineCones, petMood, MOOD_POSE, PET_PAGES, petPagesOf, togglePetPage } from './pet.js';
 import { startPetPlay, flyCone } from './pet-physics.js';
 import { achievements, newBadges } from './achievements.js';
 import { storeView, showBadge, celebrateBadge, levelCard, badgeWall, levelTitle } from './badges-ui.js';
@@ -390,7 +390,26 @@ function boot() {
     flyCone(PINE_ICON, { x: innerWidth / 2, y: innerHeight * 0.42 }, { x: to.left + to.width / 2, y: to.top + to.height / 2 }, { ms: 700, lift: 120 })
       .then(() => { const tab = document.querySelector('.tab-pet'); if (tab) { tab.classList.remove('is-fed'); void tab.offsetWidth; tab.classList.add('is-fed'); } });
   }
-  function bindMascot() {
+  // Backy outside its room: on the pages chosen there it roams the screen with the same physics (floor = tab bar).
+  // Home uses its own squirrel from the scene; the other pages get one standing at the bottom right.
+  const currentTab = () => TABS.find(([, , pages]) => pages.includes(chat.page))?.[0];
+  function floatMascot(tabs) {
+    if (!tabs || !chat) return false;
+    const tab = currentTab();
+    if (!tab || tab === 'pet' || !petPagesOf(profile).includes(tab)) return false;
+    let button = tab === 'home' ? document.querySelector('.home-scene-wrap .today-mascot') : null;
+    if (!button) {
+      const main = document.querySelector('main'); if (!main) return false;
+      const spot = document.createElement('div'); spot.className = 'float-home';
+      spot.innerHTML = `<button type="button" class="today-mascot float-mascot ${dressedClass()}" data-pose="wave" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}">${mascotPicture('wave')}</button>`;
+      main.append(spot); button = spot.querySelector('button');
+    }
+    if (reducedMotion()) { button.onclick = () => openMascotRing(button); return true; }
+    startPetPlay(button, document.querySelector('main'), { float: true, usual: () => button.dataset.pose, sleepy: () => false, ring: () => openMascotRing(button) });
+    return true;
+  }
+  function bindMascot(tabs) {
+    if (floatMascot(tabs)) return;
     const button = document.querySelector('.today-mascot');
     if (!button) return;
     // On its own page the squirrel roams free (pet-physics.js); with reduced motion it stays on its cushion.
@@ -575,6 +594,7 @@ function boot() {
         <div class="pet-tile"><span class="pet-tile-icon">🔥</span><strong>${pick('连续', 'Streak')}</strong><span class="pet-tile-value">${streak}</span><span class="muted">${pick('{n} 天', '{n} days', { n: streak })}</span></div>
         <button type="button" class="pet-tile" data-pet-shop><span class="pet-tile-icon">🛒</span><strong>${pick('商城', 'Shop')}</strong><span class="pet-tile-value">${shop.balance}</span><span class="muted">${pick('可用松果', 'to spend')}</span></button>
       </div></section>
+      <section class="m-section pet-where"><h2>${pick('出现在', 'Shows up on')}</h2><div class="pet-where-chips">${PET_PAGES.map(page => { const on = petPagesOf(profile).includes(page); return `<button type="button" class="keyword-chip ${on ? 'on' : ''}" data-pet-page="${page}" aria-pressed="${on}">${on ? '✓ ' : ''}${TABS.find(([id]) => id === page)[3]()}</button>`; }).join('')}</div></section>
       <section class="m-section pet-letter"><span class="pet-letter-avatar"><img src="/illustrations/mascot-cheer.webp" alt="" decoding="async"></span><div><h2>${pick('小回的信', 'A note from Backy')}</h2><p>${note}</p></div><span class="pet-letter-mark" aria-hidden="true">💌</span></section>`;
   }
   function homePhoneView() {
@@ -656,11 +676,16 @@ function boot() {
     document.querySelectorAll('.level-bar i[data-level]').forEach(bar => { bar.style.width = `${bar.dataset.level}%`; });
     document.querySelectorAll('[data-badge]').forEach(button => { button.onclick = () => { const badge = petProgress().badges.find(item => item.id === button.dataset.badge); if (badge) showBadge(badge).then(() => button.focus({ preventScroll: true })); }; });
     document.querySelectorAll('[data-lib-page]').forEach(button => { button.onclick = () => chat.go(button.dataset.libPage); });
+    document.querySelectorAll('[data-pet-page]').forEach(button => { button.onclick = () => {
+      const candidate = { ...profile, petPages: togglePetPage(petPagesOf(profile), button.dataset.petPage) };
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate)); profile = candidate; } catch { return; }
+      render();
+    }; });
     document.querySelectorAll('[data-pet-feed]').forEach(button => { button.onclick = () => chat.go('review'); });
     // The feed meter's width goes through the CSSOM (the page's CSP blocks style attributes).
     document.querySelectorAll('.pet-meter i[data-fed]').forEach(bar => { bar.style.width = `${bar.dataset.fed}%`; });
     placeTabPill();
-    bindMascot();
+    bindMascot(tabs);
     if (tabs) flyNewCones();
     document.querySelectorAll('[data-share-card]').forEach(button => { button.onclick = () => openShareDialog({ locale, data: shareData() }); });
     // Day / night switch (theme.js applies it before paint and remembers it per device).

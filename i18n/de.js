@@ -1,5 +1,6 @@
 // de interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Shows up on": "Erscheint auf",
  "Pine-cone sweater set": "Zapfenpullover-Set",
  "School uniform": "Schuluniform",
  "Clothes": "Kleidung",

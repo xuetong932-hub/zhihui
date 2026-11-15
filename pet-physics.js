@@ -72,17 +72,19 @@ function sparkle(at) {
   played(el.animate([{ transform: `${base} scale(.3)`, opacity: 0 }, { transform: `${base} scale(1.3) rotate(25deg)`, opacity: 1, offset: 0.4 }, { transform: `${base} translateY(-10px) scale(.8) rotate(45deg)`, opacity: 0 }], { duration: 600, easing: 'ease-out' }), 600).then(() => el.remove());
 }
 let current = null;   // the running world; a re-render replaces it at once so two squirrels never show
-let saved = null;     // where the squirrel was, kept across re-renders of the page
+let saved = null;     // where the squirrel was ({ x, y }), kept across re-renders and page changes
 
 // button: the squirrel button inside the pet scene; scene: the room it lives in.
-// hooks: usual() -> the pose for its mood, ring() opens the actions ring, sleepy() -> true while it is asleep.
+// hooks: usual() -> the pose for its mood, ring() opens the actions ring, sleepy() -> true while it is asleep,
+// float: true on the other pages (首页 / 复习 / 知识库 / 我的): no room, the floor is the top of the tab bar and it keeps
+// its height from the last page, so it stays where it was left while the page under it scrolls.
 export function startPetPlay(button, scene, hooks) {
   current?.stop();
   const img = button.querySelector('img');
   const start = button.getBoundingClientRect(), room = scene.getBoundingClientRect();
   const w = start.width, floorGap = room.bottom - start.bottom, homeX = start.left + w / 2, roomLeft = room.left;
   const layer = document.createElement('div'), holder = document.createElement('div'), shadow = document.createElement('div');
-  layer.className = 'pet-play'; holder.className = 'pet-body'; shadow.className = 'pet-shadow';
+  layer.className = hooks.float ? 'pet-play is-float' : 'pet-play'; holder.className = 'pet-body'; shadow.className = 'pet-shadow';
   holder.style.width = `${w}px`; shadow.style.width = `${w * 0.62}px`;
   // A body-level layer: the page's tab-switch animation transforms <main>, which would break position:fixed inside it.
   const spot = document.createElement('div'); // keeps the room's layout as it was
@@ -91,7 +93,7 @@ export function startPetPlay(button, scene, hooks) {
   holder.append(button); layer.append(shadow, holder); document.body.append(layer);
   button.classList.add('is-free');
 
-  const body = { x: saved?.x ?? start.left + w / 2, y: start.bottom, vx: 0, vy: 0, w: w * 0.96, h: w * 0.9, held: false, walking: false, grounded: true };
+  const body = { x: saved?.x ?? start.left + w / 2, y: hooks.float && saved?.y ? saved.y : start.bottom, vx: 0, vy: 0, w: w * 0.96, h: w * 0.9, held: false, walking: false, grounded: true };
   const squash = { p: 0, v: 0 }, tilt = { p: 0, v: 0 };
   let origin = 'bottom', running = true, last = performance.now(), height = holder.offsetHeight || w;
   let flash = 0, spin = null, spins = 0, lastSpin = 0, idleAt = last + 2500, walkTo = null, peek = null, peekUntil = 0, peekBack = false, facing = 1, bobT = 0, dizzy = false;
@@ -101,7 +103,7 @@ export function startPetPlay(button, scene, hooks) {
     // Walls are the app's own edges (the room's content box is inset), the floor is where the cushion is.
     const r = scene.getBoundingClientRect(), app = (document.getElementById('app') || document.body).getBoundingClientRect();
     const bar = document.querySelector('.tabbar')?.getBoundingClientRect();
-    const floor = Math.min(r.bottom - floorGap, bar ? bar.top - 6 : innerHeight);
+    const floor = hooks.float ? (bar ? bar.top - 6 : innerHeight - 8) : Math.min(r.bottom - floorGap, bar ? bar.top - 6 : innerHeight);
     const edge = peek ? w * 0.42 : 0;
     return { left: Math.max(0, app.left) - (peek === 'left' ? edge : 0), right: Math.min(innerWidth, app.right) + (peek === 'right' ? edge : 0), top: 0, floor };
   };
@@ -234,7 +236,7 @@ export function startPetPlay(button, scene, hooks) {
   function stop() {
     if (!running) return;
     running = false; clearTimeout(pressTimer);
-    saved = { x: body.x };
+    saved = { x: body.x, y: Math.min(body.y, box().floor) };
     layer.remove();
     if (current === world) current = null;
   }

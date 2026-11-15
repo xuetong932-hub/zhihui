@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { pineCones, petMood, PINE } from '../pet.js';
+import { pineCones, petMood, PINE, petPagesOf, togglePetPage } from '../pet.js';
 
 const at = (day, hour = 10) => new Date(`${day}T${String(hour).padStart(2, '0')}:00:00`).toISOString();
 const ev = (cardId, day, rating = 'understood') => ({ cardId, at: at(day), rating });
@@ -35,4 +35,13 @@ test('pet mood follows the day and the goal, and never gets worse than hungry', 
   assert.equal(petMood(10, 10, 12), 'full');
   assert.equal(petMood(3, 10, 12), 'eating');
   assert.equal(petMood(0, 10, 12), 'hungry');
+});
+
+test('pages where Backy roams: home by default, toggled in page order, unknown pages ignored', () => {
+  assert.deepEqual(petPagesOf({}), ['home']);
+  assert.deepEqual(petPagesOf({ petPages: [] }), []);
+  assert.deepEqual(petPagesOf({ petPages: ['me', 'evil', 'home'] }), ['home', 'me']);
+  assert.deepEqual(togglePetPage(['home'], 'library'), ['home', 'library']);
+  assert.deepEqual(togglePetPage(['home', 'library'], 'home'), ['library']);
+  assert.deepEqual(togglePetPage(['home'], 'pet'), ['home']);
 });

@@ -1,5 +1,6 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Shows up on": "나타나는 곳",
  "Pine-cone sweater set": "솔방울 스웨터 세트",
  "School uniform": "교복",
  "Clothes": "옷",

@@ -1,5 +1,6 @@
 // es interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Shows up on": "Aparece en",
  "Pine-cone sweater set": "Conjunto de jersey de piña",
  "School uniform": "Uniforme escolar",
  "Clothes": "Ropa",

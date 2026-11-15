@@ -1,5 +1,6 @@
 // ms interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Shows up on": "Muncul di",
  "Pine-cone sweater set": "Set sweater buah pain",
  "School uniform": "Pakaian seragam sekolah",
  "Clothes": "Pakaian",

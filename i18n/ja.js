@@ -1,5 +1,6 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Shows up on": "表示するページ",
  "Pine-cone sweater set": "松ぼっくりセーターのセット",
  "School uniform": "制服",
  "Clothes": "服",

@@ -53,3 +53,8 @@ export function petMood(doneToday, goal, hour = new Date().getHours()) {
   return doneToday > 0 ? 'eating' : 'hungry';
 }
 export const MOOD_POSE = { sleep: 'sleep', full: 'cheer', eating: 'wave', hungry: 'think' };
+
+// Pages besides its own where Backy roams free (chosen in its room). Profiles from before the choice existed: home.
+export const PET_PAGES = ['home', 'review', 'library', 'me'];
+export const petPagesOf = profile => Array.isArray(profile?.petPages) ? PET_PAGES.filter(page => profile.petPages.includes(page)) : ['home'];
+export const togglePetPage = (list, page) => !PET_PAGES.includes(page) ? list : list.includes(page) ? list.filter(item => item !== page) : PET_PAGES.filter(item => list.includes(item) || item === page);
