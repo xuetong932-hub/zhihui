@@ -1,5 +1,6 @@
 // es interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Drag nodes to place them (sub-points follow; remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "Arrastra los nodos para colocarlos (sus hijos los siguen; se recuerda), arrastra el fondo para moverte, pellizca o usa la rueda para hacer zoom. Toca un nodo para editarlo, añadir un hijo o borrarlo; doble toque para editar el texto.",
  "Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "Arrastra los nodos para colocarlos (se recuerda), arrastra el fondo para moverte, pellizca o usa la rueda para hacer zoom. Toca un nodo para editarlo, añadir un hijo o borrarlo; doble toque para editar el texto.",
  "Fading": "Se está olvidando",
  "Forgotten": "Olvidado",

@@ -320,7 +320,7 @@
  "Download the Android app": "下载安卓 App",
  "Download the installer (about 1 MB); it opens full screen. Choose \"Install anyway\" when asked.": "下载安装包（约 1 MB），全屏打开。安装时选择\"仍然安装\"。",
  "Download Word document": "下载 Word 文档",
- "Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "拖动节点摆放位置（会记住），拖动空白处移动画布，双指或滚轮缩放。点一下节点可修改、添加子节点或删除；双击直接改文字。",
+ "Drag nodes to place them (sub-points follow; remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "拖动节点摆放位置（子节点跟着走，会记住），拖动空白处移动画布，双指或滚轮缩放。点一下节点可修改、添加子节点或删除；双击直接改文字。",
  "Drucker's classic on knowing your strengths and how you work.": "德鲁克经典文章：认识自己的长处与工作方式。",
  "Due": "到期",
  "Each answer is condensed into a knowledge card with a title, key points and an example. No note-taking needed.": "回答后自动提炼成一张知识卡片：标题、要点和例子，不用自己做笔记。",

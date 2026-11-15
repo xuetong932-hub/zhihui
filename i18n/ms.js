@@ -1,5 +1,6 @@
 // ms interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Drag nodes to place them (sub-points follow; remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "Seret nod untuk meletakkannya (nod anak ikut; diingati), seret latar untuk bergerak, cubit atau tatal untuk zum. Ketik nod untuk mengedit, menambah anak atau memadam; ketik dua kali untuk mengedit teks.",
  "Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "Seret nod untuk meletakkannya (diingati), seret latar untuk bergerak, cubit atau tatal untuk zum. Ketik nod untuk mengedit, menambah anak atau memadam; ketik dua kali untuk mengedit teks.",
  "Fading": "Hampir lupa",
  "Forgotten": "Terlupa",

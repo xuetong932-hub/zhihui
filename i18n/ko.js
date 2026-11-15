@@ -1,5 +1,6 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Drag nodes to place them (sub-points follow; remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "노드를 끌어 배치하고(하위 노드도 함께 움직이며 위치 저장), 빈 곳을 끌어 이동하며, 두 손가락이나 휠로 확대·축소해요. 노드를 탭하면 수정·하위 노드 추가·삭제, 두 번 탭하면 글자를 바로 수정해요.",
  "Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "노드를 끌어 배치하고(위치 저장), 빈 곳을 끌어 이동하며, 두 손가락이나 휠로 확대·축소해요. 노드를 탭하면 수정·하위 노드 추가·삭제, 두 번 탭하면 글자를 바로 수정해요.",
  "Fading": "잊혀 가는 중",
  "Forgotten": "잊음",

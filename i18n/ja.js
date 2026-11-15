@@ -1,5 +1,6 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Drag nodes to place them (sub-points follow; remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "ノードをドラッグして配置（子ノードも一緒に動き、位置は保存）、背景のドラッグで移動、ピンチやホイールで拡大縮小。ノードをタップすると編集・子ノード追加・削除、ダブルタップで文字を編集。",
  "Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "ノードをドラッグして配置（位置は保存）、背景のドラッグで移動、ピンチやホイールで拡大縮小。ノードをタップすると編集・子ノード追加・削除、ダブルタップで文字を編集。",
  "Fading": "忘れかけ",
  "Forgotten": "忘れた",

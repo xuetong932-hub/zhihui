@@ -419,3 +419,16 @@ main h1,.section-heading h2,.today-big{font-family:var(--font-display);font-weig
 @media (max-width:420px){.status-legend{grid-template-columns:repeat(2,1fr)}}
 .mm-host .graph-label{font-size:13px}
 .mm-host .graph-hub .graph-label{font-size:12px;font-weight:700}
+
+/* Mind map canvas (mindmap-canvas.js): mind-map look, free node positions. */
+.mm-host{border:1px solid var(--line);border-radius:16px;background:var(--mm-bg,#fbf8f2);overflow:hidden}
+[data-theme="dark"] .mm-host{--mm-bg:#16191c;--mm-text:#e8e2d6}
+.mmc-svg{display:block;width:100%;height:auto;touch-action:none;user-select:none;cursor:grab}
+.mmc-node{cursor:pointer}
+.mmc-label{font-size:13px;font-weight:600;pointer-events:none}
+.mmc-d0 .mmc-label{font-size:15px;font-weight:700}
+.mmc-d2 .mmc-label{font-size:12.5px;font-weight:500}
+.mmc-leaf-box{fill:var(--mm-bg,#fbf8f2);stroke-width:1.2;stroke-opacity:.6}
+.mmc-link{opacity:.75}
+.mmc-node.is-selected rect{stroke:var(--accent);stroke-width:3;stroke-opacity:1}
+.mmc-node:focus-visible rect{stroke:var(--accent);stroke-width:3}

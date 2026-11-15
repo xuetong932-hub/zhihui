@@ -1,6 +1,7 @@
 import { memoryPoints, moduleStyles, graphEdges, memoryStatus, BANDS } from './memory-viz.js';
 import { mountGraph } from './graph-view.js';
 import { buildMindmap } from './mindmap.js';
+import { mountMindmap } from './mindmap-canvas.js';
 import { tap, downloadPng, downloadSvg, downloadText, nodeAt, editTree, validTree, treeMarkdown, safeFileName } from './viz-edit.js';
 // Saved model results: semantic relations between ideas and per-idea mind map expansions.
 const RELATIONS_KEY = 'knowledge-review.relations.v1', MINDMAP_KEY = 'knowledge-review.mindmaps.v1';
@@ -109,7 +110,7 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
       if (tree && mindmapSelected !== null && !nodeAt(tree, mindmapSelected)) mindmapSelected = null;
       const node = tree && mindmapSelected !== null ? nodeAt(tree, mindmapSelected) : null, isRoot = mindmapSelected === '';
       return `<section class="panel"><div class="viz-head"><h2>${text('思维导图', 'Mind map')}</h2>${card ? `<div class="viz-downloads"><button class="text-button" id="mm-png">${text('下载 PNG', 'PNG')}</button><button class="text-button" id="mm-svg">${text('下载 SVG', 'SVG')}</button><button class="text-button" id="mm-md">${text('下载 Markdown', 'Markdown')}</button></div>` : ''}</div>
-        <p class="viz-hint">${text('拖动节点摆放位置（会记住），拖动空白处移动画布，双指或滚轮缩放。点一下节点可修改、添加子节点或删除；双击直接改文字。', 'Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.')}</p>
+        <p class="viz-hint">${text('拖动节点摆放位置（子节点跟着走，会记住），拖动空白处移动画布，双指或滚轮缩放。点一下节点可修改、添加子节点或删除；双击直接改文字。', 'Drag nodes to place them (sub-points follow; remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.')}</p>
         ${node ? `<div class="viz-editor"><label class="field-label" for="mm-input">${isRoot ? text('修改中心主题', 'Edit the centre') : text('修改节点', 'Edit node')}</label><div class="viz-editor-row"><input id="mm-input" type="text" maxlength="200" value="${e(node.label)}"><button class="primary-button" id="mm-save">${text('保存', 'Save')}</button></div>
           <div class="viz-editor-row"><button class="secondary-button" id="mm-add">＋ ${text('添加子节点', 'Add child')}</button><button class="text-button danger-text" id="mm-delete" ${isRoot ? 'disabled' : ''}>${text('删除', 'Delete')}</button><button class="text-button" id="mm-cancel">${text('取消', 'Cancel')}</button></div></div>` : ''}
         ${card ? `<div class="library-controls"><label>${text('知识点', 'Idea')}<select id="mindmap-card">${list.map(item => `<option value="${item.id}" ${item.id === card.id ? 'selected' : ''}>${e(moduleName(item.module))} · ${e(item.title)}</option>`).join('')}</select></label><button class="secondary-button" id="mindmap-expand" ${busy ? 'disabled' : ''}>${expansion ? text('重新用模型展开', 'Expand again with model') : text('用模型展开（调用模型）', 'Expand with model (uses model)')}</button></div>
@@ -201,28 +202,15 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
     if (select) select.onchange = () => { mindmapId = select.value; collapsed.clear(); mindmapFocus = null; mindmapSelected = null; mindmapMessage = ''; refresh(); };
     const card = activeCards().find(item => item.id === mindmapId), list = activeCards(), current = () => card && (editedTree(card.id) || autoTree(card, list));
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
-    // The map is drawn on the same draggable canvas as the knowledge graph: the centre topic, its branches (one colour
-    // each) and their sub-points, first laid out in rings, then wherever the user drags them (saved per idea).
+    // A real mind map (idea in the middle, branches right and left, details further out) on a free canvas: every node
+    // can be dragged anywhere and its sub-points follow; moves are saved per idea as offsets from the automatic layout.
     // Tap = select (editor opens), double tap = edit the text.
-    const host = document.querySelector('#mm-host'), scopeKey = card ? `mm:${card.id}` : '';
+    const host = document.querySelector('#mm-host'), scopeKey = card ? `mmo:${card.id}` : '';
     if (host && card) {
-      // A narrow screen gets a narrower, taller canvas so labels stay readable instead of the map being shrunk to fit.
-      const narrow = host.clientWidth < 560, W = narrow ? 420 : 760, H = narrow ? 600 : 520, ring = narrow ? 0.62 : 1;
-      const tree = current(), positions = positionsFor(scopeKey), nodes = [], links = [];
-      const COLORS = ['#2f6fb0', '#c0392b', '#2e7d4f', '#d68910', '#7b4fa6', '#16808a', '#b0487c', '#6b7c2e'];
-      const walk = (node, path, depth, color, a0, a1, parent) => {
-        const id = path === '' ? 'root' : `n${path}`, angle = (a0 + a1) / 2, radius = depth ? (130 + (depth - 1) * 110) * ring : 0;
-        if (!positions.has(id)) positions.set(id, { x: W / 2 + Math.cos(angle) * radius, y: H / 2 + Math.sin(angle) * radius * (narrow ? 1.25 : 0.8), fixed: false });
-        nodes.push({ id, path, label: node.label, kind: depth ? 'card' : 'hub', color, size: depth === 1 ? 3 : depth === 2 ? 1.5 : 0.5, selected: mindmapSelected === path, detail: [['strong', node.label]] });
-        if (parent) links.push({ source: parent, target: id, kind: 'spoke' });
-        const kids = node.children || [], span = (a1 - a0) / Math.max(1, kids.length);
-        kids.forEach((child, i) => walk(child, path === '' ? String(i) : `${path}.${i}`, depth + 1, depth ? color : COLORS[i % COLORS.length], a0 + span * i, a0 + span * (i + 1), id));
-      };
-      walk(tree, '', 0, '#30694f', -Math.PI / 2, Math.PI * 1.5, null);
-      const showEditor = () => requestAnimationFrame(() => document.querySelector('#mm-input')?.closest('.viz-editor')?.scrollIntoView({ block: 'nearest' }));
-      mountGraph(host, { nodes, links, theme: graphTheme(), positions, labelMax: 12, width: W, height: H,
-        onTap: node => { mindmapSelected = node.path; refresh(); showEditor(); },
-        onDouble: node => { mindmapSelected = node.path; editNow = true; refresh(); showEditor(); },
+      const narrow = host.clientWidth < 560, showEditor = () => requestAnimationFrame(() => document.querySelector('#mm-input')?.closest('.viz-editor')?.scrollIntoView({ block: 'nearest' }));
+      mountMindmap(host, { tree: current(), offsets: positionsFor(scopeKey), selected: mindmapSelected, width: narrow ? 360 : 760, height: narrow ? 480 : 520, minScale: narrow ? 0.62 : 0.35,
+        onSelect: path => { mindmapSelected = path; refresh(); showEditor(); },
+        onEdit: path => { mindmapSelected = path; editNow = true; refresh(); showEditor(); },
         onMoved: () => saveLayout(scopeKey) });
     }
     on('#mm-relayout', () => { if (!scopeKey) return; positionsFor(scopeKey).clear(); saveLayout(scopeKey); refresh(); });

@@ -1,5 +1,6 @@
 // de interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Drag nodes to place them (sub-points follow; remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "Ziehen Sie Knoten an ihren Platz (Unterpunkte wandern mit; wird gespeichert), ziehen Sie den Hintergrund zum Verschieben, zoomen Sie mit zwei Fingern oder dem Mausrad. Tippen Sie einen Knoten an, um ihn zu bearbeiten, ein Kind hinzuzufügen oder ihn zu löschen; doppelt tippen bearbeitet den Text.",
  "Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "Ziehen Sie Knoten an ihren Platz (wird gespeichert), ziehen Sie den Hintergrund zum Verschieben, zoomen Sie mit zwei Fingern oder dem Mausrad. Tippen Sie einen Knoten an, um ihn zu bearbeiten, ein Kind hinzuzufügen oder ihn zu löschen; doppelt tippen bearbeitet den Text.",
  "Fading": "Verblasst",
  "Forgotten": "Vergessen",

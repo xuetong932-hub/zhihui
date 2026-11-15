@@ -1,5 +1,6 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Drag nodes to place them (sub-points follow; remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "拖動節點擺放位置（子節點跟著走，會記住），拖動空白處移動畫布，雙指或滾輪縮放。點一下節點可修改、新增子節點或刪除；雙擊直接改文字。",
  "Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "拖動節點擺放位置（會記住），拖動空白處移動畫布，雙指或滾輪縮放。點一下節點可修改、新增子節點或刪除；雙擊直接改文字。",
  "Fading": "快忘了",
  "Forgotten": "已遺忘",
