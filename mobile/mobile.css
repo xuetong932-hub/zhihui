@@ -670,3 +670,10 @@ button.me-head{width:calc(100% - 8px);padding:0;border:0;background:none;color:v
 .avatar-poses button{aspect-ratio:1;padding:var(--sp-4);border:0;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fffdf8,#f1dfbd)}
 .avatar-poses img{width:100%;height:100%;object-fit:contain}
 .avatar-reset{display:block;margin:var(--sp-16) auto 0}
+/* Squirrel tab inside the bar (2026-11-15): same row and size as the other tabs, with its name under it; chosen = a
+   soft lifted shadow only (no green ring, no capsule). */
+.tab-pet .pet-avatar{width:32px;height:32px;margin-top:0;border:0;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fffdf8,#f1dfbd);box-shadow:none;transition:transform .25s cubic-bezier(.2,.9,.25,1.2),box-shadow .25s ease}
+.tab-pet .pet-avatar img{width:28px;margin-top:var(--sp-4)}
+.tab-pet.active .pet-avatar{border:0;transform:translateY(-2px) scale(1.08);box-shadow:0 6px 12px rgba(86,64,32,.28),0 2px 4px rgba(86,64,32,.18)}
+[data-theme="dark"] .tab-pet .pet-avatar{background:radial-gradient(circle at 40% 35%,#3a342b,#262019)}
+[data-theme="dark"] .tab-pet.active .pet-avatar{border:0;box-shadow:0 6px 14px rgba(0,0,0,.55)}
