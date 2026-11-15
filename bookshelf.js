@@ -4,10 +4,10 @@
 // edit mode (books wobble, a sheet offers rename / cover colour / delete). knowledge-ui.js owns the state and data.
 import { escapeHtml as e } from './chat-store.js';
 import { pick } from './i18n.js';
-import { COVER_COLORS, CUSTOM_ICONS, isPresetModule } from './modules.js';
+import { COVER_COLORS, CUSTOM_ICONS, isPresetModule, ASK_MODULE } from './modules.js';
 import { iconSvg } from './module-icons.js';
 
-const PRESET_COLOR = { coding: 'sky', english: 'sage', work: 'honey', life: 'coral' };
+const PRESET_COLOR = { coding: 'sky', english: 'sage', work: 'honey', life: 'coral', health: 'rose', finance: 'olive', design: 'lavender', science: 'teal', humanities: 'honey', law: 'sky', mind: 'coral', other: 'sage' };
 const PRESET_ART = ['coding', 'english', 'work', 'life'];
 export function coverColor(profile, id) {
   const own = profile?.modules?.[id]?.color;
@@ -50,7 +50,7 @@ export function shelfView({ books, mode, selected, last, editing, canAdd, sheet,
   ${sheetBook ? `<div class="book-sheet-layer" data-sheet-close><div class="book-sheet" role="menu" aria-label="${e(sheetBook.name)}"><strong>${e(sheetBook.name)}</strong>
     ${isPresetModule(sheetBook.id) ? '' : `<button type="button" role="menuitem" data-sheet="rename">${pick('改名', 'Rename')}</button>`}
     <button type="button" role="menuitem" data-sheet="color">${pick('换封面颜色', 'Cover colour')}</button>
-    <button type="button" role="menuitem" class="danger" data-sheet="delete">${isPresetModule(sheetBook.id) ? pick('从书架移走', 'Remove from shelf') : pick('删除', 'Delete')}</button>
+    ${sheetBook.id === ASK_MODULE ? '' : `<button type="button" role="menuitem" class="danger" data-sheet="delete">${isPresetModule(sheetBook.id) ? pick('从书架移走', 'Remove from shelf') : pick('删除', 'Delete')}</button>`}
     <button type="button" role="menuitem" data-sheet="cancel">${pick('取消', 'Cancel')}</button></div></div>` : ''}
   ${menu ? `<div class="book-sheet-layer" data-sheet-close><div class="book-sheet" role="menu" aria-label="${pick('更多', 'More')}">
     <button type="button" role="menuitem" data-menu="trash">${pick('回收站', 'Trash')}</button>

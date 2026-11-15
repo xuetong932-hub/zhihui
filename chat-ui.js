@@ -6,7 +6,7 @@ import {createDeviceUI} from './device-ui.js';
 import {createCloudUI} from './cloud-ui.js';
 import {attachModelHelp} from './model-help.js';
 import {createAdminUI} from './admin-ui.js';
-import {moduleLabel,activeModuleIds,isActiveModule,isCustomModule} from './modules.js';
+import {moduleLabel,activeModuleIds,isActiveModule,isCustomModule,ASK_MODULE,LEGACY_PRESETS} from './modules.js';
 import {moduleIcon} from './module-icons.js';
 import {createDiscoverUI} from './discover-ui.js';
 import {createSquareUI} from './square-ui.js';
@@ -121,7 +121,8 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   const FREE_CONSENT_KEY = 'knowledge-review.free-consent.v1', freeConfig = () => ({ version: 1, provider: 'zhipu-free', model: providers['zhipu-free'].model, workspace: '', search: false });
   if (auth?.freeModel && !storedConfig) config = freeConfig();
   const isFree = (value = config) => Boolean(providers[value.provider]?.free);
-  let page = 'home', returnPage = 'home', activeModule = 'coding';
+  // Questions are asked in one place (ASK_MODULE); older conversations stay in the module they were asked in.
+  let page = 'home', returnPage = 'home', activeModule = ASK_MODULE;
   let apiKey = '', consent = false, busy = false, controller, notice = '';
   try { if (isFree() && localStorage.getItem(FREE_CONSENT_KEY) === '1') consent = true; } catch { /* Asks again. */ }
   // Today's free allowance as reported by the server: {signedIn, ask:{used,limit}, grade:{used,limit}}.
@@ -180,14 +181,15 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   }
   // The completion popup lets the user pick a module to ask in next.
   const review=createReviewUI({locale:getLocale,profile:getProfile,cards:library.cards,markWeak:library.markWeak,refresh,adaptLevel,
-    modules:()=>activeModuleIds(getProfile()).map(id=>({id,name:moduleName(id)})),openModule:id=>openModule(id),goHome:()=>{page='home';refresh();},canUseModel:()=>canGrade(),onShare:()=>shareCheckIn(),call:(task,card,answer)=>{
+    modules:()=>[{id:ASK_MODULE,name:pick('去提问', 'Ask a question')}],openModule:id=>openModule(id),goHome:()=>{page='home';refresh();},canUseModel:()=>canGrade(),onShare:()=>shareCheckIn(),call:(task,card,answer)=>{
     if(!ready())return Promise.reject(new Error('key'));
     return request('/api/review-task',{config:{...config},apiKey,consent,...moduleInfo(card.module),level:getProfile().modules[card.module].level,locale:getLocale(),task,card:{title:card.title,summary:card.summary,example:card.example},answer});
   }});
   // The signed-in account as the local-data owner; backups of other accounts cannot be swapped in.
   const owner=()=>auth?.user&&auth.config?{url:auth.config.url,userId:auth.user.id,label:getAccount?.()?.username||''}:null;
   const admin=createAdminUI({locale:getLocale,refresh,auth});
-  const discover=createDiscoverUI({locale:getLocale,refresh,cards:library.cards,profile:getProfile,account:()=>getAccount?.(),modules:()=>activeModuleIds(getProfile()).map(id=>({id,name:moduleName(id)}))});
+  const discoverIds=()=>{const ids=activeModuleIds(getProfile()),used=ids.filter(id=>id!==ASK_MODULE&&library.cards().some(card=>card.module===id&&card.status==='active'));return used.length?used:ids.filter(id=>LEGACY_PRESETS.includes(id));};
+  const discover=createDiscoverUI({locale:getLocale,refresh,cards:library.cards,profile:getProfile,account:()=>getAccount?.(),modules:()=>discoverIds().map(id=>({id,name:moduleName(id)}))});
   const square=createSquareUI({auth,getAccount,locale:getLocale,refresh,moduleName});
   const device=createDeviceUI({locale:getLocale,refresh,validateProfile,reloadLocal,owner,due:()=>getProfile()?review.count():0,openReview:()=>{page='review';refresh();}});
   const cloud=createCloudUI({locale:getLocale,validateProfile,refresh,reloadLocal,auth,getAccount,owner,signOut,getModelKey:()=>({config:{...config},apiKey}),acceptModelKey:value=>{
@@ -203,16 +205,18 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     for(const id of Object.keys(selected))delete selected[id];
     reloadProfile();library.reload();review.reload();ensureModule();
   }
-  function ensureModule(){const profile=getProfile();if(profile&&!isActiveModule(profile,activeModule))activeModule=activeModuleIds(profile)[0];}
+  function ensureModule(){const profile=getProfile();if(profile&&activeModule!==ASK_MODULE&&!isActiveModule(profile,activeModule))activeModule=ASK_MODULE;}
   let recognition=null;
   function thread() { return threadsOf(activeModule).find(item => item.id === selected[activeModule]); }
+  // Every conversation, newest first, with the module it lives in.
+  const allThreads = () => Object.entries(chats.modules).flatMap(([module, list]) => list.map(item => ({ module, id: item.id, title: item.title, at: item.messages.at(-1)?.createdAt || item.createdAt }))).sort((a, b) => b.at.localeCompare(a.at));
   function newThread() {
     const item = { id: crypto.randomUUID(), title: '', createdAt: new Date().toISOString(), messages: [] };
     threadsOf(activeModule).push(item); selected[activeModule] = item.id;
     return item;
   }
   function openModule(id) {
-    if (!isActiveModule(getProfile(), id) || busy || testing || library.busy || review.busy) return;
+    if ((id !== ASK_MODULE && !isActiveModule(getProfile(), id)) || busy || testing || library.busy || review.busy) return;
     activeModule = id;
     const existing = threadsOf(id);
     if (!existing.some(item => item.id === selected[id])) selected[id] = existing.at(-1)?.id;
@@ -255,13 +259,12 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   }
   function chatView() {
     const profile = getProfile();
-    const threads = threadsOf(activeModule);
+    const threads = allThreads();
     const current = thread();
     const messages = current?.messages || [];
     const input = inputs[activeModule] || '';
-    return `<section class="intro"><span class="eyebrow">${esc(moduleName(activeModule))}</span><h1>${t('chatTitle')}</h1><p>${t('chatHint')}</p></section>
-      <div class="module-tabs" role="group" aria-label="${pick('学习模块', 'Learning modules')}">${activeModuleIds(profile).map(id => `<button class="module-tab ${id === activeModule ? 'active' : ''}" data-switch-module="${id}" aria-pressed="${id === activeModule}" ${busy ? 'disabled' : ''}>${moduleIcon(profile, id, 16)}${esc(moduleName(id))}</button>`).join('')}</div>
-      <section class="panel conversation-panel"><div class="chat-toolbar"><label class="thread-label" for="thread-select">${t('history')}</label><select id="thread-select" ${busy || !threads.length ? 'disabled' : ''}>${threads.length ? [...threads].reverse().map(item => `<option value="${esc(item.id)}" ${item.id === current?.id ? 'selected' : ''}>${esc(item.title || t('unnamed'))}</option>`).join('') : `<option>${t('unnamed')}</option>`}</select><button class="secondary-button" id="new-thread" ${busy ? 'disabled' : ''}>＋ ${t('fresh')}</button></div>
+    return `<section class="intro"><h1>${t('chatTitle')}</h1><p>${t('chatHint')}</p></section>
+      <section class="panel conversation-panel"><div class="chat-toolbar"><label class="thread-label" for="thread-select">${t('history')}</label><select id="thread-select" ${busy || !threads.length ? 'disabled' : ''}>${threads.length ? threads.map(item => `<option value="${esc(item.module)}:${esc(item.id)}" ${item.id === current?.id ? 'selected' : ''}>${esc(item.title || t('unnamed'))}</option>`).join('') : `<option>${t('unnamed')}</option>`}</select><button class="secondary-button" id="new-thread" ${busy ? 'disabled' : ''}>＋ ${t('fresh')}</button></div>
       ${isFree() ? freeBar() : `<div class="connection-bar"><span class="status-dot ${ready() ? 'ready' : ''}"></span><span>${t(ready() ? 'configured' : 'needsKey')} · ${esc(providers[config.provider].name)} · ${esc(config.model)}</span><button class="text-button" data-model-settings ${busy ? 'disabled' : ''}>${t('modelSettings')}</button></div>`}
       <div class="messages" aria-label="${t('history')}" aria-busy="${busy}">${messages.length ? messages.map((message, index) => messageView(message, index === messages.length - 1)).join('') : `<div class="empty-state"><img class="empty-art mascot-art" src="/illustrations/mascot-think.webp" alt="" decoding="async">${starterChips(profile) || `<h3>${t('empty')}</h3>`}</div>`}</div>
       ${busy ? `<p class="pending-indicator" role="status">${t('sending')}</p>` : ''}
@@ -422,8 +425,8 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     };
     document.querySelectorAll('[data-switch-module]').forEach(button => { button.onclick = () => openModule(button.dataset.switchModule); });
     // The module's draft stays in the box when switching or starting conversations.
-    document.querySelector('#thread-select').onchange = event => { selected[activeModule] = event.target.value; notice = ''; refresh(); };
-    document.querySelector('#new-thread').onclick = () => { if (busy) return; newThread(); notice = ''; saveChats(); refresh(); };
+    document.querySelector('#thread-select').onchange = event => { const [module, id] = event.target.value.split(':'); if (!chats.modules[module]) return; activeModule = module; selected[module] = id; notice = ''; refresh(); };
+    document.querySelector('#new-thread').onclick = () => { if (busy) return; if (activeModule !== ASK_MODULE) { inputs[ASK_MODULE] = inputs[activeModule] || inputs[ASK_MODULE]; activeModule = ASK_MODULE; } newThread(); notice = ''; saveChats(); refresh(); };
     document.querySelector('#question').oninput = event => { inputs[activeModule] = event.target.value; };
     document.querySelector('#question-form').onsubmit = event => { event.preventDefault(); void send(inputs[activeModule] || ''); };
     const stop = document.querySelector('#stop-request');
@@ -480,7 +483,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     needsConsent: () => isFree() && Boolean(auth?.freeModel) && !consent,
     giveConsent: () => { consent = true; try { localStorage.setItem(FREE_CONSENT_KEY, '1'); } catch { /* This page only. */ } },
     ask: async (module, question) => {
-      activeModule = module; delete selected[module];
+      activeModule = ASK_MODULE; delete selected[ASK_MODULE];
       await send(question, undefined, { brief: true });
       const answer = thread()?.messages.at(-1);
       if (answer?.role !== 'assistant' || answer.status !== 'done') return { error: notice || undefined };

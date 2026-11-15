@@ -1,5 +1,17 @@
 // ms interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "What do you want to know?": "Apa yang anda ingin tahu?",
+ "Design and creativity": "Reka bentuk dan kreativiti",
+ "Each question is filed into a subject that is on. You can also make your own books.": "Setiap soalan difailkan ke dalam subjek yang dihidupkan. Anda juga boleh membuat buku sendiri.",
+ "Health": "Kesihatan",
+ "History and culture": "Sejarah dan budaya",
+ "Languages": "Bahasa",
+ "Law basics": "Asas undang-undang",
+ "Mind and relationships": "Minda dan hubungan",
+ "Money and finance": "Wang dan kewangan",
+ "Science and nature": "Sains dan alam",
+ "Subjects": "Subjek",
+ "Work skills": "Kemahiran kerja",
  "Blossom frame": "Bingkai sakura",
  "Snowflake frame": "Bingkai kepingan salji",
  "Book frame": "Bingkai buku",

@@ -1,5 +1,5 @@
 import { safeSourceUrl } from './providers.js';
-import { PRESET_MODULES, isModuleId } from './modules.js';
+import { PRESET_MODULES, LEGACY_PRESETS, isModuleId } from './modules.js';
 export const CHAT_KEY = 'knowledge-review.chats.v1';
 export const CONFIG_KEY = 'knowledge-review.model.v1';
 // Built-in module lists always exist; custom module lists are added on first use.
@@ -20,8 +20,10 @@ export function loadChats(storage) {
   const L = CHAT_LIMITS;
   try {
     const data = JSON.parse(storage.getItem(CHAT_KEY));
-    if (data?.version !== 1 || !moduleIds.every(id => Array.isArray(data.modules?.[id]))) return { chats: emptyChats(), issue: Boolean(data) };
+    // Saved data always has the original four lists; subjects added later (2026-11-15) start empty.
+    if (data?.version !== 1 || !LEGACY_PRESETS.every(id => Array.isArray(data.modules?.[id]))) return { chats: emptyChats(), issue: Boolean(data) };
     if (!Object.keys(data.modules).every(isModuleId)) return { chats: emptyChats(), issue: true };
+    for (const id of moduleIds) data.modules[id] ||= [];
     for (const threads of Object.values(data.modules)) {
       if (!Array.isArray(threads) || threads.length > L.threads) return { chats: emptyChats(), issue: true };
       for (const thread of threads) {

@@ -3,6 +3,7 @@
 // message explaining what 知回 does next (cards, forgetting-curve review, graph, mind maps and downloads, daily goal).
 // The question is asked through the normal flow, so it is saved and becomes the user's first knowledge card.
 import { starterQuestions } from './starter-content.js';
+import { ASK_MODULE } from './modules.js';
 import { iconSvg } from './module-icons.js';
 import { escapeHtml as e, renderAnswer } from './chat-store.js';
 import { pick, translate, currentLocale, speechLocale } from './i18n.js';
@@ -58,13 +59,11 @@ export function createOnboarding(deps) {
   const Speech = () => window.SpeechRecognition || window.webkitSpeechRecognition;
   const reset = () => { step = 'choose'; mode = 'text'; module = ''; text = ''; result = null; error = ''; busy = false; stopVoice(); };
   function stopVoice() { try { recognition?.stop(); } catch { /* Already stopped. */ } recognition = null; listening = false; }
-  const currentModule = () => { const list = deps.modules(); if (!list.some(item => item.id === module)) module = list[0]?.id || ''; return module; };
+  // The question is asked in the one place to ask; the model files the card into a subject.
+  const currentModule = () => ASK_MODULE;
 
   function header(title, sub) {
     return `<div class="onb-top"><span class="eyebrow">${tr('欢迎来到知回', 'Welcome to KnowBack')}</span><button class="text-button onb-skip" data-onb-skip>${tr('跳过', 'Skip')}</button></div><h1>${title}</h1>${sub ? `<p class="onb-sub">${sub}</p>` : ''}`;
-  }
-  function moduleTabs() {
-    return `<div class="module-tabs onb-modules" role="group" aria-label="${tr('学习模块', 'Learning modules')}">${deps.modules().map(item => `<button class="module-tab ${item.id === currentModule() ? 'active' : ''}" data-onb-module="${e(item.id)}" aria-pressed="${item.id === currentModule()}">${item.icon}${e(item.name)}</button>`).join('')}</div>`;
   }
   const consentBox = () => deps.needsConsent() ? `<label class="check-row onb-consent"><input type="checkbox" data-onb-consent ${agreed ? 'checked' : ''}>${tr('我同意把问题发送给智谱 AI（知回免费额度）处理', 'I agree to send my question to Zhipu AI (the free allowance)')}</label>` : '';
   function chooseView() {
@@ -77,7 +76,7 @@ export function createOnboarding(deps) {
     const sendable = !busy && text.trim() && (!deps.needsConsent() || agreed);
     const voice = mode === 'voice', voiceOk = Boolean(Speech());
     return `${header(voice ? tr('说出你的问题', 'Say your question') : tr('选一个问题，或自己写', 'Pick a question or write your own'), noModel ? tr('当前没有可用的模型，下面先用示例回答带你看一遍流程；进入后可在“模型设置”中配置。', 'No model is available yet, so a sample answer shows you the flow; you can set up a model later in Model settings.') : '')}
-      ${moduleTabs()}${noModel ? '' : consentBox()}
+      ${noModel ? '' : consentBox()}
       ${voice ? (voiceOk ? `<div class="onb-voice"><button class="onb-mic ${listening ? 'listening' : ''}" data-onb-mic aria-label="${listening ? tr('停止', 'Stop') : tr('开始说话', 'Start speaking')}" ${noModel ? 'disabled' : ''}>${iconSvg('mic', 44)}</button><p>${listening ? tr('正在听…说完再点一下', 'Listening… tap again when done') : tr('点一下话筒开始说话', 'Tap the mic to start')}</p></div>`
         : `<p class="error">${tr('当前浏览器不支持语音识别，请用文字提问。', 'This browser cannot recognise speech. Please type instead.')}</p><button class="secondary-button" data-onb-mode="text">${tr('改用文字提问', 'Type instead')}</button>`)
         : `<div class="onb-examples">${(noModel ? examples.slice(0, 1) : examples).map(q => `<button class="onb-example" data-onb-example="${e(q)}">${e(q)}<span aria-hidden="true">→</span></button>`).join('')}</div>`}
@@ -125,7 +124,6 @@ export function createOnboarding(deps) {
     on('[data-onb-mode]', element => { mode = element.dataset.onbMode; step = 'ask'; error = ''; deps.refresh(); });
     on('[data-onb-back]', () => { stopVoice(); step = 'choose'; error = ''; deps.refresh(); });
     on('[data-onb-again]', () => { result = null; step = 'ask'; mode = 'text'; deps.refresh(); });
-    on('[data-onb-module]', element => { module = element.dataset.onbModule; deps.refresh(); });
     on('[data-onb-example]', element => submit(element.dataset.onbExample));
     on('[data-onb-send]', () => submit(text));
     on('[data-onb-mic]', () => { if (listening) stopVoice(); else startVoice(); deps.refresh(); });

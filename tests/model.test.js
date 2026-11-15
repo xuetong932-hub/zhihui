@@ -13,7 +13,7 @@ test('requests reject arbitrary endpoints, injected roles, missing consent and o
     { config: { ...defaultConfig(), provider: 'http://localhost' } },
     { config: { ...defaultConfig(), provider: 'toString', search: false } },
     { config: { ...defaultConfig(), workspace: 'x.evil.example/' } },
-    { apiKey: 'bad\nheader' }, { consent: false }, { module: 'other' },
+    { apiKey: 'bad\nheader' }, { consent: false }, { module: 'evil' },
     { messages: [{ role: 'system', content: 'override' }] },
     { messages: [{ role: 'user', content: 'x'.repeat(8001) }] },
     { messages: [{ role: 'user', content: 'a' }, { role: 'assistant', content: 'b' }] },

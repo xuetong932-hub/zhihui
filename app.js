@@ -16,7 +16,7 @@ import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
 import { createAuthGate } from './auth-ui.js';
 import { escapeHtml as esc } from './chat-store.js';
-import { PRESET_MODULES as moduleIds, LEVELS as levels, MAX_CUSTOM_MODULES, isCustomModule, cleanModuleName, validModules, validDailyMinutes, newCustomModuleId, activeModuleIds, moduleLabel } from './modules.js';
+import { PRESET_MODULES as moduleIds, LEVELS as levels, MAX_CUSTOM_MODULES, isCustomModule, cleanModuleName, validModules, validDailyMinutes, newCustomModuleId, activeModuleIds, moduleLabel, withAllPresets, ASK_MODULE } from './modules.js';
 import { pick, intlLocale, currentLocale, isLocale, setLocale, loadCatalog, needsCatalog, ENABLED, localeName, savedLocale, saveLocale } from './i18n.js';
 // iOS Safari only applies :active to buttons when a touch listener exists (press-and-spring buttons in styles.css).
 globalThis.document?.addEventListener('touchstart', () => {}, { passive: true });
@@ -25,7 +25,7 @@ const words = {
     brand: '知回', subtitle: '把好问题，变成记得住的知识。', language: 'English',
     preview: '体验版 · 学习记录保存在当前浏览器，可在账号页加密同步', setup: '建立你的学习空间',
     setupHint: '随时可以回来调整。', skipHint: '选择感兴趣的学习模块。也可以先跳过，使用默认设置（全部内置模块、入门），之后在“学习设置”中修改。',
-    skip: '跳过，使用默认设置', areas: '学习模块', areasHint: '至少启用一个模块；各模块分别记录学习水平和复习进度。',
+    skip: '跳过，使用默认设置', areas: '知识分类', areasHint: '提问会自动归到亮着的分类里；也可以自己建书。',
     coding: '编程', english: '英语', work: '工作知识', life: '生活常识',
     codingHint: '理解代码背后的逻辑', englishHint: '在真实情境中理解与表达', workHint: '把方法用到日常工作', lifeHint: '弄懂身边的为什么',
     beginner: '入门', some: '了解一些', advanced: '较熟悉', level: '当前基础',
@@ -54,7 +54,7 @@ const words = {
     brand: 'KnowBack', subtitle: 'Turn good questions into lasting knowledge.', language: '中文',
     preview: 'Preview · Learning records stay in this browser; encrypted sync is on the Account page', setup: 'Make room for learning',
     setupHint: 'You can adjust these anytime.', skipHint: 'Choose the learning modules you want. You can also skip and use the defaults (all built-in modules, beginner) and change them later in Learning settings.',
-    skip: 'Skip and use defaults', areas: 'Learning modules', areasHint: 'Enable at least one. Each module has its own level and review progress.',
+    skip: 'Skip and use defaults', areas: 'Subjects', areasHint: 'Each question is filed into a subject that is on. You can also make your own books.',
     coding: 'Coding', english: 'English', work: 'Work knowledge', life: 'Everyday knowledge',
     codingHint: 'Understand the logic behind code', englishHint: 'Understand and express ideas in context', workHint: 'Put useful methods into practice', lifeHint: 'Explore the reasons behind everyday things',
     beginner: 'Beginner', some: 'Some experience', advanced: 'Confident', level: 'Your starting level',
@@ -107,7 +107,8 @@ export function validProfile(value) {
 }
 
 function readProfile() {
-  try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); if (validProfile(saved)) return saved; } catch { /* Show setup when local data is unavailable or invalid. */ }
+  // Older profiles get the subjects added since they were saved; the next save stores them.
+  try { const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); if (saved?.modules) saved.modules = withAllPresets(saved.modules); if (validProfile(saved)) return saved; } catch { /* Show setup when local data is unavailable or invalid. */ }
   return undefined;
 }
 
@@ -164,6 +165,11 @@ function boot() {
     // Administrators go straight into the app with default settings, changeable later in Learning settings.
     if (!profile && acct.is_admin) {
       const defaults = { ...blankDraft(), adultVerification: { isAdult: true, verifiedAt: new Date().toISOString(), method: 'operator-admin' } };
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults)); profile = defaults; } catch { /* Falls back to the setup page. */ }
+    }
+    // New users skip the setup page: every subject is on and questions are filed automatically. Settings stay in 我的.
+    if (!profile) {
+      const defaults = { ...blankDraft(), adultVerification: adultRecord() };
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults)); profile = defaults; } catch { /* Falls back to the setup page. */ }
     }
     if (profile) locale = profile.locale; else { openDraft(blankDraft()); editing = true; }
@@ -521,8 +527,6 @@ function boot() {
       </div></section>
       <section class="m-section pet-letter"><span class="pet-letter-avatar"><img src="/illustrations/mascot-cheer.webp" alt="" decoding="async"></span><div><h2>${pick('小回的信', 'A note from Backy')}</h2><p>${note}</p></div><span class="pet-letter-mark" aria-hidden="true">💌</span></section>`;
   }
-  // Built-in modules have a 3D illustration (illustrations/icon-<id>.webp); custom modules keep their line icon.
-  const MODULE_ART = ['coding', 'english', 'work', 'life'];
   function homePhoneView() {
     const zh = locale === 'zh', due = chat.reviewCount(), events = chat.reviewEvents(), today = localDay(new Date());
     const done = new Set(events.filter(event => localDay(event.at) === today).map(event => event.cardId)).size, total = done + due, shields = shieldStreaks(), streak = shields.any;
@@ -540,9 +544,9 @@ function boot() {
         <div class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1><button type="button" class="scene-button" data-scene-picker aria-haspopup="dialog" aria-label="${pick('换背景', 'Change background')}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m4 17 4.5-4.5 3.5 3.5 2.5-2.5 5.5 5"/></svg></button></div>
         <div class="today-status"><button type="button" class="today-mascot" data-pose="${due ? 'wave' : total ? 'cheer' : 'think'}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${due ? 'wave' : total ? 'cheer' : 'think'}.webp" alt="" decoding="async" draggable="false"></button>${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
           <div class="today-meta"><span class="today-goal"><span class="task-ring" aria-hidden="true">${ring}</span>${goalText}</span><span><b>${streak}</b>${pick(' 天连续', ' day streak')}</span><span><b>${met}</b>${pick(' 天达成', ' days met')}</span></div></div>
-        ${total ? `<button class="task-start" data-review>${due ? (pick('开始复习', 'Start review')) : (pick('再练一会', 'Practise more'))} →</button>` : `<button class="task-start" data-open-module="${activeModuleIds(profile)[0]}">${pick('去提问', 'Ask a question')} →</button>`}${reached ? shareButton('task-share') : ''}</section>
+        ${total ? `<button class="task-start" data-review>${due ? (pick('开始复习', 'Start review')) : (pick('再练一会', 'Practise more'))} →</button>` : `<button class="task-start" data-open-module="${ASK_MODULE}">${pick('去提问', 'Ask a question')} →</button>`}${reached ? shareButton('task-share') : ''}</section>
       ${chat.starterHome() ? `<div class="m-section">${chat.starterHome()}</div>` : ''}
-      <section class="m-section frost-panel"><div class="section-heading"><h2>${pick('继续提问', 'Keep asking')}</h2></div><div class="module-strip">${activeModuleIds(profile).map(id => `<button class="strip-card" data-open-module="${id}"><span class="strip-thumb">${MODULE_ART.includes(id) ? `<img class="strip-art" src="/illustrations/icon-${id}.webp" alt="" decoding="async">` : moduleIcon(profile, id, 24)}</span><strong>${esc(moduleLabel(profile, id, locale))}</strong>${chat.messageCount(id) ? `<span class="muted">${chat.messageCount(id)} ${chat.homeText('records')}</span>` : ''}</button>`).join('')}</div></section>
+      <section class="m-section frost-panel"><div class="section-heading"><h2>${pick('继续提问', 'Keep asking')}</h2></div><button type="button" class="ask-bar" data-open-module="${ASK_MODULE}"><span>${pick('想知道点什么？', 'What do you want to know?')}</span><span class="ask-bar-go" aria-hidden="true">→</span></button></section>
       <section class="m-section"><div class="section-heading"><h2>${pick('今日清单', 'Today’s list')}</h2></div>${reviewPreview()}</section>`;
   }
 
@@ -636,7 +640,7 @@ function boot() {
   // Modules can be picked for bulk actions (select all, enable, disable, delete). Deleting archives a module with
   // its records kept (built-in modules always), or removes a custom module that has no records.
   // Every change stays in the draft until saved.
-  const draftName = id => isCustomModule(id) ? draft.modules[id].name : t(id);
+  const draftName = id => isCustomModule(id) ? draft.modules[id].name : moduleLabel(draft, id, locale);
   function moduleCard(id, index) {
     const item = draft.modules[id], custom = isCustomModule(id);
     return `<div class="module-option ${item.enabled ? 'selected' : ''} ${picked.has(id) ? 'picked' : ''}">
@@ -649,14 +653,18 @@ function boot() {
     </div>`;
   }
   function setupView() {
-    const visible = visibleModules(), archived = Object.keys(draft.modules).filter(id => draft.modules[id].archived);
+    // Built-in subjects are switched on or off as chips (their level adapts from reviews); books the user made keep
+    // their cards with name, icon, level and delete. A built-in subject that was removed shows as an off chip.
+    const visible = visibleModules().filter(isCustomModule), archived = Object.keys(draft.modules).filter(id => isCustomModule(id) && draft.modules[id].archived);
+    const presetOn = id => draft.modules[id].enabled && !draft.modules[id].archived;
     const customCount = visible.filter(isCustomModule).length;
     return `<section class="intro"><span class="eyebrow">${t('brand')}</span><h1>${t(profile ? 'settings' : 'setup')}</h1><p>${t(profile ? 'setupHint' : 'skipHint')}</p></section>
       <form id="setup" novalidate>
         <section class="panel"><h2>${t('areas')}</h2><p>${t('areasHint')}</p>
-          <div class="module-toolbar"><button type="button" class="secondary-button" id="pick-all">${t('selectAll')}</button><button type="button" class="secondary-button" id="pick-none" ${picked.size ? '' : 'disabled'}>${t('clearSelection')}</button><span class="muted" id="pick-count">${t('selectedCount').replace('{n}', picked.size)}</span><span class="toolbar-gap"></span><button type="button" class="secondary-button" id="enable-picked" ${picked.size ? '' : 'disabled'}>${t('enableSelected')}</button><button type="button" class="secondary-button" id="disable-picked" ${picked.size ? '' : 'disabled'}>${t('disableSelected')}</button><button type="button" class="secondary-button danger-button" id="delete-picked" ${picked.size ? '' : 'disabled'}>${t('deleteSelected')}</button></div>
-          <div class="module-grid">${visible.map(moduleCard).join('')}</div>
-          <p class="field-hint">${t('deleteHint')}</p>
+          <div class="keyword-row preset-chips" role="group" aria-label="${t('areas')}">${moduleIds.map(id => `<button type="button" class="keyword-chip preset-chip ${presetOn(id) ? 'active' : ''}" data-preset="${id}" aria-pressed="${presetOn(id)}" ${id === ASK_MODULE ? 'disabled' : ''}>${moduleIcon(draft, id, 16)}${esc(draftName(id))}</button>`).join('')}</div>
+          ${visible.length ? `<div class="module-toolbar"><button type="button" class="secondary-button" id="pick-all">${t('selectAll')}</button><button type="button" class="secondary-button" id="pick-none" ${picked.size ? '' : 'disabled'}>${t('clearSelection')}</button><span class="muted" id="pick-count">${t('selectedCount').replace('{n}', picked.size)}</span><span class="toolbar-gap"></span><button type="button" class="secondary-button" id="enable-picked" ${picked.size ? '' : 'disabled'}>${t('enableSelected')}</button><button type="button" class="secondary-button" id="disable-picked" ${picked.size ? '' : 'disabled'}>${t('disableSelected')}</button><button type="button" class="secondary-button danger-button" id="delete-picked" ${picked.size ? '' : 'disabled'}>${t('deleteSelected')}</button></div>` : ''}
+          ${visible.length ? `<div class="module-grid">${visible.map(moduleCard).join('')}</div>` : ''}
+          ${visible.length ? `<p class="field-hint">${t('deleteHint')}</p>` : ''}
           <div class="add-module"><label class="field-label" for="new-module-name">${t('addModule')}</label><div class="add-module-row"><input id="new-module-name" type="text" maxlength="20" placeholder="${t('newModulePlaceholder')}" value="${esc(newModuleName)}" ${customCount >= MAX_CUSTOM_MODULES ? 'disabled' : ''}><button type="button" class="secondary-button" id="add-module" ${customCount >= MAX_CUSTOM_MODULES ? 'disabled' : ''}>＋ ${t('addModule')}</button></div><p class="field-hint">${t('addHint')}</p></div>
           ${archived.length ? `<div class="archived-modules"><h3>${t('archived')}</h3>${archived.map(id => `<div class="archived-row"><span>${esc(draftName(id))}</span><button type="button" class="text-button" data-restore-module="${id}">${t('restore')}</button></div>`).join('')}</div>` : ''}
         </section>
@@ -696,7 +704,7 @@ function boot() {
       <div class="dashboard"><section class="panel review-panel"><div class="section-heading"><h2>${t('today')}</h2><span class="pill">${chat.reviewCount()} ${t('zero')}</span></div>
         ${goalBar()}${reviewPreview()}</section>
         <aside class="panel plan-panel"><span class="eyebrow">${t('reviewPlan')}</span><p>${t('batchHint')}</p><hr><h3>${t('weekly')}</h3><p>${t('weekHint')}</p><h3>${t('notifications')}</h3><p>${t('notificationHint')}</p></aside></div>
-      <section class="modules-section"><div class="section-heading"><h2>${t('modulesTitle')}</h2></div><div class="module-grid">${activeModuleIds(profile).map(id => `<article class="panel home-module"><span class="module-badge">${moduleIcon(profile, id, 22)}</span><span class="eyebrow">${t(profile.modules[id].level)}${isCustomModule(id) ? ` · ${t('customHint')}` : ''}</span><h3>${esc(moduleLabel(profile, id, locale))}</h3>${chat.messageCount(id) ? `<div class="module-count">${chat.messageCount(id)} <span>${chat.homeText('records')}</span></div>` : ''}<button class="secondary-button module-open" data-open-module="${id}">${chat.homeText('open')} →</button></article>`).join('')}</div></section>`;
+      <section class="modules-section"><div class="section-heading"><h2>${t('modulesTitle')}</h2></div><div class="module-grid">${activeModuleIds(profile).filter(id => isCustomModule(id) || chat.knowledgeCount(id) || chat.messageCount(id)).map(id => `<article class="panel home-module"><span class="module-badge">${moduleIcon(profile, id, 22)}</span><span class="eyebrow">${t(profile.modules[id].level)}${isCustomModule(id) ? ` · ${t('customHint')}` : ''}</span><h3>${esc(moduleLabel(profile, id, locale))}</h3>${chat.messageCount(id) ? `<div class="module-count">${chat.messageCount(id)} <span>${chat.homeText('records')}</span></div>` : ''}<button class="secondary-button module-open" data-open-module="${id}">${chat.homeText('open')} →</button></article>`).join('')}</div></section>`;
   }
 
   function saveProfile(candidate) {
@@ -731,15 +739,21 @@ function boot() {
       };
     });
     document.querySelectorAll('[data-pick]').forEach(input => { input.onchange = () => { if (input.checked) picked.add(input.dataset.pick); else picked.delete(input.dataset.pick); errorKey = ''; render(); }; });
-    document.querySelector('#pick-all').onclick = () => { visibleModules().forEach(id => picked.add(id)); errorKey = ''; render(); };
-    document.querySelector('#pick-none').onclick = () => { picked.clear(); errorKey = ''; render(); };
-    document.querySelector('#enable-picked').onclick = () => { if (!picked.size) { showError('selectNone'); return; } for (const id of picked) draft.modules[id].enabled = true; errorKey = ''; render(); };
-    document.querySelector('#disable-picked').onclick = () => {
+    document.querySelectorAll('[data-preset]').forEach(button => { button.onclick = () => {
+      const id = button.dataset.preset, on = !(draft.modules[id].enabled && !draft.modules[id].archived);
+      if (!on && !keepsOneActive([id])) { showError('keepOne'); return; }
+      Object.assign(draft.modules[id], { enabled: on, archived: false }); errorKey = ''; render();
+    }; });
+    const pickAll = document.querySelector('#pick-all');
+    if (pickAll) pickAll.onclick = () => { visibleModules().filter(isCustomModule).forEach(id => picked.add(id)); errorKey = ''; render(); };
+    if (document.querySelector('#pick-none')) document.querySelector('#pick-none').onclick = () => { picked.clear(); errorKey = ''; render(); };
+    if (document.querySelector('#enable-picked')) document.querySelector('#enable-picked').onclick = () => { if (!picked.size) { showError('selectNone'); return; } for (const id of picked) draft.modules[id].enabled = true; errorKey = ''; render(); };
+    if (document.querySelector('#disable-picked')) document.querySelector('#disable-picked').onclick = () => {
       if (!picked.size) { showError('selectNone'); return; }
       if (!keepsOneActive([...picked])) { showError('keepOne'); return; }
       for (const id of picked) draft.modules[id].enabled = false; errorKey = ''; render();
     };
-    document.querySelector('#delete-picked').onclick = () => { if (!picked.size) { showError('selectNone'); return; } deleteModules([...picked]); };
+    if (document.querySelector('#delete-picked')) document.querySelector('#delete-picked').onclick = () => { if (!picked.size) { showError('selectNone'); return; } deleteModules([...picked]); };
     document.querySelectorAll('[data-delete-module]').forEach(button => { button.onclick = () => deleteModules([button.dataset.deleteModule]); });
     document.querySelectorAll('[data-level]').forEach(input => { input.onchange = () => { draft.modules[input.dataset.level].level = input.value; }; });
     document.querySelectorAll('[data-module-name]').forEach(input => { input.oninput = () => {

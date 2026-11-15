@@ -1,5 +1,17 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "What do you want to know?": "何が知りたい？",
+ "Design and creativity": "デザイン・創作",
+ "Each question is filed into a subject that is on. You can also make your own books.": "質問はオンの分野に自動で分類されます。自分で本を作ることもできます。",
+ "Health": "健康・医療",
+ "History and culture": "歴史・文化",
+ "Languages": "語学",
+ "Law basics": "法律の基礎",
+ "Mind and relationships": "心と人間関係",
+ "Money and finance": "お金・金融",
+ "Science and nature": "科学・自然",
+ "Subjects": "分野",
+ "Work skills": "仕事のスキル",
  "Blossom frame": "桜フレーム",
  "Snowflake frame": "雪の結晶フレーム",
  "Book frame": "本のフレーム",

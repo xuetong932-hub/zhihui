@@ -1,5 +1,17 @@
 // es interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "What do you want to know?": "¿Qué quieres saber?",
+ "Design and creativity": "Diseño y creatividad",
+ "Each question is filed into a subject that is on. You can also make your own books.": "Cada pregunta se archiva en una materia activada. También puedes crear tus propios libros.",
+ "Health": "Salud",
+ "History and culture": "Historia y cultura",
+ "Languages": "Idiomas",
+ "Law basics": "Nociones de derecho",
+ "Mind and relationships": "Mente y relaciones",
+ "Money and finance": "Dinero y finanzas",
+ "Science and nature": "Ciencia y naturaleza",
+ "Subjects": "Materias",
+ "Work skills": "Habilidades laborales",
  "Blossom frame": "Marco de flores de cerezo",
  "Snowflake frame": "Marco de copos de nieve",
  "Book frame": "Marco de libros",

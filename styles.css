@@ -432,3 +432,7 @@ main h1,.section-heading h2,.today-big{font-family:var(--font-display);font-weig
 .mmc-link{opacity:.75}
 .mmc-node.is-selected rect{stroke:var(--accent);stroke-width:3;stroke-opacity:1}
 .mmc-node:focus-visible rect{stroke:var(--accent);stroke-width:3}
+/* Built-in subjects in learning settings: on/off chips (2026-11-15). */
+.preset-chips{margin-top:var(--sp-12)}
+.preset-chip{display:inline-flex;align-items:center;gap:var(--sp-4);min-height:36px}
+.preset-chip:disabled{cursor:default;opacity:1}

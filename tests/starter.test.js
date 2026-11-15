@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { starterQuestions, starterCards, hasStarterPack, isStarterCard, starterPackPanel } from '../starter-content.js';
 import { validCard } from '../knowledge-store.js';
-import { PRESET_MODULES, LEVELS } from '../modules.js';
+import { LEGACY_PRESETS as PRESET_MODULES, LEVELS } from '../modules.js';
 import { registerCatalog } from '../i18n.js';
 
 test('starter questions: four per built-in module and level in each language; custom modules use their name', () => {
@@ -40,4 +40,12 @@ test('starter content follows the interface language; English example sentences 
   assert.equal(starterCards('english', 'zh')[0].example, 'She drinks coffee every morning.');
   assert.equal(starterQuestions('coding', 'some', 'fr')[0], 'Qu’est-ce que la portée ?');
   assert.equal(starterQuestions('c-chess', 'beginner', 'fr', 'échecs')[1], 'Par où commencer en échecs ?');
+});
+
+test('the one place to ask suggests a question from each original subject', async () => {
+  const { ASK_MODULE } = await import('../modules.js');
+  const list = starterQuestions(ASK_MODULE, 'beginner', 'zh');
+  assert.equal(list.length, 4);
+  assert.deepEqual(list, PRESET_MODULES.map(id => starterQuestions(id, 'beginner', 'zh')[0]));
+  assert.equal(hasStarterPack(ASK_MODULE), false);
 });

@@ -39,7 +39,7 @@ export function createKnowledgeUI({ locale, enabled, moduleName, extract, refres
     if (!save()) return;
     busy = true; error = ''; refresh();
     try {
-      const candidates = data.cards.filter(card => card.module === origin.sourceModule && ['active','paused'].includes(card.status) && !card.origins.some(item => item.id === origin.id)).slice(-40).map(({id,title})=>({id,title}));
+      const candidates = data.cards.filter(card => ['active','paused'].includes(card.status) && !card.origins.some(item => item.id === origin.id)).slice(-40).map(({id,title})=>({id,title}));
       const result = await extract(origin,candidates);
       addKnowledge(data,origin,result); save();
     } catch { error = text('问答已保留；知识提炼未完成，可在知识库中重试。重试会调用模型。','Q&A is kept. Knowledge extraction is incomplete; retry in the library (uses the model).'); }
@@ -64,7 +64,8 @@ export function createKnowledgeUI({ locale, enabled, moduleName, extract, refres
   const liveCards = () => data.cards.filter(card => ['active', 'paused'].includes(card.status));
   function books() {
     const due = new Set(dueIds()), live = liveCards(), profile = getProfile();
-    return enabled().map(id => { const mine = live.filter(card => card.module === id);
+    // A built-in subject appears once it holds cards; books the user made are always there.
+    return enabled().filter(id => isCustomModule(id) || live.some(card => card.module === id)).map(id => { const mine = live.filter(card => card.module === id);
       return { id, name: moduleName(id), color: coverColor(profile, id), icon: moduleIconName(profile, id), count: mine.length, due: mine.filter(card => due.has(card.id)).length }; });
   }
   const canAdd = () => Object.entries(getProfile()?.modules || {}).filter(([id, item]) => isCustomModule(id) && !item.archived).length < MAX_CUSTOM_MODULES;

@@ -1,5 +1,17 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "What do you want to know?": "무엇이 궁금해요?",
+ "Design and creativity": "디자인·창작",
+ "Each question is filed into a subject that is on. You can also make your own books.": "질문은 켜진 분야로 자동 분류돼요. 직접 책을 만들 수도 있어요.",
+ "Health": "건강·의료",
+ "History and culture": "역사·문화",
+ "Languages": "언어 학습",
+ "Law basics": "법률 상식",
+ "Mind and relationships": "마음·관계",
+ "Money and finance": "돈·금융",
+ "Science and nature": "과학·자연",
+ "Subjects": "분야",
+ "Work skills": "직장 스킬",
  "Blossom frame": "벚꽃 테두리",
  "Snowflake frame": "눈송이 테두리",
  "Book frame": "책 테두리",

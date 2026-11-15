@@ -2,7 +2,7 @@
 // beginner cards per built-in module, written for 知回 (marked as such; not model output). Each text is a
 // ['中文', 'English'] pair; other interface languages come from the catalogs (i18n/<code>.js), so every language
 // shows only its own text. Example sentences in the English module stay in English. Adding a pack is always the user's choice.
-import { PRESET_MODULES } from './modules.js';
+import { ASK_MODULE, LEGACY_PRESETS } from './modules.js';
 import { pick, translate } from './i18n.js';
 export const STARTER_PREFIX = 'starter-';
 export const isStarterCard = card => typeof card?.id === 'string' && card.id.startsWith(STARTER_PREFIX);
@@ -98,6 +98,8 @@ const fixed = (zh, en, zhTW = zh) => ({ fixed: { zh, en, 'zh-TW': zhTW } });
 const inLocale = (item, locale) => item.fixed ? item.fixed[locale] ?? item.fixed.en : translate(item[0], item[1], undefined, locale);
 // Four suggested questions for a module at the user's level; custom modules get questions built from their name.
 export function starterQuestions(module, level, locale, moduleName = '') {
+  // The one place to ask (ASK_MODULE) suggests one question from each of the original subjects.
+  if (module === ASK_MODULE) return LEGACY_PRESETS.map(id => (QUESTIONS[id][level] || QUESTIONS[id].beginner)[0]).map(item => inLocale(item, locale));
   const list = QUESTIONS[module]?.[level] || QUESTIONS[module]?.beginner;
   if (list) return list.map(item => inLocale(item, locale));
   return CUSTOM(moduleName || translate('这个领域', 'this subject', undefined, locale), locale);
@@ -186,7 +188,7 @@ const CARDS = {
       ['户外活动前涂防晒，并按说明补涂。', 'Apply sunscreen before going out and reapply as directed.']),
   ],
 };
-export const hasStarterPack = module => PRESET_MODULES.includes(module);
+export const hasStarterPack = module => Object.hasOwn(CARDS, module);
 // Cards ready to add to the library: ids are fixed per module and position, so a pack is never added twice.
 export function starterCards(module, locale, now = new Date()) {
   const list = CARDS[module] || [], at = now.toISOString();

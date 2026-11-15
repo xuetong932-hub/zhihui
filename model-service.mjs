@@ -4,7 +4,8 @@ import { isLocale } from './i18n.js';
 export class ServiceError extends Error {
   constructor(code, status = 400) { super(code); this.code = code; this.status = status; }
 }
-const modules = { coding: '编程 / Coding', english: '英语 / English', work: '工作知识 / Work knowledge', life: '生活常识 / Everyday knowledge' };
+// Topic hints per built-in module. Questions are asked in 'other', which covers any subject.
+const modules = { coding: '编程技术 / Coding', english: '语言学习 / Languages', work: '职场技能 / Work skills', life: '生活常识 / Everyday knowledge', health: '健康医疗 / Health', finance: '金融理财 / Money and finance', design: '设计创意 / Design and creativity', science: '科学自然 / Science and nature', humanities: '人文历史 / History and culture', law: '法律常识 / Law basics', mind: '情感心理 / Mind and relationships', other: '综合：任何学科或生活话题 / General: any subject' };
 const levels = { beginner: '入门。先解释术语，避免默认用户已有基础。', some: '了解一些。解释关键机制并连接已有基础。', advanced: '较熟悉。说明原理、边界与容易混淆之处。' };
 export function validateRequest(value) {
   if (!value || !validConfig(value.config)) throw new ServiceError('config');
