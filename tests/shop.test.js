@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyShop, buy, refund, canRefund, shopState, equip, unequip, cleanShop, protectedStreak, freezeDates } from '../shop.js';
+import { emptyShop, buy, refund, canRefund, shopState, equip, unequip, cleanShop, protectedStreak, freezeDates, wearOutfit, completeSets, setProgress, SETS, ITEMS, PARTS } from '../shop.js';
 
 const now = new Date('2026-11-15T12:00:00');
 const at = (days, hour = 12) => new Date(now.getTime() - days * 86400000 + (hour - 12) * 3600000);
@@ -66,5 +66,34 @@ test('a new user starts with an empty nest and no frame', async () => {
 test('every shop item has its picture', async () => {
   const { ITEMS } = await import('../shop.js');
   const { existsSync } = await import('node:fs');
-  for (const item of ITEMS) assert.ok(existsSync(new URL(`../illustrations/shop/${item.id}.webp`, import.meta.url)), item.id);
+  for (const item of ITEMS) assert.ok(existsSync(new URL(`../illustrations/${item.kind === 'outfit' ? 'outfits' : 'shop'}/${item.id}.webp`, import.meta.url)), item.id);
+});
+test('outfits: buying puts the piece on, one per part, level locks, refund takes it off', () => {
+  const now = new Date('2026-11-15T10:00:00');
+  let data = buy(emptyShop(), 'hat-straw', 500, { now, id: 'a' }).data;
+  assert.deepEqual(data.outfit, { head: 'hat-straw' });
+  data = buy(data, 'hat-beanie', 500, { now, id: 'b' }).data;
+  assert.equal(data.outfit.head, 'hat-beanie', 'a new hat replaces the old one');
+  assert.equal(buy(data, 'hat-grad', 500, { now, level: 2 }).error, 'locked');
+  assert.ok(buy(data, 'hat-grad', 500, { now, level: 3 }).ok);
+  data = equip(data, 'hat-straw'); assert.equal(data.outfit.head, 'hat-straw');
+  data = unequip(data, 'hat-straw'); assert.equal(data.outfit.head, undefined);
+  data = equip(data, 'hat-grad'); assert.equal(data.outfit.head, undefined, 'not owned, not worn');
+  data = buy(data, 'neck-bell', 500, { now, id: 'c' }).data;
+  data = refund(data, 'c', { now }).data;
+  assert.equal(data.outfit.neck, undefined);
+  assert.deepEqual(cleanShop({ ...data, outfit: { head: 'hat-beanie', face: 'face-glasses', neck: 'hat-straw' } }).outfit, { head: 'hat-beanie' }, 'only owned pieces in their own part survive');
+});
+
+test('outfits: wearing a look keeps only owned pieces; sets are complete when all four are worn', () => {
+  const now = new Date('2026-11-15T10:00:00');
+  let data = emptyShop();
+  for (const [i, id] of ['hat-straw', 'face-shades', 'neck-scarf', 'back-pouch'].entries()) data = buy(data, id, 1000, { now, id: `s${i}` }).data;
+  data = wearOutfit(data, { head: null, face: 'face-glasses' });
+  assert.deepEqual(data.outfit, { face: 'face-shades', neck: 'neck-scarf', back: 'back-pouch' });
+  data = wearOutfit(data, { head: 'hat-straw' });
+  assert.deepEqual(completeSets(data.outfit), ['explorer']);
+  assert.equal(setProgress({ head: 'hat-grad', face: 'face-glasses' }).find(set => set.id === 'scholar').worn, 2);
+  // Every set piece is a real outfit item, one per part.
+  for (const set of SETS) assert.deepEqual(set.items.map(id => ITEMS.find(item => item.id === id)?.part), PARTS);
 });

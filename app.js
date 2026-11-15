@@ -9,8 +9,8 @@ import { startPetPlay, flyCone } from './pet-physics.js';
 import { achievements, newBadges } from './achievements.js';
 import { storeView, showBadge, celebrateBadge, levelCard, badgeWall, levelTitle } from './badges-ui.js';
 import { profileView, openAvatarSheet, avatarSrc, isPhotoAvatar } from './profile-ui.js';
-import { cleanShop, shopState, buy, refund, equip, unequip, freezeDates, protectedStreak } from './shop.js';
-import { shopView, openItemSheet, decorLayer, frameImage } from './shop-ui.js';
+import { cleanShop, shopState, buy, refund, equip, unequip, freezeDates, protectedStreak, wearOutfit, completeSets, itemById, ITEMS, PARTS, SETS } from './shop.js';
+import { shopView, openItemSheet, decorLayer, frameImage, wearLayer, setName } from './shop-ui.js';
 import { SCENES, SCENE_CATEGORIES, savedScene, saveScene, sceneImage, sceneThumb } from './scenes.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
@@ -453,7 +453,7 @@ function boot() {
     layer.querySelector('.scene-pick.active, .scene-pick')?.focus({ preventScroll: true });
   }
   // The squirrel's level and badges (achievements.js), and its store page (pet tab → 仓库).
-  let petPage = 'room', mePage = 'main', shopTab = 'decor';
+  let petPage = 'room', mePage = 'main', shopTab = 'outfit', dressPart = 'head', dressLook = {}, dressNote = '', dressGood = false;
   // Shop (shop.js): purchases and furniture live in the profile (profile.shop) so they travel with the encrypted cloud
   // snapshot. Balance = pine cones earned (from history) − spent. Streak shields keep both streaks alive.
   const shopData = () => cleanShop(profile?.shop);
@@ -465,8 +465,47 @@ function boot() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate)); } catch { return false; }
     profile = candidate; return true;
   }
-  const SHOP_ERRORS = { funds: () => pick('松果不够', 'Not enough pine cones'), owned: () => pick('已经拥有了', 'You already have it'), max: () => pick('最多同时持有 2 张', 'You can hold at most 2'), unknown: () => pick('买不了这个', 'This cannot be bought') };
-  function petShopView() { return shopView({ state: shopNow(), data: shopData(), tab: shopTab }); }
+  const SHOP_ERRORS = { locked: () => pick('等级还不够', 'Your level is not high enough yet'), funds: () => pick('松果不够', 'Not enough pine cones'), owned: () => pick('已经拥有了', 'You already have it'), max: () => pick('最多同时持有 2 张', 'You can hold at most 2'), unknown: () => pick('买不了这个', 'This cannot be bought') };
+  function petShopView() { return shopView({ state: shopNow(), data: shopData(), tab: shopTab, dress: { part: dressPart, look: dressLook, level: petProgress().level.level } }); }
+  // Dressing room: taps change the look being tried on (dressLook: part → id, or null for bare); only 穿上 saves it.
+  function tryOn(part, id) {
+    const saved = shopData().outfit[part] || null, shown = part in dressLook ? dressLook[part] : saved;
+    const next = id && shown !== id ? id : null;
+    if (next === saved) delete dressLook[part]; else dressLook[part] = next;
+  }
+  function wearLook() {
+    const level = petProgress().level.level, before = new Set(completeSets(shopData().outfit));
+    let data = shopData();
+    for (const id of new Set(Object.values(dressLook).filter(id => id && !shopNow().owned.has(id)))) {
+      const result = buy(data, id, pineCones(chat.reviewEvents(), goalOf(profile)).total, { shieldsUsed: shieldStreaks().used, level });
+      if (!result.ok) { dressNote = SHOP_ERRORS[result.error](); render(); return; }
+      data = result.data; if (!saveShop(data)) { dressNote = pick('保存失败', 'Could not save'); render(); return; }
+    }
+    if (!saveShop(wearOutfit(shopData(), dressLook))) { dressNote = pick('保存失败', 'Could not save'); render(); return; }
+    dressLook = {};
+    const done = completeSets(shopData().outfit).filter(id => !before.has(id));
+    dressGood = done.length > 0;
+    dressNote = done.length ? pick('集齐「{name}」套装！', 'The {name} set is complete!', { name: setName(done[0]) }) : '';
+    render();
+    if (done.length) cheerDress();
+  }
+  function cheerDress() {
+    const stage = document.querySelector('.dress-mascot'), img = stage?.querySelector('img');
+    if (!stage) return;
+    navigator.vibrate?.(20);
+    img.src = '/illustrations/mascot-cheer.webp';
+    stage.classList.remove('is-cheer'); void stage.offsetWidth; stage.classList.add('is-cheer');
+    setTimeout(() => { if (img.isConnected) { img.src = '/illustrations/mascot-wave.webp'; stage.classList.remove('is-cheer'); } }, 1800);
+  }
+  function randomLook() {
+    const level = petProgress().level.level;
+    dressLook = {};
+    for (const part of PARTS) {
+      const options = ITEMS.filter(item => item.part === part && !(item.level > level)).map(item => item.id);
+      const id = Math.random() < 0.2 ? null : options[Math.floor(Math.random() * options.length)];
+      if (id !== (shopData().outfit[part] || null)) dressLook[part] = id;
+    }
+  }
   function openShopItem(id) {
     const earned = () => pineCones(chat.reviewEvents(), goalOf(profile)).total, used = () => shieldStreaks().used;
     openItemSheet(id, { state: shopNow, data: shopData, earned, shieldsUsed: used,
@@ -526,7 +565,7 @@ function boot() {
     return `<section class="pet-scene-wrap"><img class="home-scene pet-scene" src="/illustrations/pet-nest.webp" alt="" decoding="async">${decorLayer(shopData().equipped)}
         <div class="pet-hello"><h1>${pick('嗨，我是小回', 'Hi, I’m Backy')}</h1><p>${greeting}</p></div>
         <div class="pet-row"><div class="pet-status"><span class="pet-status-avatar"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async"></span><span class="pet-status-text"><strong>${statusTitle}</strong><span>${statusSub}</span></span></div><span class="pet-chip">🍽 ${done}/${goal}</span></div>
-        <button type="button" class="today-mascot pet-mascot" data-pose="${pose}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async" draggable="false"></button>
+        <button type="button" class="today-mascot pet-mascot wearer" data-pose="${pose}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async" draggable="false">${wearLayer(shopData().outfit)}</button>
         <div class="pet-floor"><button type="button" class="pet-jar" data-pet-jar="${cones.total}" aria-label="${pick('松果罐，{n} 颗', 'Pine-cone jar, {n}', { n: cones.total })}"><img class="pet-jar-glass" src="/illustrations/pine-jar.webp" alt="" decoding="async"><span class="pet-jar-pile" aria-hidden="true"></span><span class="pet-jar-tag" aria-hidden="true"></span></button></div></section>
       <section class="m-section frost-panel pet-world"><div class="section-heading"><h2>${pick('小回的小世界', 'Backy’s little world')}</h2></div><div class="pet-tiles">
         <button type="button" class="pet-tile" data-pet-store><span class="pet-tile-icon">${PINE_ICON}</span><strong>${pick('仓库', 'Store')}</strong><span class="pet-tile-value">Lv.${progress.level.level}</span><span class="muted">${pick('松果 {n}', '{n} pine cones', { n: progress.level.cones })}</span></button>
@@ -551,7 +590,7 @@ function boot() {
     const dark = document.documentElement.dataset.theme === 'dark', picture = sceneImage(savedScene(), dark);
     return `<section class="home-scene-wrap"><img class="home-scene ${picture.own ? 'is-night' : ''}" src="${picture.src}" alt="" decoding="async">
         <div class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1><button type="button" class="scene-button" data-scene-picker aria-haspopup="dialog" aria-label="${pick('换背景', 'Change background')}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m4 17 4.5-4.5 3.5 3.5 2.5-2.5 5.5 5"/></svg></button></div>
-        <div class="today-status"><button type="button" class="today-mascot" data-pose="${due ? 'wave' : total ? 'cheer' : 'think'}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${due ? 'wave' : total ? 'cheer' : 'think'}.webp" alt="" decoding="async" draggable="false"></button>${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
+        <div class="today-status"><button type="button" class="today-mascot wearer" data-pose="${due ? 'wave' : total ? 'cheer' : 'think'}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${due ? 'wave' : total ? 'cheer' : 'think'}.webp" alt="" decoding="async" draggable="false">${wearLayer(shopData().outfit)}</button>${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
           <div class="today-meta"><span class="today-goal"><span class="task-ring" aria-hidden="true">${ring}</span>${goalText}</span><span><b>${streak}</b>${pick(' 天连续', ' day streak')}</span><span><b>${met}</b>${pick(' 天达成', ' days met')}</span></div></div>
         ${total ? `<button class="task-start" data-review>${due ? (pick('开始复习', 'Start review')) : (pick('再练一会', 'Practise more'))} →</button><button class="task-start task-ask" data-open-module="${ASK_MODULE}">${pick('继续提问', 'Keep asking')} →</button>` : `<button class="task-start" data-open-module="${ASK_MODULE}">${pick('去提问', 'Ask a question')} →</button>`}${reached ? shareButton('task-share') : ''}</section>
       ${chat.starterHome() ? `<div class="m-section frost-panel home-starter">${chat.starterHome()}</div>` : ''}
@@ -591,7 +630,22 @@ function boot() {
     document.querySelectorAll('[data-go-badges]').forEach(button => { button.onclick = openBadgeWall; });
     document.querySelectorAll('[data-pet-shop]').forEach(button => { button.onclick = () => { petPage = 'shop'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('[data-shop-back]').forEach(button => { button.onclick = () => { petPage = 'room'; render(); window.scrollTo(0, 0); }; });
-    document.querySelectorAll('[data-shop-tab]').forEach(button => { button.onclick = () => { shopTab = button.dataset.shopTab; render(); }; });
+    document.querySelectorAll('[data-shop-tab]').forEach(button => { button.onclick = () => { shopTab = button.dataset.shopTab; dressLook = {}; dressNote = ''; render(); }; });
+    document.querySelectorAll('[data-dress-part]').forEach(button => { button.onclick = () => { dressPart = button.dataset.dressPart; dressNote = ''; render(); }; });
+    document.querySelectorAll('[data-dress-item]').forEach(button => { button.onclick = () => {
+      const item = itemById(button.dataset.dressItem);
+      if (item?.level > petProgress().level.level) { dressNote = pick('升到 Lv.{n} 才能穿', 'Opens at Lv.{n}', { n: item.level }); render(); return; }
+      tryOn(dressPart, item?.id || null); dressNote = ''; render();
+    }; });
+    document.querySelectorAll('[data-dress-set]').forEach(button => { button.onclick = () => {
+      const level = petProgress().level.level, set = SETS.find(entry => entry.id === button.dataset.dressSet);
+      dressLook = {}; for (const id of set.items) { const item = itemById(id); if (!(item.level > level) && id !== shopData().outfit[item.part]) dressLook[item.part] = id; }
+      dressNote = set.items.some(id => itemById(id).level > level) ? pick('有一件要升级后才能穿', 'One piece opens at a higher level') : ''; render();
+    }; });
+    document.querySelector('[data-dress-random]')?.addEventListener('click', () => { randomLook(); dressNote = ''; render(); document.querySelector('.dress-mascot')?.classList.add('is-hop'); });
+    document.querySelector('[data-dress-reset]')?.addEventListener('click', () => { dressLook = {}; dressNote = ''; render(); });
+    document.querySelector('[data-dress-wear]')?.addEventListener('click', wearLook);
+    const dressMsg = document.querySelector('.dress-msg'); if (dressMsg) { dressMsg.textContent = dressNote; dressMsg.classList.toggle('is-good', dressGood); dressNote = ''; dressGood = false; }
     document.querySelectorAll('[data-shop-item]').forEach(button => { button.onclick = () => openShopItem(button.dataset.shopItem); });
     document.querySelectorAll('[data-soon]').forEach(button => { button.onclick = () => { button.classList.remove('is-poke'); void button.offsetWidth; button.classList.add('is-poke'); }; });
     document.querySelectorAll('[data-scene-picker]').forEach(button => { button.onclick = () => openScenePicker(button); });
