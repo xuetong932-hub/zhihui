@@ -744,4 +744,13 @@ button.me-head{width:calc(100% - 8px);padding:0;border:0;background:none;color:v
 .think-mini-box{position:relative;width:140px;height:100px;overflow:hidden}
 .think-mini .splash-stage{position:absolute;left:0;top:0;margin:0;transform:scale(.5);transform-origin:0 0}
 .think-mini .splash-dots{gap:var(--sp-8)}
-.think-mini .splash-dots svg{width:12px;height:12px}
+.think-mini .splash-dots svg{width:12px;height:12px}/* Review focus mode (2026-11-15): while a card is on screen the tab bar steps aside and the answer bar sits at the
+   bottom edge; the ✕ in the card head ends the session. */
+[data-layout="mobile"] body:has(.review-session.answering) .tabbar{display:none}
+[data-layout="mobile"] body:has(.review-session.answering) .review-bar{bottom:0;padding-bottom:calc(var(--sp-12) + env(safe-area-inset-bottom))}
+[data-layout="mobile"] body:has(.review-session.answering) main:has(.review-bar){padding-bottom:calc(env(safe-area-inset-bottom) + 112px)}
+[data-layout="mobile"] .review-bar.rating-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp-8)}
+[data-layout="mobile"] .review-bar .rating-btn{min-height:60px;padding:var(--sp-8) var(--sp-4);font-size:inherit;border-radius:16px}
+[data-layout="mobile"] .rating-btn strong{white-space:nowrap}
+[data-layout="mobile"] .review-bar #review-skip{flex:0 0 auto;padding:0 var(--sp-24);white-space:nowrap}
+[data-layout="mobile"] .review-progress span:first-child{font-weight:600;color:var(--muted)}

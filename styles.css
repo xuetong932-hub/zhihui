@@ -231,7 +231,7 @@ footer{color:var(--stone);border-top:1px solid var(--hairline-soft);margin-top:4
 [data-theme="dark"] .search-link,[data-theme="dark"] .discover-glyph,[data-theme="dark"] .square-avatar{color:#7cc4a0}
 @media(max-width:900px){.discover-grid{grid-template-columns:1fr}}
 .local-option{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-12);margin-top:var(--sp-16);padding-top:var(--sp-16);border-top:1px solid var(--line)}.local-entry{margin-bottom:var(--sp-16)}.local-entry h2{margin-top:0}
-.review-progress{display:none}
+.review-progress{display:flex;align-items:center;gap:var(--sp-12);margin-bottom:var(--sp-16)}
 
 /* Editable library views (curve, graph, mind map): heading row with back and downloads, inline editors, curve detail */
 .viz-head{display:flex;align-items:center;flex-wrap:wrap;gap:var(--sp-12)}
@@ -436,3 +436,33 @@ main h1,.section-heading h2,.today-big{font-family:var(--font-display);font-weig
 .preset-chips{margin-top:var(--sp-12)}
 .preset-chip{display:inline-flex;align-items:center;gap:var(--sp-4);min-height:36px}
 .preset-chip:disabled{cursor:default;opacity:1}
+/* Review (2026-11-15): progress head, ratings worst → best with when the card comes back, entry controls. */
+.review-exit{display:grid;place-items:center;flex:none;width:44px;height:44px;margin:calc(var(--sp-8) * -1) 0 calc(var(--sp-8) * -1) calc(var(--sp-12) * -1);border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:16px;cursor:pointer}
+.review-exit:hover{background:#0000000a}
+.review-meter{flex:1;height:6px;border-radius:999px;background:#30694f1f;overflow:hidden}
+.review-meter i{display:block;width:0;height:100%;border-radius:inherit;background:var(--accent,#30694f);transition:width .3s ease}
+.review-count{flex:none;font-size:13px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.rating-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp-8)}
+.rating-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--sp-4);min-height:56px;padding:var(--sp-8) var(--sp-4);border:1px solid transparent;border-radius:14px;font:inherit;cursor:pointer;transition:transform .12s ease}
+.rating-btn:active{transform:scale(.96)}
+.rating-btn strong{font-size:15px;font-weight:700;line-height:1.2}
+.rating-btn small{font-size:12px;line-height:1.2;opacity:.8;font-variant-numeric:tabular-nums}
+.rating-btn.tone-again{background:#fbe9e6;color:#a63d2f}
+.rating-btn.tone-hard{background:#fdf1dc;color:#8a5a0c}
+.rating-btn.tone-good{background:#30694f;color:#fff}
+.rating-btn.tone-easy{background:#e3eef7;color:#2f5f8a}
+[data-theme="dark"] .rating-btn.tone-again{background:#3a2320;color:#f0a99e}
+[data-theme="dark"] .rating-btn.tone-hard{background:#3a2f1c;color:#e8c27a}
+[data-theme="dark"] .rating-btn.tone-good{background:#4fa37c;color:#0b1510}
+[data-theme="dark"] .rating-btn.tone-easy{background:#1d2c3a;color:#9cc3e6}
+.extra-toggle{min-height:36px;padding:0 var(--sp-16);border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+.extra-toggle.on{background:#30694f;border-color:#30694f;color:#fff}
+.extra-toggle.on::before{content:"✓ "}
+.review-modes{display:flex;width:100%;margin-top:var(--sp-12)}
+.review-modes button{flex:1;min-height:40px}
+.review-mode-hint{margin:var(--sp-8) 0 0}
+.review-go{display:block;width:100%;min-height:52px;margin-top:var(--sp-24);border-radius:999px;font-size:17px;font-weight:700}
+.review-card.can-reveal{cursor:pointer}
+.review-card.can-swipe{touch-action:pan-y;user-select:none}
+.review-card.lean-right{box-shadow:inset 0 0 0 2px #30694f}
+.review-card.lean-left{box-shadow:inset 0 0 0 2px #c0574a}

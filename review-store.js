@@ -113,3 +113,9 @@ export function streakDays(events,now=new Date()){
 }
 // Stars for a finished session: correct means judged correct and rated understood/mastered (a guess does not count).
 export function sessionStars({reviewed,correct}){if(!reviewed)return 0;const rate=correct/reviewed;return rate>=0.8?3:rate>=0.5?2:1;}
+// What each rating would schedule now, for the hints under the rating buttons: { rating: days }, 0 meaning again in
+// about 10 minutes. A model-judged wrong answer counts as "wrong" whatever is chosen (as recordReview does).
+export function ratingPreview(data,cardId,ratings,{correct}={},now=new Date()){
+  const history=cardHistory(data,cardId);
+  return Object.fromEntries(ratings.map(rating=>[rating,scheduleReview(history,correct===false&&!['wrong','unclear'].includes(rating)?'wrong':rating,now).interval]));
+}

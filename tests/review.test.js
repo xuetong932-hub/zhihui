@@ -80,3 +80,18 @@ test('difficulty adapts only from sufficient feedback within its own module',()=
   assert.equal(suggestedLevel(cards,events,'coding','some','2026-11-05'),'some');
   assert.equal(suggestedLevel(cards,events.slice(-3).map(event=>({...event,rating:'unclear'})),'coding','advanced'),'some');
 });
+
+test('rating hints show when each choice brings the card back, matching what recording would schedule', async () => {
+  const { ratingPreview, recordReview, emptyReviews } = await import('../review-store.js');
+  const now = new Date('2026-11-15T12:00:00');
+  const fresh = ratingPreview(emptyReviews(), 'c1', ['wrong', 'unclear', 'understood', 'mastered'], {}, now);
+  assert.equal(fresh.wrong, 0); assert.equal(fresh.unclear, 0);
+  assert.ok(fresh.understood >= 1 && fresh.mastered > fresh.understood, 'easier ratings wait longer');
+  const data = emptyReviews();
+  for (const rating of ['understood', 'mastered']) {
+    const copy = structuredClone(data);
+    assert.equal(recordReview(copy, 'c1', { answer: '', correct: true, explanation: '', rating }, now).interval, fresh[rating]);
+  }
+  const judgedWrong = ratingPreview(emptyReviews(), 'c1', ['understood', 'mastered'], { correct: false }, now);
+  assert.deepEqual(judgedWrong, { understood: 0, mastered: 0 }, 'a model-judged wrong answer comes back in 10 minutes whatever is chosen');
+});
