@@ -1,5 +1,14 @@
 // ms interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "Seret nod untuk meletakkannya (diingati), seret latar untuk bergerak, cubit atau tatal untuk zum. Ketik nod untuk mengedit, menambah anak atau memadam; ketik dua kali untuk mengedit teks.",
+ "Fading": "Hampir lupa",
+ "Forgotten": "Terlupa",
+ "How this is worked out": "Cara ia dikira",
+ "Memory status": "Status ingatan",
+ "Next 7 days": "7 hari akan datang",
+ "Rearrange": "Susun semula",
+ "Steady": "Stabil",
+ "Strong": "Kukuh",
  "{n} pine cones": "{n} buah pain",
  "Avatar frames": "Bingkai avatar",
  "Change avatar": "Tukar avatar",

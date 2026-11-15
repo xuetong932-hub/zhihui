@@ -223,7 +223,7 @@ function boot() {
   function tabBar(locked) {
     return `<nav class="tabbar" aria-label="${pick('主导航', 'Main')}"><span class="tab-pill" aria-hidden="true"></span>${TABS.map(([id, icon, pages, name]) => {
       const on = pages.includes(chat.page), label = name();
-      if (id === 'pet') return `<button class="tab tab-pet ${on ? 'active' : ''}" data-tab="pet" aria-label="${label}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}><span class="pet-avatar"><img src="/illustrations/mascot-wave.webp" alt="" draggable="false"></span><span class="tab-label">${label}</span></button>`;
+      if (id === 'pet') return `<button class="tab tab-pet ${on ? 'active' : ''}" data-tab="pet" aria-label="${label}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}><span class="pet-avatar"><img src="/illustrations/mascot-wave.webp" alt="" draggable="false"></span></button>`;
       return `<button class="tab ${on ? 'active' : ''}" data-tab="${id}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}>${iconSvg(icon, 24)}<span class="tab-label">${label}</span></button>`;
     }).join('')}</nav>`;
   }

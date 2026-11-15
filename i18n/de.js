@@ -1,5 +1,14 @@
 // de interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "Ziehen Sie Knoten an ihren Platz (wird gespeichert), ziehen Sie den Hintergrund zum Verschieben, zoomen Sie mit zwei Fingern oder dem Mausrad. Tippen Sie einen Knoten an, um ihn zu bearbeiten, ein Kind hinzuzufügen oder ihn zu löschen; doppelt tippen bearbeitet den Text.",
+ "Fading": "Verblasst",
+ "Forgotten": "Vergessen",
+ "How this is worked out": "So wird es berechnet",
+ "Memory status": "Gedächtnisstand",
+ "Next 7 days": "Nächste 7 Tage",
+ "Rearrange": "Neu anordnen",
+ "Steady": "Stabil",
+ "Strong": "Fest",
  "{n} pine cones": "{n} Tannenzapfen",
  "Avatar frames": "Avatar-Rahmen",
  "Change avatar": "Avatar ändern",

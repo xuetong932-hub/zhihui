@@ -7,7 +7,7 @@ import { shelfView, bookView, cardPageView, coverColor, animateOpen, animateClos
 import { moduleIconName } from './module-icons.js';
 import { isPresetModule, isCustomModule, MAX_CUSTOM_MODULES, newCustomModuleId, cleanModuleName } from './modules.js';
 
-export function createKnowledgeUI({ locale, enabled, moduleName, extract, refresh, origins, reviews, dueIds, googleClientId, relate, expand, starterPanel = () => '', phone = () => false, getProfile = () => null, updateModules = () => 'unsupported' }) {
+export function createKnowledgeUI({ locale, enabled, moduleName, extract, refresh, origins, reviews, dueIds, googleClientId, relate, expand, starterPanel = () => '', phone = () => false, getProfile = () => null, updateModules = () => 'unsupported', startReview = () => {} }) {
   const text = (zh, en, vars) => pick(zh, en, vars);
   const name = id => e(moduleName(id));
   // Active modules, plus a card's own module when it is disabled or deleted so the edit form never moves it silently.
@@ -49,8 +49,8 @@ export function createKnowledgeUI({ locale, enabled, moduleName, extract, refres
   let tab = 'cards';
   // The chart views can rename a card (graph) or mark it important / pause it (curve detail); saved like the card list.
   const updateCard = (id, change) => { const card = data.cards.find(item => item.id === id); if (!card || blocked) return false; change(card); card.updatedAt = new Date().toISOString(); return save(); };
-  const panel = createMemoryPanel({ locale, cards: () => data.cards, reviews, dueIds, moduleName, modules: enabled, googleClientId, refresh, relate, expand, updateCard, openTab: next => { tab = next; refresh(); } });
-  const tabs = () => `<div class="module-tabs library-tabs" role="tablist">${[['cards', text('知识卡片', 'Cards')], ['curve', text('遗忘曲线', 'Forgetting curve')], ['graph', text('知识图谱', 'Knowledge graph')], ['mindmap', text('思维导图', 'Mind map')], ['export', text('导出', 'Export')]].map(([id, label]) => `<button class="module-tab ${tab === id ? 'active' : ''}" role="tab" aria-selected="${tab === id}" data-library-tab="${id}">${label}</button>`).join('')}</div>`;
+  const panel = createMemoryPanel({ locale, cards: () => data.cards, reviews, dueIds, moduleName, modules: enabled, googleClientId, refresh, relate, expand, updateCard, openTab: next => { tab = next; refresh(); }, startReview });
+  const tabs = () => `<div class="module-tabs library-tabs" role="tablist">${[['cards', text('知识卡片', 'Cards')], ['curve', text('记忆状态', 'Memory status')], ['graph', text('知识图谱', 'Knowledge graph')], ['mindmap', text('思维导图', 'Mind map')], ['export', text('导出', 'Export')]].map(([id, label]) => `<button class="module-tab ${tab === id ? 'active' : ''}" role="tab" aria-selected="${tab === id}" data-library-tab="${id}">${label}</button>`).join('')}</div>`;
   function view() { if (tab === 'cards' && phone() && !trash && shelf.open) return bookPage(); return tab === 'cards' ? cardsView().replace('</section>', '</section>' + tabs()) : `<section class="intro"><span class="eyebrow">${text('知识库', 'Knowledge library')}</span><h1>${text('让问过的，成为记得住的。', 'Keep what you learn.')}</h1></section>${tabs()}${panel.view(tab)}`; }
   function bind() {
     document.querySelectorAll('[data-library-tab]').forEach(button => { button.onclick = () => { if (busy || panel.busy) return; tab = button.dataset.libraryTab; refresh(); }; });

@@ -381,3 +381,41 @@ main h1,.section-heading h2,.today-big{font-family:var(--font-display);font-weig
    sleep when nothing is due. Decorative only (alt=""). */
 .mascot-art{width:128px;max-width:45%}
 .today-mascot{display:none}
+
+/* Memory status (memory-ui.js statusView, 2026-11-15; replaces the forgetting curve): a stacked bar of four bands, a
+   legend that lists a band's ideas, and how many ideas fall due on each of the next 7 days. */
+.status-bar{display:flex;gap:var(--sp-4);height:16px;margin:var(--sp-16) 0 var(--sp-12);border-radius:999px;overflow:hidden}
+.status-bar span{min-width:8px;border-radius:999px}
+.band-strong{--band:#4f9a6c}.band-steady{--band:#c9a43a}.band-fading{--band:#e08a4a}.band-lost{--band:#d45656}
+.status-bar span{background:var(--band)}
+.status-legend{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-8)}
+.status-band{display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-4);padding:var(--sp-8) var(--sp-12);border:1px solid var(--line);border-radius:12px;background:transparent;color:var(--ink);text-align:left;cursor:pointer}
+.status-band i{width:12px;height:12px;border-radius:50%;background:var(--band)}
+.status-band strong{font-size:13px}
+.status-band b{font-size:20px;line-height:1}
+.status-band span{font-size:11px;color:var(--muted)}
+.status-band.active{border-color:var(--band);box-shadow:inset 0 0 0 1px var(--band)}
+.status-band:disabled{opacity:.45;cursor:default}
+.status-cards{margin:var(--sp-12) 0 0;padding:0;list-style:none}
+.status-cards button{display:grid;grid-template-columns:1fr auto;gap:var(--sp-4) var(--sp-8);width:100%;padding:var(--sp-12) 0;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);text-align:left;cursor:pointer}
+.status-cards strong{font-size:14px;font-weight:600}
+.status-cards span{grid-column:1;font-size:12px;color:var(--muted)}
+.status-cards b{grid-row:1 / span 2;grid-column:2;align-self:center;font-size:14px}
+.status-panel .section-heading{margin-top:var(--sp-24)}
+.status-days{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--sp-8);align-items:end;height:160px;padding-top:var(--sp-8)}
+.status-day{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:var(--sp-4);height:100%}
+.status-day b{font-size:12px;color:var(--muted)}
+.status-col{display:block;width:100%;max-width:32px;height:4%;border-radius:8px 8px 4px 4px;background:color-mix(in srgb,var(--accent) 35%,transparent)}
+.status-day em{font-style:normal;font-size:11px;color:var(--muted)}
+.status-day.is-today .status-col{background:var(--accent)}
+.status-day.is-today b,.status-day.is-today em{color:var(--accent);font-weight:700}
+.status-review{display:block;width:100%;margin-top:var(--sp-16)}
+.status-note{margin-top:var(--sp-16)}
+/* Mind map on the draggable canvas. */
+.mm-toolbar{display:flex;justify-content:flex-end;margin-top:var(--sp-8)}
+.mm-host .graph-canvas,.graph-svg{touch-action:none}
+.graph-selected circle:not(.graph-halo){stroke-width:4;stroke:var(--accent)}
+.graph-selected .graph-label{font-weight:700}
+@media (max-width:420px){.status-legend{grid-template-columns:repeat(2,1fr)}}
+.mm-host .graph-label{font-size:13px}
+.mm-host .graph-hub .graph-label{font-size:12px;font-weight:700}

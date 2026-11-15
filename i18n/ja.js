@@ -1,5 +1,14 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "ノードをドラッグして配置（位置は保存）、背景のドラッグで移動、ピンチやホイールで拡大縮小。ノードをタップすると編集・子ノード追加・削除、ダブルタップで文字を編集。",
+ "Fading": "忘れかけ",
+ "Forgotten": "忘れた",
+ "How this is worked out": "計算方法",
+ "Memory status": "記憶の状態",
+ "Next 7 days": "今後 7 日間",
+ "Rearrange": "並べ直す",
+ "Steady": "安定",
+ "Strong": "しっかり",
  "{n} pine cones": "松ぼっくり {n}",
  "Avatar frames": "アイコンフレーム",
  "Change avatar": "アイコンを変更",

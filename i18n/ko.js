@@ -1,5 +1,14 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "노드를 끌어 배치하고(위치 저장), 빈 곳을 끌어 이동하며, 두 손가락이나 휠로 확대·축소해요. 노드를 탭하면 수정·하위 노드 추가·삭제, 두 번 탭하면 글자를 바로 수정해요.",
+ "Fading": "잊혀 가는 중",
+ "Forgotten": "잊음",
+ "How this is worked out": "계산 방법",
+ "Memory status": "기억 상태",
+ "Next 7 days": "앞으로 7일",
+ "Rearrange": "다시 배치",
+ "Steady": "안정",
+ "Strong": "튼튼",
  "{n} pine cones": "솔방울 {n}",
  "Avatar frames": "프로필 테두리",
  "Change avatar": "프로필 사진 바꾸기",

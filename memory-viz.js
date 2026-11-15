@@ -21,6 +21,22 @@ function retentionAt(card, events, at) {
   const history = events.filter(event => new Date(event.at) <= at), last = history.at(-1);
   return retention((at - new Date(last ? last.at : card.createdAt)) / DAY, stability(history));
 }
+// Memory status (replaces the curve as the library's overview, 2026-11-15): every active card in one of four bands by
+// how much of it is likely still remembered now (strong ≥90%, steady 70–89, fading 40–69, lost <40), and how many
+// cards fall due on each of the next 7 days (day 0 = today's review batch).
+export const BANDS = [['strong', 90], ['steady', 70], ['fading', 40], ['lost', 0]];
+export function memoryStatus(cards, reviews, dueIds, now = new Date()) {
+  const active = cards.filter(card => card.status === 'active' && card.extraction === 'ready'), bands = Object.fromEntries(BANDS.map(([id]) => [id, []]));
+  for (const card of active) {
+    const events = reviews.events.filter(event => event.cardId === card.id).sort((a, b) => a.at.localeCompare(b.at));
+    const value = retentionAt(card, events, now) ?? 100;
+    bands[BANDS.find(([, min]) => value >= min)[0]].push({ id: card.id, title: card.title, module: card.module, retention: value });
+  }
+  for (const list of Object.values(bands)) list.sort((a, b) => a.retention - b.retention);
+  const days = Array.from({ length: AHEAD }, (_, offset) => { const d = dayStart(now); d.setDate(d.getDate() + offset); return { offset, day: localDay(d), count: 0 }; });
+  for (const point of memoryPoints(cards, reviews, dueIds, now)) if (point.offset < AHEAD) days[point.offset].count++;
+  return { total: active.length, bands, days };
+}
 // One point per active card: in today's batch (filled, on today), or later (hollow, on its review date within the window).
 export function memoryPoints(cards, reviews, dueIds, now = new Date()) {
   const today = dayStart(now);

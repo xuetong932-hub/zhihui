@@ -1,6 +1,6 @@
-import { memoryPoints, moduleCurves, moduleStyles, curveSvg, legend, attachVizInteraction, graphEdges } from './memory-viz.js';
+import { memoryPoints, moduleStyles, graphEdges, memoryStatus, BANDS } from './memory-viz.js';
 import { mountGraph } from './graph-view.js';
-import { buildMindmap, mindmapSvg } from './mindmap.js';
+import { buildMindmap } from './mindmap.js';
 import { tap, downloadPng, downloadSvg, downloadText, nodeAt, editTree, validTree, treeMarkdown, safeFileName } from './viz-edit.js';
 // Saved model results: semantic relations between ideas and per-idea mind map expansions.
 const RELATIONS_KEY = 'knowledge-review.relations.v1', MINDMAP_KEY = 'knowledge-review.mindmaps.v1';
@@ -14,7 +14,8 @@ import { googleToken, uploadAsGoogleDoc } from './google-docs.js';
 import { escapeHtml as e, renderAnswer } from './chat-store.js';
 import { pick, intlLocale, currentLocale } from './i18n.js';
 // Library panels: forgetting curve, knowledge graph and export of reviewed knowledge (Word download, Google Docs).
-export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, modules, googleClientId, refresh, relate, expand, updateCard = () => false, openTab }) {
+export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, modules, googleClientId, refresh, relate, expand, updateCard = () => false, openTab, startReview = () => {} }) {
+  let statusBand = '';
   const text = (zh, en, vars) => pick(zh, en, vars);
   let exportModule = '', scope = 'reviewed', message = '', busy = false, docLink = '';
   // Graph and mind map state. Model results (semantic relations, mind map expansions) are saved on this device.
@@ -22,7 +23,7 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
   let theme = null, relationMode = 'basic', graphMessage = '', mindmapId = '', mindmapMessage = '';
   const collapsed = new Set();
   // Zoomed-in views (double-click / double-tap): one module's curve, one module's graph, one mind map branch.
-  let curveFocus = '', graphFocus = '', graphEdit = '', linksOpen = false, mindmapFocus = null, mindmapSelected = null, editNow = false;
+  let graphFocus = '', graphEdit = '', linksOpen = false, mindmapFocus = null, mindmapSelected = null, editNow = false;
   const graphEdits = () => { const saved = store.read(GRAPH_KEY, null); return { positions: saved?.positions && typeof saved.positions === 'object' ? saved.positions : {},
     added: Array.isArray(saved?.added) ? saved.added.filter(p => typeof p?.a === 'string' && typeof p?.b === 'string' && p.a !== p.b) : [], removed: Array.isArray(saved?.removed) ? saved.removed.filter(key => typeof key === 'string') : [] }; };
   const writeGraphEdits = change => { const next = graphEdits(); change(next); return store.write(GRAPH_KEY, { version: 1, ...next }); };
@@ -87,8 +88,7 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
     const list = points(), style = styles(), dueModules = [...new Set(list.filter(p => p.today).map(p => p.module))];
     const summary = dueModules.length ? text('今天需要复习：{v0}。', 'Review today: {v1}.', { v0: dueModules.map(id => `${moduleName(id)} ${list.filter(p => p.today && p.module === id).length} 个`).join('、'), v1: dueModules.map(id => `${moduleName(id)} ${list.filter(p => p.today && p.module === id).length}`).join(', ') }) : text('今天没有需要复习的知识。', 'Nothing to review today.');
     const empty = `<p>${text('还没有可显示的知识点。', 'No ideas to show yet.')}</p>`;
-    if (tab === 'curve' && curveFocus) return curveDetail(list, style);
-    if (tab === 'curve') return `<section class="panel"><h2>${text('遗忘曲线', 'Forgetting curve')}</h2><p><strong>${e(summary)}</strong></p><p>${text('每条线是一个模块的平均记忆保持率：随时间下降，复习后回升。虚线是“今天”。实心点是今天要复习的知识，空心点是之后要复习的知识，画在它的复习日期上。把鼠标停在点上（手机上点一下）可查看详情。', 'Each line is a module’s average retention: it falls over time and rises after reviews. The dashed line is today. Filled points are ideas to review today; hollow points come later, on their review date. Hover a point (tap on a phone) for details.')}</p><p class="viz-hint">${text('双击一条曲线（或下方图例里的模块）查看这个模块的详情。', 'Double-click a line (or a module in the legend) to open that module.')}</p>${list.length ? curveSvg(list, moduleCurves(cards(), reviews()), style, moduleName, labels()) + legend(style, moduleName, list, labels()) : empty}<p class="field-hint">${text('保持率由复习安排所用的 FSRS 记忆模型估算（到期时约 90%），使用默认参数，不是根据你个人的长期学习数据校准的结果。', 'Retention comes from the FSRS memory model used for review scheduling (about 90% when due), with default parameters, not calibrated on your own long-term data.')}</p></section>`;
+    if (tab === 'curve') return statusView();
     if (tab === 'graph') {
       const semantic = semanticRelations(activeCards());
       const shown = graphCards(), editing = shown.find(card => card.id === graphEdit);
@@ -108,14 +108,14 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
       if (tree && mindmapFocus !== null && !tree.children?.[mindmapFocus]) mindmapFocus = null;
       if (tree && mindmapSelected !== null && !nodeAt(tree, mindmapSelected)) mindmapSelected = null;
       const node = tree && mindmapSelected !== null ? nodeAt(tree, mindmapSelected) : null, isRoot = mindmapSelected === '';
-      return `<section class="panel"><div class="viz-head">${mindmapFocus !== null ? backButton('mm-back') : ''}<h2>${text('思维导图', 'Mind map')}${mindmapFocus !== null && tree ? ` · ${e(tree.children[mindmapFocus].label)}` : ''}</h2>${card ? `<div class="viz-downloads"><button class="text-button" id="mm-png">${text('下载 PNG', 'PNG')}</button><button class="text-button" id="mm-svg">${text('下载 SVG', 'SVG')}</button><button class="text-button" id="mm-md">${text('下载 Markdown', 'Markdown')}</button></div>` : ''}</div>
-        <p class="viz-hint">${mindmapFocus !== null ? text('双击任意节点修改文字；选中节点后可添加子节点或删除。下载只包含这个分支。', 'Double-click any node to edit it; select a node to add a child or delete it. Downloads include this branch only.') : text('点击分支展开或收起；双击分支放大进入；双击其他节点修改文字。', 'Click a branch to expand or collapse it; double-click a branch to zoom in; double-click other nodes to edit them.')}</p>
+      return `<section class="panel"><div class="viz-head"><h2>${text('思维导图', 'Mind map')}</h2>${card ? `<div class="viz-downloads"><button class="text-button" id="mm-png">${text('下载 PNG', 'PNG')}</button><button class="text-button" id="mm-svg">${text('下载 SVG', 'SVG')}</button><button class="text-button" id="mm-md">${text('下载 Markdown', 'Markdown')}</button></div>` : ''}</div>
+        <p class="viz-hint">${text('拖动节点摆放位置（会记住），拖动空白处移动画布，双指或滚轮缩放。点一下节点可修改、添加子节点或删除；双击直接改文字。', 'Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.')}</p>
         ${node ? `<div class="viz-editor"><label class="field-label" for="mm-input">${isRoot ? text('修改中心主题', 'Edit the centre') : text('修改节点', 'Edit node')}</label><div class="viz-editor-row"><input id="mm-input" type="text" maxlength="200" value="${e(node.label)}"><button class="primary-button" id="mm-save">${text('保存', 'Save')}</button></div>
           <div class="viz-editor-row"><button class="secondary-button" id="mm-add">＋ ${text('添加子节点', 'Add child')}</button><button class="text-button danger-text" id="mm-delete" ${isRoot ? 'disabled' : ''}>${text('删除', 'Delete')}</button><button class="text-button" id="mm-cancel">${text('取消', 'Cancel')}</button></div></div>` : ''}
-        ${card && mindmapFocus === null ? `<div class="library-controls"><label>${text('知识点', 'Idea')}<select id="mindmap-card">${list.map(item => `<option value="${item.id}" ${item.id === card.id ? 'selected' : ''}>${e(moduleName(item.module))} · ${e(item.title)}</option>`).join('')}</select></label><button class="secondary-button" id="mindmap-expand" ${busy ? 'disabled' : ''}>${expansion ? text('重新用模型展开', 'Expand again with model') : text('用模型展开（调用模型）', 'Expand with model (uses model)')}</button></div>
+        ${card ? `<div class="library-controls"><label>${text('知识点', 'Idea')}<select id="mindmap-card">${list.map(item => `<option value="${item.id}" ${item.id === card.id ? 'selected' : ''}>${e(moduleName(item.module))} · ${e(item.title)}</option>`).join('')}</select></label><button class="secondary-button" id="mindmap-expand" ${busy ? 'disabled' : ''}>${expansion ? text('重新用模型展开', 'Expand again with model') : text('用模型展开（调用模型）', 'Expand with model (uses model)')}</button></div>
         <p class="field-hint">${expansion ? text('带 ✦ 的分支由模型于 {v0} 生成，仅供参考，可能有误。', 'Branches marked ✦ were generated by the model at {v1}; they may be wrong.', { v0: new Date(expansion.generatedAt).toLocaleString('zh-CN'), v1: new Date(expansion.generatedAt).toLocaleString('en') }) : text('默认只使用这张卡片已有的内容，不调用模型。“用模型展开”会把这张卡片的标题、解释和例子发给已配置的模型，补充前置知识、子概念、常见误区和延伸应用，会产生费用。', 'By default only this card’s own content is used. Expand sends the card’s title, explanation and example to your model to add prerequisites, sub-concepts, misconceptions and applications; this uses model credit.')}</p>
         ${edited ? `<p class="field-hint">${text('这张思维导图已手动修改，模型展开只会追加新分支，不会覆盖你的修改。', 'This mind map was edited by hand; model expansion only adds new branches and never overwrites your edits.')} <button class="text-button" id="mm-reset">${text('恢复自动生成', 'Restore generated version')}</button></p>` : ''}` : ''}
-        ${card ? mindmapSvg(tree, collapsed, { focus: mindmapFocus, selected: mindmapSelected }) : empty}<p class="verified" role="status">${busy ? text('正在展开…', 'Expanding…') : ''}</p><p class="error" role="alert">${e(mindmapMessage)}</p></section>`;
+        ${card ? `<div class="mm-toolbar"><button class="text-button" id="mm-relayout">${text('重新排列', 'Rearrange')}</button></div><div id="mm-host" class="mm-host"></div>` : empty}<p class="verified" role="status">${busy ? text('正在展开…', 'Expanding…') : ''}</p><p class="error" role="alert">${e(mindmapMessage)}</p></section>`;
     }
     const chosen = selectedCards();
     return `<section class="panel"><h2>${text('导出复习好的知识', 'Export reviewed knowledge')}</h2><p>${text('选择范围后下载 Word 文档，或直接写入在线文档。只有你点击按钮时才会生成或发送。', 'Choose what to include, then download a Word document or send it to an online document. Nothing is generated or sent until you click.')}</p>
@@ -151,19 +151,6 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
   }
   const backButton = id => `<button class="secondary-button viz-back" id="${id}">← ${text('返回', 'Back')}</button>`;
   const dateText = value => new Date(value).toLocaleDateString(intlLocale(currentLocale()));
-  // One module's curve, enlarged, with every idea in it: last and next review, estimated retention, quick actions.
-  function curveDetail(allPoints, style) {
-    const module = curveFocus, points = allPoints.filter(p => p.module === module), byId = new Map(points.map(p => [p.id, p])), data = reviews(), curve = moduleCurves(cards(), reviews()).get(module);
-    const list = cards().filter(card => card.module === module && ['active', 'paused'].includes(card.status) && card.extraction === 'ready').sort((a, b) => (byId.get(a.id)?.offset ?? 999) - (byId.get(b.id)?.offset ?? 999));
-    const rows = list.map(card => { const p = byId.get(card.id), last = latestReview(data, card.id), paused = card.status === 'paused';
-      return `<li class="curve-row${p?.today ? ' is-today' : ''}"><div class="curve-row-main"><strong>${e(card.title)}</strong>${card.important ? `<span class="pill">${text('重点', 'Important')}</span>` : ''}${paused ? `<span class="pill">${text('已暂停', 'Paused')}</span>` : ''}</div>
-        <div class="curve-row-meta"><span>${text('上次', 'Last')}：${last ? `${dateText(last.at)} · ${ratingName(last.rating)}` : ratingName(null)}</span><span>${text('下次', 'Next')}：${paused ? '—' : p ? (p.today ? text('今天', 'Today') : p.nextDue) : text('60 天后', 'In 60+ days')}</span><span>${text('保持率', 'Retention')}：${p ? `${Math.round(p.retention)}%` : '—'}</span></div>
-        <div class="curve-row-actions"><button class="text-button" data-curve-important="${e(card.id)}">${card.important ? text('取消重点', 'Unmark') : text('标为重点', 'Mark important')}</button><button class="text-button" data-curve-pause="${e(card.id)}">${paused ? text('恢复复习', 'Resume') : text('暂停复习', 'Pause')}</button></div></li>`; }).join('');
-    return `<section class="panel"><div class="viz-head">${backButton('curve-back')}<h2>${text('遗忘曲线', 'Forgetting curve')} · ${e(moduleName(module))}</h2></div>
-      <p><strong>${text('共 {v0} 个知识点，今天需要复习 {v1} 个。', '{v0} ideas, {v1} due today.', { v0: list.length, v1: points.filter(p => p.today).length })}</strong></p>
-      ${points.length && curve ? `<div class="curve-zoom">${curveSvg(points, new Map([[module, curve]]), style, moduleName, labels())}</div>` : ''}
-      ${list.length ? `<ul class="curve-list">${rows}</ul>` : `<p>${text('这个模块还没有知识点。', 'No ideas in this module yet.')}</p>`}<p class="error" role="alert">${e(graphMessage)}</p></section>`;
-  }
   const mindmapLabels = () => ({ locale: intlLocale(currentLocale()), points: text('核心要点', 'Key points'), example: text('生活例子', 'Example'), belongs: text('模块与分类', 'Module & category'), related: text('相关知识', 'Related ideas'), questions: text('原始提问', 'Questions asked'), history: text('复习记录', 'Review history'), rating: ratingName,
     ai: { prerequisites: text('前置知识', 'Prerequisites'), subconcepts: text('子概念', 'Sub-concepts'), misconceptions: text('常见误区', 'Misconceptions'), applications: text('延伸应用', 'Applications') } });
   const modelError = error => error?.message === 'key' ? text('请先在“模型设置”中配置 Key 并确认发送说明。', 'Configure your model key and sharing notice in Model settings first.') : text('模型请求未完成，请检查 Key 和网络后重试。', 'The model request did not finish. Check your key and network, then retry.');
@@ -214,15 +201,33 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
     if (select) select.onchange = () => { mindmapId = select.value; collapsed.clear(); mindmapFocus = null; mindmapSelected = null; mindmapMessage = ''; refresh(); };
     const card = activeCards().find(item => item.id === mindmapId), list = activeCards(), current = () => card && (editedTree(card.id) || autoTree(card, list));
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
-    // Overview: a tap folds a branch, a double tap zooms into it; other nodes are selected (tap) or edited (double tap).
-    // Zoomed in: tap selects, double tap edits.
-    document.querySelectorAll('.mm-node').forEach(node => {
-      const path = node.dataset.path, branch = mindmapFocus === null && node.classList.contains('mm-branch');
-      const single = () => { if (branch) { const i = Number(node.dataset.branch); if (collapsed.has(i)) collapsed.delete(i); else collapsed.add(i); } else mindmapSelected = path; refresh(); };
-      const double = () => { if (branch) { mindmapFocus = Number(node.dataset.branch); mindmapSelected = null; } else { mindmapSelected = path; editNow = true; } refresh(); };
-      node.onclick = () => tap(`mm:${mindmapId}:${mindmapFocus}:${path}`, single, double);
-      node.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); single(); } if (event.key === 'F2') { event.preventDefault(); mindmapSelected = path; editNow = true; refresh(); } };
-    });
+    // The map is drawn on the same draggable canvas as the knowledge graph: the centre topic, its branches (one colour
+    // each) and their sub-points, first laid out in rings, then wherever the user drags them (saved per idea).
+    // Tap = select (editor opens), double tap = edit the text.
+    const host = document.querySelector('#mm-host'), scopeKey = card ? `mm:${card.id}` : '';
+    if (host && card) {
+      // A narrow screen gets a narrower, taller canvas so labels stay readable instead of the map being shrunk to fit.
+      const narrow = host.clientWidth < 560, W = narrow ? 420 : 760, H = narrow ? 600 : 520, ring = narrow ? 0.62 : 1;
+      const tree = current(), positions = positionsFor(scopeKey), nodes = [], links = [];
+      const COLORS = ['#2f6fb0', '#c0392b', '#2e7d4f', '#d68910', '#7b4fa6', '#16808a', '#b0487c', '#6b7c2e'];
+      const walk = (node, path, depth, color, a0, a1, parent) => {
+        const id = path === '' ? 'root' : `n${path}`, angle = (a0 + a1) / 2, radius = depth ? (130 + (depth - 1) * 110) * ring : 0;
+        if (!positions.has(id)) positions.set(id, { x: W / 2 + Math.cos(angle) * radius, y: H / 2 + Math.sin(angle) * radius * (narrow ? 1.25 : 0.8), fixed: false });
+        nodes.push({ id, path, label: node.label, kind: depth ? 'card' : 'hub', color, size: depth === 1 ? 3 : depth === 2 ? 1.5 : 0.5, selected: mindmapSelected === path, detail: [['strong', node.label]] });
+        if (parent) links.push({ source: parent, target: id, kind: 'spoke' });
+        const kids = node.children || [], span = (a1 - a0) / Math.max(1, kids.length);
+        kids.forEach((child, i) => walk(child, path === '' ? String(i) : `${path}.${i}`, depth + 1, depth ? color : COLORS[i % COLORS.length], a0 + span * i, a0 + span * (i + 1), id));
+      };
+      walk(tree, '', 0, '#30694f', -Math.PI / 2, Math.PI * 1.5, null);
+      const showEditor = () => requestAnimationFrame(() => document.querySelector('#mm-input')?.closest('.viz-editor')?.scrollIntoView({ block: 'nearest' }));
+      mountGraph(host, { nodes, links, theme: graphTheme(), positions, labelMax: 12, width: W, height: H,
+        onTap: node => { mindmapSelected = node.path; refresh(); showEditor(); },
+        onDouble: node => { mindmapSelected = node.path; editNow = true; refresh(); showEditor(); },
+        onMoved: () => saveLayout(scopeKey) });
+    }
+    on('#mm-relayout', () => { if (!scopeKey) return; positionsFor(scopeKey).clear(); saveLayout(scopeKey); refresh(); });
+    // Paths shift when a node is deleted, so the saved layout of that map starts over.
+    const forgetLayout = () => { if (scopeKey) { positionsFor(scopeKey).clear(); saveLayout(scopeKey); } };
     const input = document.querySelector('#mm-input');
     if (input) { if (editNow) { input.focus(); input.select(); } editNow = false; input.onkeydown = event => { if (event.key === 'Enter') document.querySelector('#mm-save').click(); if (event.key === 'Escape') document.querySelector('#mm-cancel').click(); }; }
     const change = op => { const tree = current(); if (!tree) return null; const next = editTree(tree, { ...op, path: mindmapSelected }); if (!next) { mindmapMessage = text('这个修改无法完成（文字不能为空，层级最多 4 层）。', 'That change is not possible (text cannot be empty; at most 4 levels).'); refresh(); return null; } mindmapMessage = ''; return writeEditedTree(card.id, next) ? next : null; };
@@ -230,11 +235,11 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
     on('#mm-cancel', () => { mindmapSelected = null; refresh(); });
     on('#mm-save', () => { if (change({ op: 'rename', label: document.querySelector('#mm-input').value })) mindmapSelected = null; refresh(); });
     on('#mm-add', () => { const next = change({ op: 'add', label: text('新节点', 'New node') }); if (next) { const count = nodeAt(next, mindmapSelected).children.length; mindmapSelected = [mindmapSelected, count - 1].filter(part => part !== '').join('.'); editNow = true; } refresh(); });
-    on('#mm-delete', () => { const path = mindmapSelected; if (change({ op: 'delete' })) { mindmapSelected = null; collapsed.clear(); if (!path.includes('.') || path === String(mindmapFocus)) mindmapFocus = null; } refresh(); });
-    on('#mm-reset', () => { if (card && confirm(text('恢复后，你对这张思维导图的修改会被清除。继续吗？', 'Restoring clears your edits to this mind map. Continue?'))) { writeEditedTree(card.id, null); mindmapSelected = null; mindmapFocus = null; collapsed.clear(); refresh(); } });
+    on('#mm-delete', () => { if (change({ op: 'delete' })) { mindmapSelected = null; forgetLayout(); } refresh(); });
+    on('#mm-reset', () => { if (card && confirm(text('恢复后，你对这张思维导图的修改会被清除。继续吗？', 'Restoring clears your edits to this mind map. Continue?'))) { writeEditedTree(card.id, null); mindmapSelected = null; forgetLayout(); refresh(); } });
     // Downloads cover what is on screen: the whole map, or the zoomed-in branch.
-    const shownTree = () => { const tree = current(); return mindmapFocus !== null && tree?.children?.[mindmapFocus] ? tree.children[mindmapFocus] : tree; };
-    const mmFile = () => `${safeFileName(text('知回-思维导图', 'mind-map'))}-${safeFileName(shownTree()?.label)}`, mmSvg = () => document.querySelector('svg.mindmap');
+    const shownTree = () => current();
+    const mmFile = () => `${safeFileName(text('知回-思维导图', 'mind-map'))}-${safeFileName(shownTree()?.label)}`, mmSvg = () => document.querySelector('#mm-host svg');
     on('#mm-svg', () => { if (mmSvg()) downloadSvg(mmSvg(), `${mmFile()}.svg`); });
     on('#mm-png', () => { if (mmSvg()) downloadPng(mmSvg(), `${mmFile()}.png`).catch(() => { mindmapMessage = text('图片生成失败，请改用 SVG。', 'The image could not be made; try SVG.'); refresh(); }); });
     on('#mm-md', () => { const tree = shownTree(); if (tree) downloadText(treeMarkdown(tree), `${mmFile()}.md`, 'text/markdown'); });
@@ -256,21 +261,35 @@ export function createMemoryPanel({ locale, cards, reviews, dueIds, moduleName, 
       finally { busy = false; refresh(); }
     };
   }
-  // Forgetting curve: double-click a line or a legend entry to open that module; the detail view has quick actions.
-  function bindCurve() {
-    document.querySelectorAll('[data-curve-module],[data-legend-module]').forEach(element => {
-      const module = element.dataset.curveModule || element.dataset.legendModule;
-      element.addEventListener('click', () => tap(`curve:${module}`, () => {}, () => { curveFocus = module; graphMessage = ''; refresh(); window.scrollTo(0, 0); }));
-    });
-    const back = document.querySelector('#curve-back'); if (back) back.onclick = () => { curveFocus = ''; refresh(); };
-    const act = (attribute, change) => document.querySelectorAll(`[data-${attribute}]`).forEach(button => { button.onclick = () => { if (!updateCard(button.getAttribute(`data-${attribute}`), change)) graphMessage = text('未保存，请刷新后重试。', 'Not saved. Reload and try again.'); refresh(); }; });
-    act('curve-important', card => { card.important = !card.important; card.reason = card.important ? 'manual' : ''; });
-    act('curve-pause', card => { card.status = card.status === 'paused' ? 'active' : 'paused'; });
+  // Memory status: how many ideas are strongly remembered, steady, fading or lost now (tap a band to list its ideas;
+  // tap an idea to open its mind map), and how many fall due on each of the next 7 days.
+  const BAND_LABEL = () => ({ strong: text('牢固', 'Strong'), steady: text('稳定', 'Steady'), fading: text('快忘了', 'Fading'), lost: text('已遗忘', 'Forgotten') });
+  const BAND_RANGE = { strong: '≥90%', steady: '70–89%', fading: '40–69%', lost: '<40%' };
+  function statusView() {
+    const status = memoryStatus(cards(), reviews(), dueIds()), names = BAND_LABEL(), max = Math.max(1, ...status.days.map(day => day.count));
+    if (statusBand && !status.bands[statusBand]?.length) statusBand = '';
+    const weekday = day => day.offset === 0 ? text('今天', 'Today') : new Intl.DateTimeFormat(intlLocale(currentLocale()), { weekday: 'short' }).format(new Date(`${day.day}T12:00:00`));
+    if (!status.total) return `<section class="panel"><h2>${text('记忆状态', 'Memory status')}</h2><p>${text('还没有可显示的知识点。', 'No ideas to show yet.')}</p></section>`;
+    return `<section class="panel status-panel"><h2>${text('记忆状态', 'Memory status')}</h2>
+      <div class="status-bar" aria-hidden="true">${BANDS.map(([id]) => status.bands[id].length ? `<span class="band-${id}" data-share="${status.bands[id].length}"></span>` : '').join('')}</div>
+      <div class="status-legend">${BANDS.map(([id]) => `<button type="button" class="status-band band-${id} ${statusBand === id ? 'active' : ''}" data-band="${id}" aria-pressed="${statusBand === id}" ${status.bands[id].length ? '' : 'disabled'}><i aria-hidden="true"></i><strong>${names[id]}</strong><b>${status.bands[id].length}</b><span>${BAND_RANGE[id]}</span></button>`).join('')}</div>
+      ${statusBand ? `<ul class="status-cards">${status.bands[statusBand].slice(0, 60).map(item => `<li><button type="button" data-status-card="${e(item.id)}"><strong>${e(item.title)}</strong><span>${e(moduleName(item.module))}</span><b>${item.retention}%</b></button></li>`).join('')}</ul>` : ''}
+      <div class="section-heading"><h2>${text('未来 7 天', 'Next 7 days')}</h2></div>
+      <div class="status-days">${status.days.map(day => `<div class="status-day ${day.offset === 0 ? 'is-today' : ''}"><b>${day.count || ''}</b><span class="status-col" data-h="${Math.round(day.count / max * 100)}"></span><em>${weekday(day)}</em></div>`).join('')}</div>
+      ${status.days[0].count ? `<button type="button" class="primary-button status-review" data-status-review>${text('开始复习', 'Start review')} · ${status.days[0].count}</button>` : ''}
+      <details class="status-note"><summary>${text('怎么算的', 'How this is worked out')}</summary><p class="field-hint">${text('保持率由复习安排所用的 FSRS 记忆模型估算（到期时约 90%），使用默认参数，不是根据你个人的长期学习数据校准的结果。', 'Retention comes from the FSRS memory model used for review scheduling (about 90% when due), with default parameters, not calibrated on your own long-term data.')}</p></details></section>`;
+  }
+  function bindStatus() {
+    document.querySelectorAll('.status-bar [data-share]').forEach(part => { part.style.flexGrow = part.dataset.share; });
+    document.querySelectorAll('.status-col[data-h]').forEach(col => { col.style.height = `${Math.max(4, Number(col.dataset.h))}%`; });
+    document.querySelectorAll('[data-band]').forEach(button => { button.onclick = () => { statusBand = statusBand === button.dataset.band ? '' : button.dataset.band; refresh(); }; });
+    document.querySelectorAll('[data-status-card]').forEach(button => { button.onclick = () => { mindmapId = button.dataset.statusCard; mindmapSelected = null; openTab('mindmap'); }; });
+    const review = document.querySelector('[data-status-review]'); if (review) review.onclick = () => startReview();
   }
   function bind(tab) {
     if (tab === 'graph') { bindGraph(); return; }
     if (tab === 'mindmap') { bindMindmap(); return; }
-    if (tab !== 'export') { bindCurve(); attachVizInteraction(document.querySelector('main'), labels()); return; }
+    if (tab !== 'export') { bindStatus(); return; }
     document.querySelector('#export-module').onchange = event => { exportModule = event.target.value; docLink = ''; refresh(); };
     document.querySelector('#export-scope').onchange = event => { scope = event.target.value; docLink = ''; refresh(); };
     document.querySelector('#export-word').onclick = () => {

@@ -677,3 +677,5 @@ button.me-head{width:calc(100% - 8px);padding:0;border:0;background:none;color:v
 .tab-pet.active .pet-avatar{border:0;transform:translateY(-2px) scale(1.08);box-shadow:0 6px 12px rgba(86,64,32,.28),0 2px 4px rgba(86,64,32,.18)}
 [data-theme="dark"] .tab-pet .pet-avatar{background:radial-gradient(circle at 40% 35%,#3a342b,#262019)}
 [data-theme="dark"] .tab-pet.active .pet-avatar{border:0;box-shadow:0 6px 14px rgba(0,0,0,.55)}
+/* Squirrel tab without a label: the avatar centred in its slot. */
+.tab-pet{justify-content:center}

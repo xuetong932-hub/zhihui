@@ -1,5 +1,14 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Drag nodes to place them (remembered), drag the background to move, pinch or scroll to zoom. Tap a node to edit it, add a child or delete it; double-tap to edit its text.": "拖動節點擺放位置（會記住），拖動空白處移動畫布，雙指或滾輪縮放。點一下節點可修改、新增子節點或刪除；雙擊直接改文字。",
+ "Fading": "快忘了",
+ "Forgotten": "已遺忘",
+ "How this is worked out": "怎麼算的",
+ "Memory status": "記憶狀態",
+ "Next 7 days": "未來 7 天",
+ "Rearrange": "重新排列",
+ "Steady": "穩定",
+ "Strong": "牢固",
  "{n} pine cones": "松果 {n}",
  "Avatar frames": "頭像框",
  "Change avatar": "換頭像",

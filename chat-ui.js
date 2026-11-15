@@ -159,7 +159,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   const STARTER_DISMISS_KEY = 'knowledge-review.starter-dismissed.v1';
   const starterDismissed = () => { try { return localStorage.getItem(STARTER_DISMISS_KEY) === '1'; } catch { return false; } };
   const library = createKnowledgeUI({locale:getLocale, enabled:()=>activeModuleIds(getProfile()), moduleName, refresh, starterPanel,
-    phone:()=>globalThis.document?.documentElement.dataset.layout==='mobile', getProfile, updateModules,
+    phone:()=>globalThis.document?.documentElement.dataset.layout==='mobile', getProfile, updateModules, startReview:()=>{page='review';refresh();window.scrollTo(0,0);},
     // review is created below; these run only when the library renders.
     reviews:()=>review.events(), dueIds:()=>review.dueIds(), googleClientId:()=>auth?.googleClientId||'',
     // User-triggered model calls for the graph's semantic relations and mind map expansion.

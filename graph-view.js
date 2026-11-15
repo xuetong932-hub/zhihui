@@ -7,7 +7,8 @@ const NS = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs = {}) => { const node = document.createElementNS(NS, tag); for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value); return node; };
 // nodes: [{id, label, kind:'hub'|'card', module, color, size, today, detail}], links: [{source, target, kind:'spoke'|'relation', label}]
 // positions: Map shared across re-renders so the layout does not jump when the page redraws.
-export function mountGraph(host, { nodes, links, theme = 'light', positions = new Map(), onOpen = () => {}, onDouble = () => {}, onMoved = () => {}, width = 760, height = 520 }) {
+// onTap(node), when given, receives every single tap (the mind map selects nodes with it); labelMax trims labels.
+export function mountGraph(host, { nodes, links, theme = 'light', positions = new Map(), onOpen = () => {}, onTap = null, onDouble = () => {}, onMoved = () => {}, width = 760, height = 520, labelMax = 14 }) {
   host.replaceChildren();
   const wrap = document.createElement('div'); wrap.className = `graph-canvas graph-${theme}`;
   const svg = el('svg', { viewBox: `0 0 ${width} ${height}`, class: 'graph-svg', role: 'img' });
@@ -29,10 +30,10 @@ export function mountGraph(host, { nodes, links, theme = 'light', positions = ne
     if (edge.label) { edge.text = el('text', { class: 'graph-link-label', 'text-anchor': 'middle' }); edge.text.textContent = edge.label; linkLayer.append(edge.text); }
   }
   for (const node of nodes) {
-    const g = el('g', { class: `graph-node graph-${node.kind}${node.today ? ' graph-today' : ''}`, tabindex: '0' }), r = node.kind === 'hub' ? 22 : 6 + Math.min(8, node.size * 2);
+    const g = el('g', { class: `graph-node graph-${node.kind}${node.today ? ' graph-today' : ''}${node.selected ? ' graph-selected' : ''}`, tabindex: '0' }), r = node.kind === 'hub' ? 22 : 6 + Math.min(8, node.size * 2);
     if (node.today) g.append(el('circle', { r: r + 6, class: 'graph-halo', fill: node.color }));
     g.append(el('circle', { r, fill: node.kind === 'hub' ? 'var(--graph-hub-fill)' : node.color, stroke: node.color, 'stroke-width': node.kind === 'hub' ? 2.5 : 1.5, filter: node.kind === 'hub' ? '' : 'url(#graph-glow)' }));
-    const label = el('text', { y: node.kind === 'hub' ? 4 : r + 13, 'text-anchor': 'middle', class: 'graph-label' }); label.textContent = node.label.length > 14 ? `${node.label.slice(0, 13)}…` : node.label;
+    const label = el('text', { y: node.kind === 'hub' ? 4 : r + 13, 'text-anchor': 'middle', class: 'graph-label' }); label.textContent = node.label.length > labelMax ? `${node.label.slice(0, labelMax - 1)}…` : node.label;
     g.append(label); node.el = g; node.r = r; nodeLayer.append(g);
   }
   // View transform for zoom and pan. Until the user pans or zooms, the view keeps every node (and its label) in
@@ -96,15 +97,28 @@ export function mountGraph(host, { nodes, links, theme = 'light', positions = ne
     node.el.addEventListener('pointerdown', event => { event.stopPropagation(); dragging = node; moved = false; node.el.setPointerCapture(event.pointerId); reheat(0.3); });
     node.el.addEventListener('pointermove', event => { if (dragging !== node) return; const p = toWorld(event); moved ||= Math.hypot(p.x - node.x, p.y - node.y) > 2; node.x = p.x; node.y = p.y; node.fixed = true; reheat(0.25); });
     node.el.addEventListener('pointerup', () => {
-      if (dragging === node && !moved) tap(`graph:${node.id}`, () => { if (node.kind === 'card') onOpen(node.id); }, () => onDouble(node));
-      else if (dragging === node) onMoved();
+      if (dragging === node && !moved) tap(`graph:${node.id}`, () => { if (onTap) onTap(node); else if (node.kind === 'card') onOpen(node.id); }, () => onDouble(node));
+      else if (dragging === node) { positions.set(node.id, { x: node.x, y: node.y, fixed: true }); onMoved(); }
       dragging = null;
     });
     node.el.addEventListener('keydown', event => { if (event.key === 'Enter') { if (node.kind === 'card') onOpen(node.id); else onDouble(node); } });
   }
-  svg.addEventListener('pointerdown', event => { panning = { x: event.clientX, y: event.clientY, tx, ty }; svg.setPointerCapture(event.pointerId); blur(); });
-  svg.addEventListener('pointermove', event => { if (!panning) return; userView = true; const box = svg.getBoundingClientRect(); tx = panning.tx + (event.clientX - panning.x) * width / box.width; ty = panning.ty + (event.clientY - panning.y) * height / box.height; applyView(); });
-  svg.addEventListener('pointerup', () => { panning = null; });
+  // Background: one finger pans, two fingers pinch to zoom around their midpoint.
+  const touches = new Map(); let pinch = null;
+  const pinchState = () => { const [a, b] = [...touches.values()], box = svg.getBoundingClientRect(); return { d: Math.hypot(a.x - b.x, a.y - b.y), px: ((a.x + b.x) / 2 - box.left) * width / box.width, py: ((a.y + b.y) / 2 - box.top) * height / box.height }; };
+  svg.addEventListener('pointerdown', event => {
+    touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (touches.size === 2) { panning = null; pinch = { ...pinchState(), scale, tx, ty }; return; }
+    panning = { x: event.clientX, y: event.clientY, tx, ty }; svg.setPointerCapture(event.pointerId); blur();
+  });
+  svg.addEventListener('pointermove', event => {
+    if (touches.has(event.pointerId)) touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pinch && touches.size === 2) { userView = true; const now = pinchState(), next = Math.min(3, Math.max(0.4, pinch.scale * now.d / Math.max(1, pinch.d)));
+      tx = now.px - (pinch.px - pinch.tx) * next / pinch.scale; ty = now.py - (pinch.py - pinch.ty) * next / pinch.scale; scale = next; applyView(); return; }
+    if (!panning) return; userView = true; const box = svg.getBoundingClientRect(); tx = panning.tx + (event.clientX - panning.x) * width / box.width; ty = panning.ty + (event.clientY - panning.y) * height / box.height; applyView();
+  });
+  const release = event => { touches.delete(event.pointerId); if (touches.size < 2) pinch = null; panning = null; };
+  svg.addEventListener('pointerup', release); svg.addEventListener('pointercancel', release);
   svg.addEventListener('wheel', event => {
     event.preventDefault(); userView = true; const box = svg.getBoundingClientRect(), px = (event.clientX - box.left) * width / box.width, py = (event.clientY - box.top) * height / box.height;
     const next = Math.min(3, Math.max(0.4, scale * (event.deltaY < 0 ? 1.12 : 1 / 1.12)));
