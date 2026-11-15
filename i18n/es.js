@@ -1,5 +1,13 @@
 // es interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Blossom frame": "Marco de flores de cerezo",
+ "Snowflake frame": "Marco de copos de nieve",
+ "Book frame": "Marco de libros",
+ "Rainbow frame": "Marco arcoíris",
+ "Backy frame": "Marco de Backy",
+ "Golden laurel frame": "Marco de laurel dorado",
+ "Backy’s fluffy ears and tail around your avatar.": "Las orejas y la cola peluda de Backy alrededor de tu avatar.",
+ "The shiniest golden laurel around your avatar.": "El laurel dorado más brillante alrededor de tu avatar.",
  "A round rug under the cushion.": "Una alfombra redonda bajo el cojín.",
  "A small painting for the right-hand wall.": "Un cuadrito para la pared derecha.",
  "A string of star lights across the ceiling.": "Una tira de luces de estrellas en el techo.",

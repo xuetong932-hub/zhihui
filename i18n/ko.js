@@ -1,5 +1,13 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Blossom frame": "벚꽃 테두리",
+ "Snowflake frame": "눈송이 테두리",
+ "Book frame": "책 테두리",
+ "Rainbow frame": "무지개 테두리",
+ "Backy frame": "Backy 테두리",
+ "Golden laurel frame": "황금 월계관 테두리",
+ "Backy’s fluffy ears and tail around your avatar.": "Backy의 복슬복슬한 귀와 꼬리가 프로필 사진을 감싸요.",
+ "The shiniest golden laurel around your avatar.": "가장 빛나는 황금 월계관이 프로필 사진을 감싸요.",
  "A round rug under the cushion.": "방석 아래 까는 둥근 러그.",
  "A small painting for the right-hand wall.": "오른쪽 벽에 거는 작은 그림.",
  "A string of star lights across the ceiling.": "천장을 가로지르는 별 조명.",

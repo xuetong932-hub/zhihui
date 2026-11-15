@@ -1,5 +1,13 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Blossom frame": "櫻花頭像框",
+ "Snowflake frame": "雪花頭像框",
+ "Book frame": "書本頭像框",
+ "Rainbow frame": "彩虹頭像框",
+ "Backy frame": "小回頭像框",
+ "Golden laurel frame": "金桂冠頭像框",
+ "Backy’s fluffy ears and tail around your avatar.": "毛茸茸的小回耳朵和尾巴，戴在頭像外圈。",
+ "The shiniest golden laurel around your avatar.": "最閃亮的金色桂冠，戴在頭像外圈。",
  "A round rug under the cushion.": "鋪在坐墊下面的圓地毯。",
  "A small painting for the right-hand wall.": "掛在右邊牆上的一幅小畫。",
  "A string of star lights across the ceiling.": "掛在洞頂的一串星星燈。",

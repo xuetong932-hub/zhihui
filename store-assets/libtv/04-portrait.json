@@ -1,0 +1,1 @@
+{"input": "libtv/04-portrait-raw.png", "output": "libtv/knowback-04-portrait.png", "screens": [{"shot": "screenshots-fit/04-knowledge-graph-phone.png", "point": [800, 1866], "clip": [531, 1325, 1069, 2444], "inset": 77}], "logo": {"icon": "../icon-512.png", "box": [340, 518, 521, 699]}}

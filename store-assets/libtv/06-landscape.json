@@ -1,0 +1,1 @@
+{"input": "libtv/06-landscape-raw.png", "output": "libtv/knowback-06-landscape.png", "screens": [{"shot": "screenshots-fit/06-languages-desktop.png", "point": [2035, 749], "clip": [1560, 430, 2519, 1067], "inset": 19}], "logo": {"icon": "../icon-512.png", "box": [206, 528, 407, 727]}}

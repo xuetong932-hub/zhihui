@@ -53,3 +53,18 @@ test('cleanShop drops anything malformed', () => {
   assert.equal(data.frame, null);
   assert.deepEqual(freezeDates(data), []);
 });
+
+test('a new user starts with an empty nest and no frame', async () => {
+  const { decorLayer, frameImage } = await import('../shop-ui.js');
+  const fresh = cleanShop(undefined);
+  assert.deepEqual(fresh.equipped, {});
+  assert.equal(fresh.frame, null);
+  assert.doesNotMatch(decorLayer(fresh.equipped), /<img/);
+  assert.equal(frameImage(fresh.frame), '');
+});
+
+test('every shop item has its picture', async () => {
+  const { ITEMS } = await import('../shop.js');
+  const { existsSync } = await import('node:fs');
+  for (const item of ITEMS) assert.ok(existsSync(new URL(`../illustrations/shop/${item.id}.webp`, import.meta.url)), item.id);
+});

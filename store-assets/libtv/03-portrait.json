@@ -1,0 +1,1 @@
+{"input": "libtv/03-portrait-raw.png", "output": "libtv/knowback-03-portrait.png", "screens": [{"shot": "screenshots-fit/03-review-phone.png", "point": [800, 1822], "clip": [515, 1152, 1086, 2415], "inset": 87}], "wordmark": {"from": "screenshots-fit/01-home-phone.png", "crop": [44, 26, 415, 123], "erase": [130, 160, 1200, 400], "at": [142, 181], "height": 196}}

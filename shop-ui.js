@@ -9,6 +9,8 @@ const NAME = {
   lamp: () => pick('蘑菇落地灯', 'Mushroom lamp'), shelf: () => pick('小书架', 'Wall shelf'), rug: () => pick('松果地毯', 'Pine-cone rug'),
   desk: () => pick('小书桌', 'Little desk'), lights: () => pick('星星串灯', 'Star lights'),
   'frame-vine': () => pick('藤蔓头像框', 'Vine frame'), 'frame-pine': () => pick('松果头像框', 'Pine frame'), 'frame-star': () => pick('星空头像框', 'Starry frame'),
+  'frame-sakura': () => pick('樱花头像框', 'Blossom frame'), 'frame-snow': () => pick('雪花头像框', 'Snowflake frame'), 'frame-books': () => pick('书本头像框', 'Book frame'),
+  'frame-rainbow': () => pick('彩虹头像框', 'Rainbow frame'), 'frame-squirrel': () => pick('小回头像框', 'Backy frame'), 'frame-laurel': () => pick('金桂冠头像框', 'Golden laurel frame'),
   freeze: () => pick('连续保护卡', 'Streak shield'),
 };
 const DESC = {
@@ -23,6 +25,9 @@ const DESC = {
   'frame-vine': () => pick('戴在「我的」头像外圈。', 'Goes around your avatar in Me.'),
   'frame-pine': () => pick('戴在「我的」头像外圈。', 'Goes around your avatar in Me.'),
   'frame-star': () => pick('戴在「我的」头像外圈。', 'Goes around your avatar in Me.'),
+  'frame-sakura': () => pick('戴在「我的」头像外圈。', 'Goes around your avatar in Me.'), 'frame-snow': () => pick('戴在「我的」头像外圈。', 'Goes around your avatar in Me.'),
+  'frame-books': () => pick('戴在「我的」头像外圈。', 'Goes around your avatar in Me.'), 'frame-rainbow': () => pick('戴在「我的」头像外圈。', 'Goes around your avatar in Me.'),
+  'frame-squirrel': () => pick('毛茸茸的小回耳朵和尾巴，戴在头像外圈。', 'Backy’s fluffy ears and tail around your avatar.'), 'frame-laurel': () => pick('最闪亮的金色桂冠，戴在头像外圈。', 'The shiniest golden laurel around your avatar.'),
   freeze: () => pick('某天没达标时自动保住连续天数，最多同时持有 2 张。', 'Keeps your streak alive on a day you miss the goal. Hold up to 2.'),
 };
 const TIER = () => ['', pick('普通', 'Common'), pick('稀有', 'Rare'), pick('珍贵', 'Precious')];

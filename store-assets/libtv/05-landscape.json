@@ -1,0 +1,1 @@
+{"input": "libtv/05-landscape-raw.png", "output": "libtv/knowback-05-landscape.png", "screens": [{"shot": "screenshots-fit/05-learning-square-desktop.png", "point": [1994, 924], "clip": [1463, 578, 2541, 1268], "inset": 20}], "logo": {"icon": "../icon-512.png", "box": [178, 516, 363, 697]}}

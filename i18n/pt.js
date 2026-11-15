@@ -1,5 +1,13 @@
 // pt interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Blossom frame": "Moldura de cerejeira",
+ "Snowflake frame": "Moldura de flocos de neve",
+ "Book frame": "Moldura de livros",
+ "Rainbow frame": "Moldura arco-íris",
+ "Backy frame": "Moldura do Backy",
+ "Golden laurel frame": "Moldura de louro dourado",
+ "Backy’s fluffy ears and tail around your avatar.": "As orelhas e a cauda fofinha do Backy em volta do seu avatar.",
+ "The shiniest golden laurel around your avatar.": "O louro dourado mais brilhante em volta do seu avatar.",
  "A round rug under the cushion.": "Um tapete redondo sob a almofada.",
  "A small painting for the right-hand wall.": "Um quadrinho para a parede direita.",
  "A string of star lights across the ceiling.": "Um cordão de luzes de estrela no teto.",

@@ -1,0 +1,1 @@
+{"input": "libtv/03-landscape-raw.png", "output": "libtv/knowback-03-landscape.png", "screens": [{"shot": "screenshots-fit/03-review-desktop.png", "point": [1933, 956], "clip": [1459, 639, 2400, 1239], "inset": 17}], "wordmark": {"from": "screenshots-fit/01-home-phone.png", "crop": [44, 26, 415, 123], "erase": [165, 475, 1020, 655, 0, -300], "at": [174, 486], "height": 160}}

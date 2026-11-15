@@ -1,5 +1,13 @@
 // ms interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Blossom frame": "Bingkai sakura",
+ "Snowflake frame": "Bingkai kepingan salji",
+ "Book frame": "Bingkai buku",
+ "Rainbow frame": "Bingkai pelangi",
+ "Backy frame": "Bingkai Backy",
+ "Golden laurel frame": "Bingkai daun palma emas",
+ "Backy’s fluffy ears and tail around your avatar.": "Telinga dan ekor gebu Backy di sekeliling avatar anda.",
+ "The shiniest golden laurel around your avatar.": "Daun palma emas paling berkilau di sekeliling avatar anda.",
  "A round rug under the cushion.": "Permaidani bulat di bawah kusyen.",
  "A small painting for the right-hand wall.": "Lukisan kecil untuk dinding kanan.",
  "A string of star lights across the ceiling.": "Lampu bintang merentasi siling.",

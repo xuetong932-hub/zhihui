@@ -1,5 +1,13 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Blossom frame": "桜フレーム",
+ "Snowflake frame": "雪の結晶フレーム",
+ "Book frame": "本のフレーム",
+ "Rainbow frame": "虹のフレーム",
+ "Backy frame": "Backy フレーム",
+ "Golden laurel frame": "金の月桂冠フレーム",
+ "Backy’s fluffy ears and tail around your avatar.": "Backy のふわふわの耳としっぽがアイコンを囲みます。",
+ "The shiniest golden laurel around your avatar.": "いちばん輝く金の月桂冠がアイコンを囲みます。",
  "A round rug under the cushion.": "クッションの下に敷く丸いラグ。",
  "A small painting for the right-hand wall.": "右の壁に飾る小さな絵。",
  "A string of star lights across the ceiling.": "天井に渡す星のライト。",

@@ -1,5 +1,13 @@
 // de interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Blossom frame": "Kirschblütenrahmen",
+ "Snowflake frame": "Schneeflockenrahmen",
+ "Book frame": "Bücherrahmen",
+ "Rainbow frame": "Regenbogenrahmen",
+ "Backy frame": "Backy-Rahmen",
+ "Golden laurel frame": "Goldener Lorbeerrahmen",
+ "Backy’s fluffy ears and tail around your avatar.": "Backys flauschige Ohren und Schwanz um Ihren Avatar.",
+ "The shiniest golden laurel around your avatar.": "Der glänzendste goldene Lorbeer um Ihren Avatar.",
  "A round rug under the cushion.": "Ein runder Teppich unter dem Kissen.",
  "A small painting for the right-hand wall.": "Ein kleines Bild für die rechte Wand.",
  "A string of star lights across the ceiling.": "Eine Sternenlichterkette an der Decke.",

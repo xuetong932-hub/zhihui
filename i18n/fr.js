@@ -1,5 +1,13 @@
 // fr interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Blossom frame": "Cadre fleurs de cerisier",
+ "Snowflake frame": "Cadre flocons",
+ "Book frame": "Cadre livres",
+ "Rainbow frame": "Cadre arc-en-ciel",
+ "Backy frame": "Cadre Backy",
+ "Golden laurel frame": "Cadre laurier doré",
+ "Backy’s fluffy ears and tail around your avatar.": "Les oreilles et la queue toute douce de Backy autour de ton avatar.",
+ "The shiniest golden laurel around your avatar.": "Le laurier doré le plus brillant autour de ton avatar.",
  "A round rug under the cushion.": "Un tapis rond sous le coussin.",
  "A small painting for the right-hand wall.": "Un petit tableau pour le mur de droite.",
  "A string of star lights across the ceiling.": "Une guirlande d’étoiles au plafond.",

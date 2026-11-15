@@ -14,9 +14,15 @@ export const ITEMS = [
   { id: 'rug', kind: 'decor', slot: 'rug', price: 120, tier: 2 },
   { id: 'desk', kind: 'decor', slot: 'floorRight', price: 200, tier: 3 },
   { id: 'lights', kind: 'decor', slot: 'ceiling', price: 240, tier: 3 },
+  { id: 'frame-sakura', kind: 'frame', price: 40, tier: 1 },
+  { id: 'frame-snow', kind: 'frame', price: 40, tier: 1 },
   { id: 'frame-vine', kind: 'frame', price: 60, tier: 2 },
   { id: 'frame-pine', kind: 'frame', price: 80, tier: 2 },
+  { id: 'frame-books', kind: 'frame', price: 100, tier: 2 },
+  { id: 'frame-rainbow', kind: 'frame', price: 120, tier: 2 },
+  { id: 'frame-squirrel', kind: 'frame', price: 180, tier: 3 },
   { id: 'frame-star', kind: 'frame', price: 300, tier: 3 },
+  { id: 'frame-laurel', kind: 'frame', price: 400, tier: 3 },
   { id: 'freeze', kind: 'tool', price: 30, tier: 1, max: 2 },
 ];
 export const REFUND_HOURS = 24;
