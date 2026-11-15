@@ -1,5 +1,12 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Pine-cone sweater set": "솔방울 스웨터 세트",
+ "School uniform": "교복",
+ "Clothes": "옷",
+ "Dungarees": "멜빵바지",
+ "Little raincoat": "작은 우비",
+ "Pine-cone sweater": "솔방울 스웨터",
+ "School blazer": "교복 재킷",
  "{n} not owned": "{n}개 미보유",
  "Bell collar": "방울 목걸이",
  "Bobble beanie": "방울 비니",

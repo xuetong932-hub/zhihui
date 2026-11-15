@@ -1,5 +1,12 @@
 // de interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Pine-cone sweater set": "Zapfenpullover-Set",
+ "School uniform": "Schuluniform",
+ "Clothes": "Kleidung",
+ "Dungarees": "Latzhose",
+ "Little raincoat": "Kleiner Regenmantel",
+ "Pine-cone sweater": "Zapfenpullover",
+ "School blazer": "Schulblazer",
  "{n} not owned": "{n} noch nicht besessen",
  "Bell collar": "Glöckchenhalsband",
  "Bobble beanie": "Bommelmütze",

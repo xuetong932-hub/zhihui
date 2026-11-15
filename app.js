@@ -10,7 +10,7 @@ import { achievements, newBadges } from './achievements.js';
 import { storeView, showBadge, celebrateBadge, levelCard, badgeWall, levelTitle } from './badges-ui.js';
 import { profileView, openAvatarSheet, avatarSrc, isPhotoAvatar } from './profile-ui.js';
 import { cleanShop, shopState, buy, refund, equip, unequip, freezeDates, protectedStreak, wearOutfit, completeSets, itemById, ITEMS, PARTS, SETS } from './shop.js';
-import { shopView, openItemSheet, decorLayer, frameImage, wearLayer, setName } from './shop-ui.js';
+import { shopView, openItemSheet, decorLayer, frameImage, dressedSquirrel, isDressed, setName } from './shop-ui.js';
 import { SCENES, SCENE_CATEGORIES, savedScene, saveScene, sceneImage, sceneThumb } from './scenes.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
@@ -323,14 +323,14 @@ function boot() {
   ];
   const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   function playMascot(button, pose, hold = 3200) {
-    const img = button.querySelector('img'), usual = button.dataset.pose;
+    const img = button.querySelector('img'), usual = button.dataset.pose, dressed = button.classList.contains('is-dressed');
     clearTimeout(button.mascotTimer);
     const stop = () => button.classList.remove(...[...button.classList].filter(name => name.startsWith('acting-')));
-    img.src = `/illustrations/mascot-${pose}.webp`;
+    if (!dressed) img.src = `/illustrations/mascot-${pose}.webp`;
     stop();
     void button.offsetWidth; // restart the animation when the same action is chosen twice
     if (!reducedMotion()) button.classList.add(`acting-${pose}`);
-    button.mascotTimer = setTimeout(() => { if (button.isConnected) { img.src = `/illustrations/mascot-${usual}.webp`; stop(); } }, hold);
+    button.mascotTimer = setTimeout(() => { if (button.isConnected) { if (!dressed) img.src = `/illustrations/mascot-${usual}.webp`; stop(); } }, hold);
   }
   function openMascotRing(button) {
     if (document.querySelector('.mascot-ring')) return;
@@ -338,7 +338,7 @@ function boot() {
     const from = button.getBoundingClientRect(), current = button.querySelector('img').getAttribute('src');
     const layer = document.createElement('div');
     layer.className = 'mascot-ring'; layer.setAttribute('role', 'dialog'); layer.setAttribute('aria-modal', 'true'); layer.setAttribute('aria-label', pick('松鼠的动作', 'Squirrel actions'));
-    layer.innerHTML = `<div class="ring-stage"><img class="ring-center" src="${current}" alt="">${MASCOT_ACTIONS.map(([pose, name, icon]) => `<button type="button" class="ring-item" data-action="${pose}" aria-label="${name()}"><span class="ring-icon" aria-hidden="true">${icon}</span></button>`).join('')}</div>`;
+    layer.innerHTML = `<div class="ring-stage">${button.classList.contains('is-dressed') ? `<span class="ring-center dressed">${dressedSquirrel(shopData().outfit)}</span>` : `<img class="ring-center" src="${current}" alt="">`}${MASCOT_ACTIONS.map(([pose, name, icon]) => `<button type="button" class="ring-item" data-action="${pose}" aria-label="${name()}"><span class="ring-icon" aria-hidden="true">${icon}</span></button>`).join('')}</div>`;
     // Positions go through the CSSOM (the page's CSP blocks style attributes).
     layer.querySelectorAll('.ring-item').forEach((item, i) => { item.style.setProperty('--angle', `${i * 60 - 90}deg`); item.style.setProperty('--delay', `${i * 35}ms`); });
     document.body.append(layer);
@@ -466,6 +466,9 @@ function boot() {
     profile = candidate; return true;
   }
   const SHOP_ERRORS = { locked: () => pick('等级还不够', 'Your level is not high enough yet'), funds: () => pick('松果不够', 'Not enough pine cones'), owned: () => pick('已经拥有了', 'You already have it'), max: () => pick('最多同时持有 2 张', 'You can hold at most 2'), unknown: () => pick('买不了这个', 'This cannot be bought') };
+  // With an outfit on, the home and room squirrel is the front-standing picture wearing it (shop-ui.js).
+  const dressedClass = () => isDressed(shopData().outfit) ? 'dressed is-dressed' : '';
+  const mascotPicture = pose => isDressed(shopData().outfit) ? dressedSquirrel(shopData().outfit) : `<img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async" draggable="false">`;
   function petShopView() { return shopView({ state: shopNow(), data: shopData(), tab: shopTab, dress: { part: dressPart, look: dressLook, level: petProgress().level.level } }); }
   // Dressing room: taps change the look being tried on (dressLook: part → id, or null for bare); only 穿上 saves it.
   function tryOn(part, id) {
@@ -490,12 +493,11 @@ function boot() {
     if (done.length) cheerDress();
   }
   function cheerDress() {
-    const stage = document.querySelector('.dress-mascot'), img = stage?.querySelector('img');
+    const stage = document.querySelector('.dress-mascot');
     if (!stage) return;
     navigator.vibrate?.(20);
-    img.src = '/illustrations/mascot-cheer.webp';
     stage.classList.remove('is-cheer'); void stage.offsetWidth; stage.classList.add('is-cheer');
-    setTimeout(() => { if (img.isConnected) { img.src = '/illustrations/mascot-wave.webp'; stage.classList.remove('is-cheer'); } }, 1800);
+    setTimeout(() => stage.classList.remove('is-cheer'), 1300);
   }
   function randomLook() {
     const level = petProgress().level.level;
@@ -565,7 +567,7 @@ function boot() {
     return `<section class="pet-scene-wrap"><img class="home-scene pet-scene" src="/illustrations/pet-nest.webp" alt="" decoding="async">${decorLayer(shopData().equipped)}
         <div class="pet-hello"><h1>${pick('嗨，我是小回', 'Hi, I’m Backy')}</h1><p>${greeting}</p></div>
         <div class="pet-row"><div class="pet-status"><span class="pet-status-avatar"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async"></span><span class="pet-status-text"><strong>${statusTitle}</strong><span>${statusSub}</span></span></div><span class="pet-chip">🍽 ${done}/${goal}</span></div>
-        <button type="button" class="today-mascot pet-mascot wearer" data-pose="${pose}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async" draggable="false">${wearLayer(shopData().outfit)}</button>
+        <button type="button" class="today-mascot pet-mascot ${dressedClass()}" data-pose="${pose}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}">${mascotPicture(pose)}</button>
         <div class="pet-floor"><button type="button" class="pet-jar" data-pet-jar="${cones.total}" aria-label="${pick('松果罐，{n} 颗', 'Pine-cone jar, {n}', { n: cones.total })}"><img class="pet-jar-glass" src="/illustrations/pine-jar.webp" alt="" decoding="async"><span class="pet-jar-pile" aria-hidden="true"></span><span class="pet-jar-tag" aria-hidden="true"></span></button></div></section>
       <section class="m-section frost-panel pet-world"><div class="section-heading"><h2>${pick('小回的小世界', 'Backy’s little world')}</h2></div><div class="pet-tiles">
         <button type="button" class="pet-tile" data-pet-store><span class="pet-tile-icon">${PINE_ICON}</span><strong>${pick('仓库', 'Store')}</strong><span class="pet-tile-value">Lv.${progress.level.level}</span><span class="muted">${pick('松果 {n}', '{n} pine cones', { n: progress.level.cones })}</span></button>
@@ -590,7 +592,7 @@ function boot() {
     const dark = document.documentElement.dataset.theme === 'dark', picture = sceneImage(savedScene(), dark);
     return `<section class="home-scene-wrap"><img class="home-scene ${picture.own ? 'is-night' : ''}" src="${picture.src}" alt="" decoding="async">
         <div class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1><button type="button" class="scene-button" data-scene-picker aria-haspopup="dialog" aria-label="${pick('换背景', 'Change background')}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m4 17 4.5-4.5 3.5 3.5 2.5-2.5 5.5 5"/></svg></button></div>
-        <div class="today-status"><button type="button" class="today-mascot wearer" data-pose="${due ? 'wave' : total ? 'cheer' : 'think'}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${due ? 'wave' : total ? 'cheer' : 'think'}.webp" alt="" decoding="async" draggable="false">${wearLayer(shopData().outfit)}</button>${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
+        <div class="today-status"><button type="button" class="today-mascot ${dressedClass()}" data-pose="${due ? 'wave' : total ? 'cheer' : 'think'}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}">${mascotPicture(due ? 'wave' : total ? 'cheer' : 'think')}</button>${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
           <div class="today-meta"><span class="today-goal"><span class="task-ring" aria-hidden="true">${ring}</span>${goalText}</span><span><b>${streak}</b>${pick(' 天连续', ' day streak')}</span><span><b>${met}</b>${pick(' 天达成', ' days met')}</span></div></div>
         ${total ? `<button class="task-start" data-review>${due ? (pick('开始复习', 'Start review')) : (pick('再练一会', 'Practise more'))} →</button><button class="task-start task-ask" data-open-module="${ASK_MODULE}">${pick('继续提问', 'Keep asking')} →</button>` : `<button class="task-start" data-open-module="${ASK_MODULE}">${pick('去提问', 'Ask a question')} →</button>`}${reached ? shareButton('task-share') : ''}</section>
       ${chat.starterHome() ? `<div class="m-section frost-panel home-starter">${chat.starterHome()}</div>` : ''}

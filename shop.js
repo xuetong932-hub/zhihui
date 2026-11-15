@@ -5,8 +5,9 @@ import { localDay } from './knowledge-store.js';
 // Nothing here involves real money.
 export const SHOP_KEY = 'knowledge-review.shop.v1';
 export const SLOTS = ['ceiling', 'rightWall', 'windowSill', 'floorRight', 'rug'];
-// Backy's outfits (2026-11-15): one accessory per part, drawn over every pose (shop-ui.js wearLayer).
-export const PARTS = ['head', 'face', 'neck', 'back'];
+// Backy's outfits (2026-11-15): one piece per part, each painted onto the front-standing squirrel and cut out as a
+// layer (shop-ui.js dressedSquirrel).
+export const PARTS = ['head', 'face', 'neck', 'body', 'back'];
 export const ITEMS = [
   { id: 'fern', kind: 'decor', slot: 'windowSill', price: 25, tier: 1 },
   { id: 'chime', kind: 'decor', slot: 'ceiling', price: 30, tier: 1 },
@@ -34,6 +35,10 @@ export const ITEMS = [
   { id: 'neck-scarf', kind: 'outfit', part: 'neck', price: 40, tier: 1 },
   { id: 'neck-bell', kind: 'outfit', part: 'neck', price: 50, tier: 1 },
   { id: 'neck-bow', kind: 'outfit', part: 'neck', price: 70, tier: 2 },
+  { id: 'body-sweater', kind: 'outfit', part: 'body', price: 80, tier: 2 },
+  { id: 'body-overalls', kind: 'outfit', part: 'body', price: 90, tier: 2 },
+  { id: 'body-raincoat', kind: 'outfit', part: 'body', price: 100, tier: 2 },
+  { id: 'body-blazer', kind: 'outfit', part: 'body', price: 180, tier: 3 },
   { id: 'back-pouch', kind: 'outfit', part: 'back', price: 60, tier: 2 },
   { id: 'back-bag', kind: 'outfit', part: 'back', price: 90, tier: 2 },
   { id: 'back-wings', kind: 'outfit', part: 'back', price: 200, tier: 3, level: 4 },
@@ -42,11 +47,11 @@ export const ITEMS = [
 export const REFUND_HOURS = 24;
 export const itemById = id => ITEMS.find(item => item.id === id) || null;
 export const emptyShop = () => ({ version: 1, purchases: [], equipped: {}, frame: null, outfit: {} });
-// Sets: wearing all four pieces of one set at once is celebrated in the dressing room.
+// Sets: wearing all five pieces of one set at once is celebrated in the dressing room.
 export const SETS = [
-  { id: 'scholar', items: ['hat-grad', 'face-glasses', 'neck-bow', 'back-bag'] },
-  { id: 'explorer', items: ['hat-straw', 'face-shades', 'neck-scarf', 'back-pouch'] },
-  { id: 'cosy', items: ['hat-beanie', 'face-blush', 'neck-bell', 'back-wings'] },
+  { id: 'scholar', items: ['hat-grad', 'face-glasses', 'neck-bow', 'body-blazer', 'back-bag'] },
+  { id: 'explorer', items: ['hat-straw', 'face-shades', 'neck-scarf', 'body-overalls', 'back-pouch'] },
+  { id: 'cosy', items: ['hat-beanie', 'face-blush', 'neck-bell', 'body-sweater', 'back-wings'] },
 ];
 export const setProgress = outfit => SETS.map(set => ({ id: set.id, items: set.items, worn: set.items.filter(id => Object.values(outfit || {}).includes(id)).length }));
 export const completeSets = outfit => setProgress(outfit).filter(set => set.worn === set.items.length).map(set => set.id);

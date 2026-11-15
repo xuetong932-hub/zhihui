@@ -1,5 +1,12 @@
 // pt interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Pine-cone sweater set": "Conjunto de suéter de pinha",
+ "School uniform": "Uniforme escolar",
+ "Clothes": "Roupas",
+ "Dungarees": "Jardineira",
+ "Little raincoat": "Capinha de chuva",
+ "Pine-cone sweater": "Suéter de pinha",
+ "School blazer": "Blazer escolar",
  "{n} not owned": "{n} ainda não é seu",
  "Bell collar": "Coleira com sininho",
  "Bobble beanie": "Gorro de pompom",

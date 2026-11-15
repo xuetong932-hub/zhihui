@@ -788,36 +788,38 @@ button.me-head{width:calc(100% - 8px);padding:0;border:0;background:none;color:v
 .auth-foot .text-button{font-size:var(--fs-13);color:var(--muted)}
 .auth-foot .auth-admin{font-size:var(--fs-12);opacity:.7}
 
-/* 小回 outfits (2026-11-15; shop.js PARTS, shop-ui.js wearLayer): accessories drawn over the pose image. Each pose
-   sets anchors as % of its own picture (h head top, f eyes, n neck, s side for the satchel, p hip for the pouch; w widths,
-   r tilt), picked by the image name so swapping the pose moves the pieces too. The wings sit behind the body. */
-.wearer{isolation:isolate}
-.wear{position:absolute;inset:0;pointer-events:none}
-.wear .wear-item{position:absolute;display:block;height:auto;max-width:none}
-.wearer:has(>img[src*="mascot-wave"]){--hx:40%;--hy:19%;--hw:38%;--hr:0deg;--fx:34%;--fy:37%;--fw:36%;--fr:0deg;--nx:34.5%;--ny:58.5%;--nw:34%;--sx:54%;--sy:66%;--sw:26%;--px:24%;--py:70%;--pw:22%}
-.wearer:has(>img[src*="mascot-think"]){--hx:38%;--hy:16%;--hw:40%;--hr:0deg;--fx:33%;--fy:40%;--fw:38%;--fr:0deg;--nx:34%;--ny:65%;--nw:36%;--sx:56%;--sy:72%;--sw:28%;--px:22%;--py:78%;--pw:22%}
-.wearer:has(>img[src*="mascot-walk"]){--hx:68%;--hy:16%;--hw:38%;--hr:0deg;--fx:77%;--fy:40%;--fw:34%;--fr:0deg;--nx:75%;--ny:64.5%;--nw:34%;--sx:56%;--sy:70%;--sw:26%;--px:84%;--py:74%;--pw:22%}
-.wearer:has(>img[src*="mascot-stash"]){--hx:27%;--hy:16%;--hw:38%;--hr:0deg;--fx:23%;--fy:33%;--fw:34%;--fr:0deg;--nx:26%;--ny:57%;--nw:34%;--sx:46%;--sy:68%;--sw:26%;--px:14%;--py:72%;--pw:22%}
-.wearer:has(>img[src*="mascot-cheer"]){--hx:53%;--hy:19%;--hw:38%;--hr:8deg;--fx:46%;--fy:38%;--fw:32%;--fr:8deg;--nx:47%;--ny:60%;--nw:34%;--sx:64%;--sy:66%;--sw:26%;--px:34%;--py:72%;--pw:22%}
-.wearer:has(>img[src*="mascot-lifted"]){--hx:48%;--hy:11%;--hw:40%;--hr:0deg;--fx:42%;--fy:28%;--fw:34%;--fr:0deg;--nx:43%;--ny:43%;--nw:32%;--sx:60%;--sy:52%;--sw:26%;--px:30%;--py:58%;--pw:22%}
-.wearer:has(>img[src*="mascot-shy"]){--hx:33%;--hy:15%;--hw:40%;--hr:0deg;--fx:30%;--fy:37%;--fw:32%;--fr:0deg;--nx:31%;--ny:55%;--nw:32%;--sx:50%;--sy:66%;--sw:26%;--px:18%;--py:72%;--pw:22%}
-.wearer:has(>img[src*="mascot-sleep"]){--hx:40%;--hy:16%;--hw:34%;--hr:-10deg;--fx:33%;--fy:33%;--fw:28%;--fr:-10deg;--nx:36%;--ny:48%;--nw:26%;--sx:55%;--sy:55%;--sw:24%;--px:30%;--py:62%;--pw:20%}
-.wear .wear-hat-straw,.wear .wear-hat-beanie,.wear .wear-hat-grad{left:var(--hx);top:var(--hy);transform:translate(-50%,-80%) rotate(var(--hr))}
-.wear .wear-hat-straw{width:var(--hw)}.wear .wear-hat-beanie{width:calc(var(--hw)*.7);transform:translate(-50%,-86%) rotate(var(--hr))}.wear .wear-hat-grad{width:calc(var(--hw)*.95)}
-.wear .wear-face-glasses,.wear .wear-face-shades{left:var(--fx);top:var(--fy);width:var(--fw);transform:translate(-50%,-50%) rotate(var(--fr))}
-.wear .wear-blush{top:var(--fy);width:calc(var(--fw)*.27);transform:translate(-50%,41%)}
-.wear .wear-blush-l{left:calc(var(--fx) - var(--fw)*.52)}.wear .wear-blush-r{left:calc(var(--fx) + var(--fw)*.52)}
-.wear .wear-neck-scarf,.wear .wear-neck-bell,.wear .wear-neck-bow{left:var(--nx);top:var(--ny);transform:translate(-50%,-30%)}
-.wear .wear-neck-scarf{width:var(--nw)}.wear .wear-neck-bell{width:calc(var(--nw)*.9)}.wear .wear-neck-bow{width:calc(var(--nw)*.55);transform:translate(-50%,-40%)}
-.wear .wear-back-bag{left:var(--sx);top:var(--sy);width:var(--sw);transform:translate(-50%,-50%)}
-.wear .wear-back-pouch{left:var(--px);top:var(--py);width:calc(var(--pw)*.9);transform:translate(-50%,-50%)}
-.wear .wear-back-wings{left:var(--nx);top:var(--ny);width:calc(var(--nw)*3);transform:translate(-50%,-80%);z-index:-1}
+/* 小回 dressed (2026-11-15; shop-ui.js dressedSquirrel): the front-standing squirrel (mascot-stand.webp) with each worn
+   piece stacked on it. Every piece was painted onto this exact picture in LibTV and cut out, so its box (below, % of
+   the picture) puts it back where it was drawn: hats sit between the ears, collars wrap the neck, clothes follow the
+   body. Lifted or asleep in the room, the squirrel shows its own pose picture without the outfit (is-bare). */
+.dressed{isolation:isolate}
+.dressed:not(.today-mascot){position:relative}
+.dressed .dressed-base{display:block;width:100%;height:auto}
+.dressed-layers{position:absolute;inset:0;pointer-events:none}
+.dressed .dl{position:absolute;display:block;height:auto;max-width:none}
+.is-bare .dressed-layers{display:none}
+.pet-mascot.is-free.is-dressed:has(.dressed-base.is-left) .dressed-layers{transform:scaleX(-1)}
+.dressed .dl-back-bag{left:15.09%;top:57.89%;width:55.22%}
+.dressed .dl-back-pouch{left:23.96%;top:60.32%;width:37.86%}
+.dressed .dl-back-wings{left:0.50%;top:51.60%;width:80.38%}
+.dressed .dl-body-blazer{left:14.65%;top:59.85%;width:49.81%}
+.dressed .dl-body-overalls{left:20.44%;top:59.79%;width:38.68%}
+.dressed .dl-body-raincoat{left:13.58%;top:57.18%;width:53.71%}
+.dressed .dl-body-sweater{left:14.21%;top:57.06%;width:51.45%}
+.dressed .dl-face-blush{left:16.86%;top:45.79%;width:46.92%}
+.dressed .dl-face-glasses{left:10.50%;top:31.26%;width:59.06%}
+.dressed .dl-face-shades{left:10.57%;top:33.69%;width:58.55%}
+.dressed .dl-hat-beanie{left:9.18%;top:0.47%;width:66.73%}
+.dressed .dl-hat-grad{left:18.24%;top:0.53%;width:53.77%}
+.dressed .dl-hat-straw{left:2.58%;top:11.80%;width:76.54%}
+.dressed .dl-neck-bell{left:23.46%;top:59.55%;width:34.21%}
+.dressed .dl-neck-bow{left:24.09%;top:60.02%;width:32.52%}
+.dressed .dl-neck-scarf{left:18.43%;top:58.19%;width:42.64%}
 /* Dressing room (商城 → 装扮). */
 .dress-room{display:flex;flex-direction:column;gap:var(--sp-12);padding-bottom:var(--sp-24)}
 .dress-stage{position:relative;display:grid;place-items:center;height:248px;border-radius:var(--r-20);background:radial-gradient(70% 60% at 50% 45%,#fff8ea,#f1e2c6);box-shadow:inset 0 0 0 1px rgba(233,194,122,.35)}
 [data-theme="dark"] .dress-stage{background:radial-gradient(70% 60% at 50% 45%,#2c261d,#1d1a15)}
-.dress-mascot{position:relative;display:block;width:196px}
-.dress-mascot>img{display:block;width:100%;height:auto;filter:drop-shadow(0 8px 12px rgba(86,64,32,.16))}
+.dress-mascot{position:relative;display:block;width:188px;filter:drop-shadow(0 8px 12px rgba(86,64,32,.16))}
 .dress-mascot.is-cheer{animation:dress-cheer .6s var(--ease-spring) 2}
 .dress-mascot.is-hop{animation:dress-hop .4s var(--ease-spring)}
 @keyframes dress-cheer{0%,100%{transform:none}40%{transform:translateY(-16px) rotate(-4deg)}70%{transform:translateY(0) rotate(3deg)}}
@@ -831,7 +833,7 @@ button.me-head{width:calc(100% - 8px);padding:0;border:0;background:none;color:v
 .dress-set.is-done{border-color:#e0b25c;background:linear-gradient(180deg,#fff3d6,#f8e2b0)}
 .dress-set.is-done span{color:#8a5a12}
 [data-theme="dark"] .dress-set.is-done{background:linear-gradient(180deg,#3a2f1a,#2b2414)}
-.dress-parts{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--divider)}
+.dress-parts{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--divider)}
 .dress-parts button{min-height:44px;border:0;border-bottom:2px solid transparent;background:none;color:var(--muted);font-weight:600}
 .dress-parts button.active{border-bottom-color:var(--accent);color:var(--ink)}
 .dress-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-8)}
@@ -842,7 +844,7 @@ button.me-head{width:calc(100% - 8px);padding:0;border:0;background:none;color:v
 .dress-card strong{font-size:var(--fs-12);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .dress-card .shop-price{font-size:var(--fs-12)}
 .dress-art{display:grid;place-items:center;width:100%;height:56px;font-size:var(--fs-24);color:var(--muted)}
-.dress-art img{max-width:88%;max-height:52px;object-fit:contain}
+.dress-art img{width:56px;height:56px;border-radius:var(--r-8);object-fit:cover}
 [data-theme="dark"] .dress-card{background:#1f2327}
 .dress-bar{position:sticky;bottom:calc(var(--tabbar-h) + var(--tabbar-gap) + var(--sp-12));display:flex;align-items:center;justify-content:space-between;gap:var(--sp-12);padding:var(--sp-8) var(--sp-8) var(--sp-8) var(--sp-16);border-radius:var(--r-pill);background:rgba(255,253,249,.92);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:var(--shadow-2);font-size:var(--fs-13)}
 .dress-bar b{font-size:var(--fs-15)}

@@ -15,6 +15,7 @@ const NAME = {
   'hat-straw': () => pick('小草帽', 'Straw hat'), 'hat-beanie': () => pick('毛线帽', 'Bobble beanie'), 'hat-grad': () => pick('学士帽', 'Graduation cap'),
   'face-blush': () => pick('爱心腮红', 'Heart blush'), 'face-glasses': () => pick('圆框眼镜', 'Round glasses'), 'face-shades': () => pick('小墨镜', 'Little shades'),
   'neck-scarf': () => pick('红围巾', 'Red scarf'), 'neck-bell': () => pick('铃铛项圈', 'Bell collar'), 'neck-bow': () => pick('波点领结', 'Polka-dot bow tie'),
+  'body-sweater': () => pick('松果毛衣套装', 'Pine-cone sweater set'), 'body-overalls': () => pick('背带裤', 'Dungarees'), 'body-raincoat': () => pick('小雨衣', 'Little raincoat'), 'body-blazer': () => pick('学院制服', 'School uniform'),
   'back-pouch': () => pick('松果挎包', 'Pine-cone pouch'), 'back-bag': () => pick('小书包', 'Little satchel'), 'back-wings': () => pick('星星小翅膀', 'Starry wings'),
 };
 const DESC = {
@@ -37,6 +38,8 @@ const DESC = {
 const TIER = () => ['', pick('普通', 'Common'), pick('稀有', 'Rare'), pick('珍贵', 'Precious')];
 export const itemName = id => NAME[id]?.() || id;
 export const itemImage = id => `/illustrations/${itemById(id)?.kind === 'outfit' ? 'outfits' : 'shop'}/${id}.webp`;
+// Outfit icons: Backy wearing the piece, cropped around it.
+export const itemIcon = id => itemById(id)?.kind === 'outfit' ? `/illustrations/outfits/icons/${id}.webp` : itemImage(id);
 const PINE = '<svg class="pine-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.4c3.4 0 5.6 3.2 5.6 7 0 4.2-2.6 7.4-5.6 7.4s-5.6-3.2-5.6-7.4c0-3.8 2.2-7 5.6-7Z" fill="#b8733d" stroke="#6b3f1f" stroke-width="1.2"/><path d="M12 3.2c.5 1 1.7 1.6 2.6 1.4-.3.9-1.2 1.6-2.1 1.7h-1c-.9-.1-1.8-.8-2.1-1.7.9.2 2.1-.4 2.6-1.4Z" fill="#4f8a5b"/></svg>';
 
 // Furniture in the nest: one image per filled place, positioned by CSS class (the page CSP blocks style attributes).
@@ -46,22 +49,24 @@ export const decorLayer = (equipped, preview = null) => {
 };
 export const frameImage = frame => frame ? `<img class="avatar-frame" src="${itemImage(frame)}" alt="" decoding="async">` : '';
 
-// Backy's outfit drawn over whichever pose image sits next to it (positions per pose in mobile.css, by image name).
-// The blush is two hearts, one per cheek.
-export const wearLayer = outfit => {
-  const pieces = PARTS.map(part => outfit?.[part]).filter(id => itemById(id)?.kind === 'outfit');
-  return pieces.length ? `<span class="wear" aria-hidden="true">${pieces.map(id => id === 'face-blush'
-    ? ['l', 'r'].map(side => `<img class="wear-item wear-blush wear-blush-${side}" src="/illustrations/outfits/face-blush-heart.webp" alt="" decoding="async" draggable="false">`).join('')
-    : `<img class="wear-item wear-${id}" src="${itemImage(id)}" alt="" decoding="async" draggable="false">`).join('')}</span>` : '';
-};
+// Backy dressed: the front-standing squirrel with every worn piece stacked on top. Each piece was painted onto this
+// very picture and cut out (illustrations/outfits/), so it lines up exactly; positions per piece in mobile.css.
+// Stack order: wings, clothes, bags, neck, face, head.
+const STACK = ['back-wings', 'body', 'back', 'neck', 'face', 'head'];
+const stackRank = id => { const i = STACK.findIndex(key => id === key || id.startsWith(`${key}-`)); return i < 0 ? STACK.length : i; };
+export const STAND_IMAGE = '/illustrations/mascot-stand.webp';
+export const isDressed = outfit => PARTS.some(part => itemById(outfit?.[part])?.kind === 'outfit');
+export const outfitLayers = outfit => PARTS.map(part => outfit?.[part]).filter(id => itemById(id)?.kind === 'outfit').sort((a, b) => stackRank(a) - stackRank(b))
+  .map(id => `<img class="dl dl-${id}" src="${itemImage(id)}" alt="" decoding="async" draggable="false">`).join('');
+export const dressedSquirrel = outfit => `<img class="dressed-base" src="${STAND_IMAGE}" alt="" decoding="async" draggable="false"><span class="dressed-layers" aria-hidden="true">${outfitLayers(outfit)}</span>`;
 
 const TABS = () => [['outfit', pick('装扮', 'Outfits')], ['decor', pick('家具', 'Furniture')], ['frame', pick('头像框', 'Frames')], ['tool', pick('道具', 'Items')]];
-const PART_NAME = () => ({ head: pick('头饰', 'Head'), face: pick('脸部', 'Face'), neck: pick('颈部', 'Neck'), back: pick('背后', 'Back') });
+const PART_NAME = () => ({ head: pick('头饰', 'Head'), face: pick('脸部', 'Face'), neck: pick('颈部', 'Neck'), body: pick('衣服', 'Clothes'), back: pick('背后', 'Back') });
 export const setName = id => ({ scholar: pick('学者', 'Scholar'), explorer: pick('探险家', 'Explorer'), cosy: pick('暖冬', 'Cosy') })[id] || id;
 // Dressing room (商城 → 装扮): Backy large in the middle wearing the saved outfit plus anything being tried on, the
 // three sets with how many of their pieces are on, one tab per part and the pieces of that part. Tapping tries a piece
 // on; the bar at the bottom puts the look on (buying what is not owned yet in one go). The dice picks a random look.
-export function dressView({ state, data, part, look, level, pose = 'wave' }) {
+export function dressView({ state, data, part, look, level }) {
   const shown = { ...data.outfit }; for (const [key, id] of Object.entries(look)) { if (id) shown[key] = id; else delete shown[key]; }
   const changed = PARTS.some(key => key in look && (look[key] || undefined) !== data.outfit[key]);
   const toBuy = [...new Set(Object.values(look).filter(id => id && !state.owned.has(id)))], cost = toBuy.reduce((sum, id) => sum + itemById(id).price, 0), short = cost > 0 && cost > state.balance;
@@ -69,12 +74,12 @@ export function dressView({ state, data, part, look, level, pose = 'wave' }) {
   const card = item => {
     const locked = item.level && level < item.level, on = shown[part] === item.id, owned = state.owned.has(item.id);
     return `<button type="button" class="dress-card tier-${item.tier} ${on ? 'is-on' : ''} ${locked ? 'is-locked' : ''}" data-dress-item="${item.id}" aria-pressed="${on}" ${locked ? 'aria-disabled="true"' : ''}>
-      <span class="dress-art"><img src="${itemImage(item.id)}" alt="" loading="lazy" decoding="async"></span><strong>${e(itemName(item.id))}</strong>
+      <span class="dress-art"><img src="${itemIcon(item.id)}" alt="" loading="lazy" decoding="async"></span><strong>${e(itemName(item.id))}</strong>
       <span class="shop-price">${locked ? `🔒 Lv.${item.level}` : owned ? `<em>${pick('已拥有', 'Owned')}</em>` : `${PINE}${item.price}`}</span></button>`;
   };
   return `<div class="dress-room">
     <div class="dress-stage"><button type="button" class="dress-tool dress-dice" data-dress-random aria-label="${pick('随机搭配', 'Random look')}">🎲</button>
-      <span class="dress-mascot wearer"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async" draggable="false">${wearLayer(shown)}</span>
+      <span class="dress-mascot dressed">${dressedSquirrel(shown)}</span>
       ${changed ? `<button type="button" class="dress-tool dress-reset" data-dress-reset aria-label="${pick('还原', 'Undo')}">↺</button>` : ''}</div>
     <div class="dress-sets">${setProgress(shown).map(set => `<button type="button" class="dress-set ${set.worn === set.items.length ? 'is-done' : ''}" data-dress-set="${set.id}"><strong>${setName(set.id)}</strong><span>${set.worn}/${set.items.length}</span></button>`).join('')}</div>
     <div class="dress-parts" role="tablist">${PARTS.map(key => `<button type="button" role="tab" aria-selected="${key === part}" class="${key === part ? 'active' : ''}" data-dress-part="${key}">${PART_NAME()[key]}</button>`).join('')}</div>

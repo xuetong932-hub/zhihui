@@ -1,5 +1,12 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Pine-cone sweater set": "松ぼっくりセーターのセット",
+ "School uniform": "制服",
+ "Clothes": "服",
+ "Dungarees": "オーバーオール",
+ "Little raincoat": "小さなレインコート",
+ "Pine-cone sweater": "松ぼっくりセーター",
+ "School blazer": "制服ブレザー",
  "{n} not owned": "{n} 点が未所持",
  "Bell collar": "鈴の首輪",
  "Bobble beanie": "ニット帽",

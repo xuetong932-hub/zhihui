@@ -1,5 +1,12 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Pine-cone sweater set": "松果毛衣套裝",
+ "School uniform": "學院制服",
+ "Clothes": "衣服",
+ "Dungarees": "背帶褲",
+ "Little raincoat": "小雨衣",
+ "Pine-cone sweater": "松果毛衣",
+ "School blazer": "學院外套",
  "{n} not owned": "{n} 件未擁有",
  "Bell collar": "鈴鐺項圈",
  "Bobble beanie": "毛線帽",

@@ -85,12 +85,12 @@ test('outfits: buying puts the piece on, one per part, level locks, refund takes
   assert.deepEqual(cleanShop({ ...data, outfit: { head: 'hat-beanie', face: 'face-glasses', neck: 'hat-straw' } }).outfit, { head: 'hat-beanie' }, 'only owned pieces in their own part survive');
 });
 
-test('outfits: wearing a look keeps only owned pieces; sets are complete when all four are worn', () => {
+test('outfits: wearing a look keeps only owned pieces; sets are complete when all five are worn', () => {
   const now = new Date('2026-11-15T10:00:00');
   let data = emptyShop();
-  for (const [i, id] of ['hat-straw', 'face-shades', 'neck-scarf', 'back-pouch'].entries()) data = buy(data, id, 1000, { now, id: `s${i}` }).data;
+  for (const [i, id] of ['hat-straw', 'face-shades', 'neck-scarf', 'body-overalls', 'back-pouch'].entries()) data = buy(data, id, 1000, { now, id: `s${i}` }).data;
   data = wearOutfit(data, { head: null, face: 'face-glasses' });
-  assert.deepEqual(data.outfit, { face: 'face-shades', neck: 'neck-scarf', back: 'back-pouch' });
+  assert.deepEqual(data.outfit, { face: 'face-shades', neck: 'neck-scarf', body: 'body-overalls', back: 'back-pouch' });
   data = wearOutfit(data, { head: 'hat-straw' });
   assert.deepEqual(completeSets(data.outfit), ['explorer']);
   assert.equal(setProgress({ head: 'hat-grad', face: 'face-glasses' }).find(set => set.id === 'scholar').worn, 2);

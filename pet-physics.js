@@ -105,7 +105,14 @@ export function startPetPlay(button, scene, hooks) {
     const edge = peek ? w * 0.42 : 0;
     return { left: Math.max(0, app.left) - (peek === 'left' ? edge : 0), right: Math.min(innerWidth, app.right) + (peek === 'right' ? edge : 0), top: 0, floor };
   };
-  const pose = name => { const src = `/illustrations/mascot-${name}.webp`; if (img.getAttribute('src') !== src) img.src = src; };
+  // Dressed (shop outfits), the squirrel keeps its front-standing picture with the outfit on; only being lifted or
+  // asleep has its own picture, shown without the outfit for that moment.
+  const pose = name => {
+    const dressed = button.classList.contains('is-dressed'), bare = dressed && ['lifted', 'sleep'].includes(name);
+    if (dressed) button.classList.toggle('is-bare', bare);
+    const src = dressed && !bare ? '/illustrations/mascot-stand.webp' : `/illustrations/mascot-${name}.webp`;
+    if (img.getAttribute('src') !== src) img.src = src;
+  };
   const settle = () => { pose(hooks.usual()); img.classList.remove('is-left'); };
   const show = (name, ms) => { pose(name); flash = performance.now() + ms; };
   const kick = (amount, side = 'bottom') => { origin = side; squash.v += amount; };
