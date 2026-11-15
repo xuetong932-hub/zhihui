@@ -679,3 +679,11 @@ button.me-head{width:calc(100% - 8px);padding:0;border:0;background:none;color:v
 [data-theme="dark"] .tab-pet.active .pet-avatar{border:0;box-shadow:0 6px 14px rgba(0,0,0,.55)}
 /* Squirrel tab without a label: the avatar centred in its slot. */
 .tab-pet{justify-content:center}
+
+/* Brand over the home desk and the pet nest: a white logo tile and white name with a soft brown shadow (2026-11-15). */
+[data-layout="mobile"] #app:has(.home-scene) .header .brand{color:#fffaf2;text-shadow:0 1px 2px rgba(64,40,16,.4),0 2px 10px rgba(64,40,16,.35)}
+[data-layout="mobile"] #app:has(.home-scene) .header .brand-mark{background:linear-gradient(180deg,#fffdf8,#f3ece0);color:#30694f;text-shadow:none;box-shadow:0 4px 12px rgba(64,40,16,.28),0 1px 2px rgba(64,40,16,.2),inset 0 1px 0 #fff,inset 0 -2px 0 rgba(86,64,32,.08)}
+[data-theme="dark"][data-layout="mobile"] #app:has(.home-scene) .header .brand-mark{background:linear-gradient(180deg,#f3eadb,#d9cdb8);color:#24563f}
+/* Squirrel tab: about as tall as an icon with its label, so 小回 is easy to see. */
+.tab-pet .pet-avatar{width:44px;height:44px}
+.tab-pet .pet-avatar img{width:40px;margin-top:var(--sp-4)}
