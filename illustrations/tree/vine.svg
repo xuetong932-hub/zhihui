@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="240" viewBox="0 0 120 240">
+  <!-- One repeat of the growth vine. The stem is vertical where it leaves the top and enters the bottom (x=60), so
+       tiles join without a seam and it meets the crown and seed pictures straight on. 12px wide, the stem colour of
+       those pictures. -->
+  <defs>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a8da77"/><stop offset="1" stop-color="#6aa845"/></linearGradient>
+  </defs>
+  <path d="M66 140 C 80 136 94 126 98 112 C 92 122 82 128 70 130" fill="none" stroke="#7fb352" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M60 0 C 60 40 68 80 68 120 C 68 160 60 200 60 240" fill="none" stroke="#76a94b" stroke-width="12"/>
+  <path d="M57 0 C 57 40 65 80 65 120 C 65 160 57 200 57 240" fill="none" stroke="#b6e08a" stroke-width="2.5" opacity=".85"/>
+  <g transform="translate(66 70) rotate(-24)"><path d="M0 0 C 10 -15 36 -15 46 0 C 36 15 10 15 0 0 Z" fill="url(#leaf)"/><path d="M3 0 H 42" stroke="#5a9437" stroke-width="1.6" stroke-linecap="round"/></g>
+  <g transform="translate(64 188) rotate(204)"><path d="M0 0 C 10 -15 36 -15 46 0 C 36 15 10 15 0 0 Z" fill="url(#leaf)"/><path d="M3 0 H 42" stroke="#5a9437" stroke-width="1.6" stroke-linecap="round"/></g>
+  <g transform="translate(62 218) rotate(150)"><path d="M0 0 C 6 -8 20 -8 26 0 C 20 8 6 8 0 0 Z" fill="url(#leaf)"/></g>
+</svg>

@@ -867,3 +867,134 @@ body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
 .pet-where-chips{display:flex;flex-wrap:wrap;gap:var(--sp-8)}
 .pet-where-chips .keyword-chip{min-height:40px;padding:0 var(--sp-16);font-size:var(--fs-15)}
 .pet-where-chips .keyword-chip.on{border-color:var(--accent);background:var(--brand-soft);color:var(--brand-deep);font-weight:600}
+/* 小回's growth vine (2026-11-16; journey.js, journey-ui.js): a leafy crown (today, Backy on its leaf platform), the
+   main vine (vine.svg, a seamless 240px repeat drawn in code) with one tendril per category, and the seed in its mound.
+   Crown and seed pictures end in a 12px stem that is vertical at the edge, exactly like the vine, so they join cleanly. */
+.tree-page{--crown-w:268px;--tw:16px;--vine:#76a94b;--vine-hi:#b6e08a;--c-ask:#e5a23a;--c-review:#4a8fd6;--c-habit:#e0673d;--c-collect:#3f9d6b;--c-pet:#b0784a}
+.tree-count{display:inline-flex;align-items:center;gap:var(--sp-4);font-size:var(--fs-15)}
+.tree{position:relative;margin:0 auto;padding-bottom:var(--sp-24)}
+.tree-crown{position:relative;width:var(--crown-w);margin:0 auto}
+.tree-canopy{display:block;width:100%;height:auto;filter:drop-shadow(0 10px 16px rgba(60,90,40,.16))}
+.tree-squirrel{position:absolute;left:50%;bottom:44%;width:34%;transform:translateX(-50%)}
+.tree-squirrel img,.tree-squirrel .dressed{display:block;width:100%;height:auto}
+.tree-trunk{list-style:none;margin:-4px 0 0;padding:var(--sp-24) 0 var(--sp-8);background:url(/illustrations/tree/vine.svg) center top / 120px 240px repeat-y}
+.tree-limb{position:relative;display:grid;grid-template-columns:minmax(0,1fr) var(--tw) minmax(0,1fr);padding:var(--sp-8) 0 var(--sp-24)}
+.side-right .limb-steps,.side-right .limb-fork{grid-column:3}
+.side-left .limb-steps,.side-left .limb-fork{grid-column:1;grid-row:1}
+.side-left .limb-fork{grid-row:2}
+/* Each limb: a wooden bough rising from its fork, the milestones hanging off it on little twigs. */
+.limb-steps{position:relative;list-style:none;margin:0;padding:0 0 var(--sp-8) 56px}
+/* The limb's tendril: 64px wide from the main vine's centre, its stem 48px out; the bend sits at the fork. */
+.limb-vine{position:absolute;left:50%;top:var(--sp-24);width:64px;height:calc(100% - 60px);overflow:visible;pointer-events:none}
+.limb-vine path{fill:none;stroke:var(--vine);stroke-width:7px;stroke-linecap:round}
+.limb-vine path.hi{stroke:var(--vine-hi);stroke-width:2px;opacity:.85}
+.side-left .limb-vine{left:auto;right:50%;transform:scaleX(-1)}
+.side-left .limb-steps{padding:0 56px var(--sp-8) 0}
+.tree-node{margin:var(--sp-12) 0 0}
+.tree-step{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-4);padding:0;border:0;background:none;color:var(--ink);text-align:left;cursor:pointer}
+.tree-step::before{content:"";position:absolute;left:-18px;top:24px;width:20px;height:5px;border-radius:3px;background:var(--vine)}
+.side-left .tree-step{align-items:flex-end;text-align:right;margin-left:auto}
+.side-left .tree-step::before{left:auto;right:-18px}
+.side-left .tree-meter{align-self:flex-end}
+.limb-fork{position:relative;display:flex;align-items:center;height:40px;padding-left:64px}
+.side-left .limb-fork{padding:0 64px 0 0;justify-content:flex-end}
+.limb-name{flex:none;padding:var(--sp-4) var(--sp-12);border-radius:var(--r-pill);background:var(--cat);color:#fff;font-size:var(--fs-13);font-weight:600;box-shadow:0 4px 10px rgba(60,40,20,.18)}
+.limb-name b{font-variant-numeric:tabular-nums}
+.tree-badge{position:relative;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--warm-card);box-shadow:0 0 0 3px var(--cat),0 6px 14px rgba(60,40,20,.18);transition:transform var(--dur-1) var(--ease-out)}
+.tree-step:active .tree-badge{transform:scale(.94)}
+.tree-badge img{width:40px;height:40px;object-fit:contain;border-radius:50%}
+.frame-goal .tree-badge{border-radius:16px}
+.frame-goal .tree-badge img{border-radius:10px}
+.frame-challenge .tree-badge::before{content:"";position:absolute;inset:-9px;z-index:-1;background:linear-gradient(135deg,#ffe08a,#e2a93b);clip-path:polygon(50% 0,61% 18%,82% 9%,80% 31%,100% 38%,85% 54%,97% 73%,75% 76%,70% 98%,50% 86%,30% 98%,25% 76%,3% 73%,15% 54%,0 38%,20% 31%,18% 9%,39% 18%)}
+.cat-ask{--cat:var(--c-ask)}.cat-review{--cat:var(--c-review)}.cat-habit{--cat:var(--c-habit)}.cat-collect{--cat:var(--c-collect)}.cat-pet{--cat:var(--c-pet)}
+.tree-text{display:flex;flex-direction:column;gap:var(--sp-4);max-width:100%}
+.tree-text strong{font-size:var(--fs-13);line-height:1.3}
+.tree-text small{font-size:var(--fs-12);color:var(--muted)}
+.tree-node.is-locked .tree-badge{background:#efeae1;box-shadow:0 0 0 2px #cfc6b8;filter:grayscale(1);opacity:.75}
+.tree-node.is-locked .tree-badge::before{display:none}
+.tree-node.is-locked .tree-text strong{color:var(--muted)}
+.tree-meter{display:block;width:88px;height:6px;margin-top:var(--sp-4);border-radius:var(--r-pill);background:rgba(86,64,32,.12);overflow:hidden}
+.tree-meter b{display:block;height:100%;border-radius:inherit;background:var(--accent)}
+.tree-roots{position:relative;display:flex;flex-direction:column;align-items:center;margin-top:-4px}
+.tree-roots img{display:block;width:min(371px,100%);height:auto}
+.tree-seed{display:flex;flex-direction:column;align-items:center;gap:var(--sp-4);max-width:300px;margin-top:var(--sp-12);text-align:center}
+.tree-seed strong{font-size:var(--fs-15);color:var(--brand-deep)}
+.tree-seed small{font-size:var(--fs-12);color:var(--muted)}
+.tree-seed q{font-size:var(--fs-13);color:var(--ink);quotes:"「" "」"}
+.tree-sheet-art{display:grid;place-items:center;padding:var(--sp-16) 0}
+.tree-sheet-art .tree-badge{width:96px;height:96px}
+.tree-sheet-art .tree-badge img{width:76px;height:76px}
+.tree-sheet.frame-goal .tree-badge{border-radius:28px}
+.tree-sheet-rule{display:flex;flex-direction:column;align-items:center;gap:var(--sp-8);margin:0;text-align:center;font-size:var(--fs-15)}
+.tree-cat{padding:var(--sp-4) var(--sp-12);border-radius:var(--r-pill);background:var(--cat);color:#fff;font-size:var(--fs-12);font-weight:600}
+.tree-sheet-day{margin:var(--sp-8) 0 0;text-align:center;font-size:var(--fs-13);color:var(--muted)}
+.pet-world .pet-tiles{grid-template-columns:repeat(5,1fr)}
+.tree-link{margin-top:var(--sp-12);border-top:1px solid var(--divider)}
+[data-theme="dark"] .tree-node.is-locked .tree-badge{background:#2a2e33;box-shadow:0 0 0 2px #444}
+[data-theme="dark"] .tree-badge{background:#1f2327}
+/* 小回's beanstalk (2026-11-16; garden.js, garden-ui.js): one whole picture per stage (the camera follows the top of the
+   beanstalk), the height and the landmark just passed on top, the five category fruits on the plant (a row under it while
+   it is still small), Backy with the watering can at its foot, and the can panel below. Watering tilts the can and
+   drops fall; a new stage rises in from above while the old one sinks away. */
+.garden-page{--c-ask:#e5a23a;--c-review:#4a8fd6;--c-habit:#e0673d;--c-collect:#3f9d6b;--c-pet:#b0784a}
+.garden-stage{position:relative;aspect-ratio:9 / 14;margin-top:var(--sp-12);border-radius:var(--r-20);overflow:hidden;isolation:isolate;background:#cfe3f2;box-shadow:var(--shadow-1)}
+.garden-scene{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 78%;animation:garden-in var(--dur-3) var(--ease-out)}
+@keyframes garden-in{from{opacity:0;transform:scale(1.03)}}
+.is-rising .garden-scene{animation:garden-rise-in 1.4s var(--ease-out)}
+.is-rising .garden-scene-old{z-index:1;animation:garden-rise-out 1.4s var(--ease-out) forwards}
+@keyframes garden-rise-in{from{transform:translateY(-24%) scale(1.06);opacity:.2}}
+@keyframes garden-rise-out{to{transform:translateY(40%);opacity:0}}
+.garden-height{position:absolute;top:var(--sp-16);left:50%;z-index:2;display:flex;flex-direction:column;align-items:center;gap:var(--sp-4);padding:var(--sp-8) var(--sp-16);border-radius:var(--r-20);background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transform:translateX(-50%);text-align:center;white-space:nowrap}
+.garden-height strong{font-size:var(--fs-20);font-variant-numeric:tabular-nums}
+.garden-height span{font-size:var(--fs-12);color:var(--slate)}
+.garden-fruits{position:absolute;inset:0;z-index:2;pointer-events:none}
+.garden-fruit{position:absolute;display:grid;place-items:center;width:46px;height:46px;border:3px solid var(--cat);border-radius:50%;background:rgba(255,253,249,.92);font-size:var(--fs-20);box-shadow:0 6px 14px rgba(40,60,30,.25);pointer-events:auto;cursor:pointer;animation:garden-bob 3.2s ease-in-out infinite}
+.garden-fruit b{position:absolute;right:-6px;bottom:-4px;min-width:20px;padding:0 var(--sp-4);border-radius:var(--r-pill);background:var(--cat);color:#fff;font-size:var(--fs-12);line-height:20px}
+.garden-fruit:nth-child(1){left:22%;top:34%}.garden-fruit:nth-child(2){left:66%;top:28%;animation-delay:-.6s}.garden-fruit:nth-child(3){left:20%;top:52%;animation-delay:-1.2s}.garden-fruit:nth-child(4){left:68%;top:46%;animation-delay:-1.8s}.garden-fruit:nth-child(5){left:44%;top:20%;animation-delay:-2.4s}
+.garden-fruits.is-row{top:auto;bottom:var(--sp-16);left:auto;right:var(--sp-12);display:flex;flex-direction:column;gap:var(--sp-8);inset-inline-start:auto}
+.garden-fruits.is-row .garden-fruit{position:relative;left:auto;top:auto;width:40px;height:40px;font-size:var(--fs-17)}
+@keyframes garden-bob{50%{transform:translateY(-5px)}}
+.cat-ask{--cat:var(--c-ask)}.cat-review{--cat:var(--c-review)}.cat-habit{--cat:var(--c-habit)}.cat-collect{--cat:var(--c-collect)}.cat-pet{--cat:var(--c-pet)}
+.garden-helper{position:absolute;left:4%;bottom:3%;z-index:2;width:34%;pointer-events:none}
+.garden-squirrel{display:block;width:78%}
+.garden-squirrel img,.garden-squirrel .dressed{display:block;width:100%;height:auto}
+.garden-can{position:absolute;left:58%;bottom:18%;width:52%;height:auto;transform-origin:30% 80%;transition:transform .5s var(--ease-spring)}
+.garden-drops{position:absolute;left:100%;bottom:52%;width:30px;height:60px;pointer-events:none}
+.garden-drops i{position:absolute;top:0;width:6px;height:9px;border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;background:#7cc7f5;opacity:0}
+.garden-drops i:nth-child(2){left:8px}.garden-drops i:nth-child(3){left:16px}.garden-drops i:nth-child(4){left:4px}.garden-drops i:nth-child(5){left:12px}
+.is-watering .garden-can{transform:translate(24%,-28%) rotate(-32deg)}
+.is-watering .garden-drops i{animation:garden-drop .6s ease-in infinite}
+.is-watering .garden-drops i:nth-child(2){animation-delay:.12s}.is-watering .garden-drops i:nth-child(3){animation-delay:.24s}.is-watering .garden-drops i:nth-child(4){animation-delay:.36s}.is-watering .garden-drops i:nth-child(5){animation-delay:.48s}
+@keyframes garden-drop{0%{opacity:0;transform:translate(0,0)}20%{opacity:1}100%{opacity:0;transform:translate(14px,64px)}}
+.is-watering .garden-scene{animation:garden-sip 1.3s ease-in-out}
+@keyframes garden-sip{50%{filter:saturate(1.25) brightness(1.06)}}
+.garden-toast{position:absolute;top:96px;left:50%;z-index:3;margin:0;padding:var(--sp-8) var(--sp-16);border-radius:var(--r-pill);background:var(--brand);color:#fff;font-size:var(--fs-15);font-weight:700;white-space:nowrap;transform:translateX(-50%);opacity:0;pointer-events:none}
+.garden-toast.show{animation:garden-toast 2.6s var(--ease-out)}
+@keyframes garden-toast{0%{opacity:0;transform:translate(-50%,10px) scale(.9)}12%,80%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-8px)}}
+.garden-panel{display:flex;flex-direction:column;gap:var(--sp-12);padding:var(--sp-16) var(--sp-4);border-bottom:1px solid var(--divider)}
+.garden-can-row{display:flex;align-items:center;gap:var(--sp-12)}
+.garden-can-row > img{width:56px;height:56px;object-fit:contain}
+.garden-can-text{display:flex;flex:1;flex-direction:column;gap:var(--sp-4);min-width:0}
+.garden-can-text strong{font-size:var(--fs-15)}
+.garden-can-text em{font-style:normal;font-size:var(--fs-12);color:var(--muted)}
+.garden-can-text small,.garden-next small{font-size:var(--fs-12);color:var(--muted)}
+.garden-water,.garden-bar{display:block;height:8px;border-radius:var(--r-pill);background:rgba(74,143,214,.15);overflow:hidden}
+.garden-water b{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#7cc7f5,#4a8fd6)}
+.garden-bar{background:rgba(48,105,79,.12)}
+.garden-bar b{display:block;height:100%;border-radius:inherit;background:var(--accent)}
+.garden-pour{min-height:44px;padding:0 var(--sp-24);border-radius:var(--r-pill)}
+.garden-next{display:flex;flex-direction:column;gap:var(--sp-4);font-size:var(--fs-13)}
+.garden-harvest{min-height:44px;border:0;border-radius:var(--r-pill);background:linear-gradient(180deg,#ffe28f,#e8b23f);color:#5a3a06;font-weight:700;box-shadow:var(--shadow-1);cursor:pointer}
+.garden-rules{margin:0;font-size:var(--fs-12);color:var(--muted)}
+.garden-page .tree-seed{margin:var(--sp-16) auto 0}
+.limb-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--sp-8);max-height:60vh;overflow:auto}
+.limb-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:var(--sp-12);padding:var(--sp-8) 0;border-bottom:1px solid var(--divider)}
+.limb-row > span:nth-child(2){display:flex;flex-direction:column;gap:var(--sp-4)}
+.limb-row strong{font-size:var(--fs-15)}
+.limb-row small,.limb-row em{font-size:var(--fs-12);color:var(--muted);font-style:normal}
+.limb-row .tree-badge{width:44px;height:44px;box-shadow:0 0 0 3px var(--cat)}
+.limb-row .tree-badge img{width:34px;height:34px}
+.limb-row.is-locked .tree-badge{filter:grayscale(1);opacity:.7;box-shadow:0 0 0 2px #cfc6b8}
+[data-theme="dark"] .garden-height{background:rgba(20,24,28,.7)}
+[data-theme="dark"] .garden-height span{color:var(--steel)}
+@media (prefers-reduced-motion:reduce){.garden-scene,.garden-fruit,.is-rising .garden-scene-old{animation:none}.garden-scene-old{display:none}}

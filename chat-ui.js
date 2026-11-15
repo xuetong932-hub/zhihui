@@ -513,6 +513,8 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     reviewEvents: () => review.events().events,
     // For the squirrel's level and badges (achievements.js): knowledge cards and the times questions were asked.
     knowledgeCards: () => library.cards(),
+    // The very first question (the seed of the growth tree).
+    firstQuestion: () => Object.values(chats.modules).flat().flatMap(thread => thread.messages.filter(message => message.role === 'user')).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt))).map(message => ({ at: message.createdAt, text: message.content }))[0] || null,
     questionDates: () => Object.values(chats.modules).flat().flatMap(thread => thread.messages.filter(message => message.role === 'user').map(message => message.createdAt)),
     // Cards reviewed today, for the check-in image (modules and, if the user chooses, titles).
     reviewedToday: () => { const today = new Date().toDateString(), ids = new Set(review.events().events.filter(event => new Date(event.at).toDateString() === today).map(event => event.cardId)); return library.cards().filter(card => ids.has(card.id)); },

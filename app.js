@@ -10,6 +10,10 @@ import { achievements, newBadges } from './achievements.js';
 import { storeView, showBadge, celebrateBadge, levelCard, badgeWall, levelTitle } from './badges-ui.js';
 import { profileView, openAvatarSheet, avatarSrc, isPhotoAvatar } from './profile-ui.js';
 import { cleanShop, shopState, buy, refund, equip, unequip, freezeDates, protectedStreak, wearOutfit, completeSets, itemById, ITEMS, PARTS, SETS } from './shop.js';
+import { journey } from './journey.js';
+import { openStep } from './journey-ui.js';
+import { dropsEarned, gardenState, pour, harvest, cleanGarden } from './garden.js';
+import { gardenView, openLimb, heightText, stageName } from './garden-ui.js';
 import { shopView, openItemSheet, decorLayer, frameImage, dressedSquirrel, isDressed, setName } from './shop-ui.js';
 import { SCENES, SCENE_CATEGORIES, savedScene, saveScene, sceneImage, sceneThumb } from './scenes.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
@@ -478,7 +482,9 @@ function boot() {
   const shopData = () => cleanShop(profile?.shop);
   const reviewDays = goalOnly => { const days = new Map(); for (const event of chat.reviewEvents()) { const day = localDay(event.at); if (!days.has(day)) days.set(day, new Set()); days.get(day).add(event.cardId); } const goal = goalOf(profile); return day => (days.get(day)?.size || 0) >= (goalOnly ? goal : 1); };
   const shieldStreaks = () => { const freezes = freezeDates(shopData()), goal = protectedStreak(reviewDays(true), freezes); return { goal: goal.streak, any: protectedStreak(reviewDays(false), freezes).streak, used: goal.used }; };
-  const shopNow = () => shopState(shopData(), pineCones(chat.reviewEvents(), goalOf(profile)).total, shieldStreaks().used);
+  // Pine cones to spend: earned by learning (pet.js) plus golden cones harvested from the beanstalk (garden.js).
+  const earnedCones = () => pineCones(chat.reviewEvents(), goalOf(profile)).total + gardenNow().harvestCones;
+  const shopNow = () => shopState(shopData(), earnedCones(), shieldStreaks().used);
   function saveShop(next) {
     const candidate = { ...profile, shop: next };
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate)); } catch { return false; }
@@ -499,7 +505,7 @@ function boot() {
     const level = petProgress().level.level, before = new Set(completeSets(shopData().outfit));
     let data = shopData();
     for (const id of new Set(Object.values(dressLook).filter(id => id && !shopNow().owned.has(id)))) {
-      const result = buy(data, id, pineCones(chat.reviewEvents(), goalOf(profile)).total, { shieldsUsed: shieldStreaks().used, level });
+      const result = buy(data, id, earnedCones(), { shieldsUsed: shieldStreaks().used, level });
       if (!result.ok) { dressNote = SHOP_ERRORS[result.error](); render(); return; }
       data = result.data; if (!saveShop(data)) { dressNote = pick('保存失败', 'Could not save'); render(); return; }
     }
@@ -528,7 +534,7 @@ function boot() {
     }
   }
   function openShopItem(id) {
-    const earned = () => pineCones(chat.reviewEvents(), goalOf(profile)).total, used = () => shieldStreaks().used;
+    const earned = () => earnedCones(), used = () => shieldStreaks().used;
     openItemSheet(id, { state: shopNow, data: shopData, earned, shieldsUsed: used,
       onBuy: itemId => { const result = buy(shopData(), itemId, earned(), { shieldsUsed: used() }); if (!result.ok) return SHOP_ERRORS[result.error](); if (!saveShop(result.data)) return pick('保存失败', 'Could not save'); render(); return ''; },
       onRefund: purchaseId => { const result = refund(shopData(), purchaseId, { shieldsUsed: used() }); if (result.ok) { saveShop(result.data); render(); } },
@@ -538,10 +544,22 @@ function boot() {
   // 我的 → avatar: the personal page (avatar, level, badge wall, features coming later).
   function meProfileView() {
     const progress = petProgress(), name = account?.local ? pick('本地模式', 'Local mode') : account?.username || (account?.is_admin ? pick('管理员', 'Administrator') : pick('已登录', 'Signed in'));
-    return profileView({ name, level: progress.level, levelCard: levelCard(progress.level, '/illustrations/mascot-cheer.webp'), badgeWall: badgeWall(progress.badges), frame: frameImage(shopData().frame) });
+    return profileView({ name, level: progress.level, levelCard: levelCard(progress.level, '/illustrations/mascot-cheer.webp') + `<button type="button" class="me-row tree-link" data-open-tree><span class="me-icon">🌱</span><span class="me-label">${pick('通天藤', 'Beanstalk')}</span><span class="me-value">${pick('已点亮 {n} 个', '{n} lit', { n: growthTree().total })}</span><span class="me-chevron" aria-hidden="true">›</span></button>`, badgeWall: badgeWall(progress.badges), frame: frameImage(shopData().frame) });
   }
   const openBadgeWall = () => { petPage = 'room'; mePage = 'profile'; chat.go('me'); requestAnimationFrame(() => document.querySelector('#badge-wall')?.scrollIntoView({ block: 'start' })); };
   const petProgress = () => achievements({ events: chat.reviewEvents(), goal: goalOf(profile), cards: chat.knowledgeCards(), questions: chat.questionDates(), books: Object.keys(profile?.modules || {}).filter(isCustomModule).length });
+  // The growth tree (pet tab → 成长树): milestones from the history on a trunk, today at the top, the seed at the roots.
+  const growthTree = () => journey({ progress: petProgress(), questions: chat.questionDates(), firstQuestion: chat.firstQuestion(), purchases: shopData().purchases });
+  // The beanstalk (garden.js): drops from the history, what was poured kept in profile.garden.
+  const dropsNow = () => dropsEarned({ events: chat.reviewEvents(), questions: chat.questionDates(), goal: goalOf(profile) }).total;
+  const gardenNow = () => gardenState(profile?.garden, dropsNow());
+  let gardenRise = null, gardenToast = '';
+  function saveGarden(next) {
+    const candidate = { ...profile, garden: cleanGarden(next) };
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate)); } catch { return false; }
+    profile = candidate; return true;
+  }
+  function petTreeView() { const rising = gardenRise; gardenRise = null; return gardenView({ garden: gardenNow(), tree: growthTree(), rising, squirrel: isDressed(shopData().outfit) ? `<span class="dressed">${dressedSquirrel(shopData().outfit)}</span>` : '<img src="/illustrations/mascot-wave.webp" alt="" decoding="async">' }); }
   function petStoreView() {
     const progress = petProgress();
     return storeView({ level: progress.level, badges: progress.badges, cones: progress.level.cones, mascot: 'cheer' });
@@ -592,6 +610,7 @@ function boot() {
         <button type="button" class="pet-tile" data-pet-store><span class="pet-tile-icon">${PINE_ICON}</span><strong>${pick('仓库', 'Store')}</strong><span class="pet-tile-value">Lv.${progress.level.level}</span><span class="muted">${pick('松果 {n}', '{n} pine cones', { n: progress.level.cones })}</span></button>
         <button type="button" class="pet-tile" data-pet-feed><span class="pet-tile-icon">🍽</span><strong>${pick('喂食', 'Feed')}</strong><span class="pet-tile-value">${done}/${goal}</span><span class="pet-meter" role="presentation"><i data-fed="${fed}"></i></span></button>
         <div class="pet-tile"><span class="pet-tile-icon">🔥</span><strong>${pick('连续', 'Streak')}</strong><span class="pet-tile-value">${streak}</span><span class="muted">${pick('{n} 天', '{n} days', { n: streak })}</span></div>
+        <button type="button" class="pet-tile" data-pet-tree><span class="pet-tile-icon">🌱</span><strong>${pick('通天藤', 'Beanstalk')}</strong><span class="pet-tile-value">${heightText(gardenNow().height, gardenNow().index === 11)}</span><span class="muted">${gardenNow().inCan ? `💧 ${gardenNow().inCan}` : stageName(gardenNow().stage.id)}</span></button>
         <button type="button" class="pet-tile" data-pet-shop><span class="pet-tile-icon">🛒</span><strong>${pick('商城', 'Shop')}</strong><span class="pet-tile-value">${shop.balance}</span><span class="muted">${pick('可用松果', 'to spend')}</span></button>
       </div></section>
       <section class="m-section pet-where"><h2>${pick('出现在', 'Shows up on')}</h2><div class="pet-where-chips">${PET_PAGES.map(page => { const on = petPagesOf(profile).includes(page); return `<button type="button" class="keyword-chip ${on ? 'on' : ''}" data-pet-page="${page}" aria-pressed="${on}">${on ? '✓ ' : ''}${TABS.find(([id]) => id === page)[3]()}</button>`; }).join('')}</div></section>
@@ -640,7 +659,7 @@ function boot() {
     app.innerHTML = `
       <header class="header"><a class="brand" href="${location.pathname.startsWith('/m') ? '/m/' : '/'}" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
         ${tabs ? '' : `<div class="header-actions">${inApp && profile && !editing && !guide ? chat.nav() : ''}${themeButton()}<button class="text-button" id="language" aria-haspopup="dialog" aria-label="${pick('界面语言', 'Interface language')}" ${locked ? 'disabled' : ''}><span aria-hidden="true">🌐</span> ${localeName(locale)}</button></div>`}</header>
-      <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? (mePage === 'profile' ? meProfileView() : meView()) : tabs && chat.page === 'pet' ? (petPage === 'store' ? petStoreView() : petPage === 'shop' ? petShopView() : petView()) : tabs && ['library', 'discover', 'recommend', 'square'].includes(chat.page) ? librarySwitch() + chat.view() : chat.isHome ? homeView() : chat.view()}</main>
+      <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? (mePage === 'profile' ? meProfileView() : meView()) : tabs && chat.page === 'pet' ? (petPage === 'store' ? petStoreView() : petPage === 'shop' ? petShopView() : petPage === 'tree' ? petTreeView() : petView()) : tabs && ['library', 'discover', 'recommend', 'square'].includes(chat.page) ? librarySwitch() + chat.view() : chat.isHome ? homeView() : chat.view()}</main>
       ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
     document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => { petPage = 'room'; mePage = 'main'; chat.go(button.dataset.tab); }; });
@@ -671,6 +690,41 @@ function boot() {
     document.querySelectorAll('[data-shop-item]').forEach(button => { button.onclick = () => openShopItem(button.dataset.shopItem); });
     document.querySelectorAll('[data-soon]').forEach(button => { button.onclick = () => { button.classList.remove('is-poke'); void button.offsetWidth; button.classList.add('is-poke'); }; });
     document.querySelectorAll('[data-scene-picker]').forEach(button => { button.onclick = () => openScenePicker(button); });
+    document.querySelectorAll('[data-pet-tree]').forEach(button => { button.onclick = () => { petPage = 'tree'; render(); window.scrollTo(0, 0); }; });
+    document.querySelectorAll('[data-open-tree]').forEach(button => { button.onclick = () => { petPage = 'tree'; mePage = 'main'; chat.go('pet'); }; });
+    document.querySelectorAll('[data-tree-back]').forEach(button => { button.onclick = () => { petPage = 'room'; render(); window.scrollTo(0, 0); }; });
+    if (document.querySelector('.garden-page')) {
+      const garden = gardenNow(), stageEl = document.querySelector('.garden-stage'), toast = document.querySelector('.garden-toast');
+      document.querySelectorAll('[data-garden-fill]').forEach(bar => { bar.style.width = `${bar.dataset.gardenFill}%`; });
+      if (toast && gardenToast) { toast.textContent = gardenToast; toast.classList.add('show'); gardenToast = ''; }
+      document.querySelectorAll('[data-garden-cat]').forEach(button => { button.onclick = () => openLimb(growthTree().limbs.find(limb => limb.cat === button.dataset.gardenCat)); });
+      document.querySelector('[data-garden-pour]')?.addEventListener('click', event => {
+        const button = event.currentTarget; button.disabled = true;
+        const result = pour(profile?.garden, dropsNow());
+        if (!result.ok) return;
+        stageEl?.classList.add('is-watering'); navigator.vibrate?.(12);
+        setTimeout(() => {
+          if (!saveGarden(result.data)) return;
+          const after = gardenNow();
+          if (after.index > garden.index) { gardenRise = garden.stage.id; gardenToast = `${stageName(after.stage.id)}！`; }
+          else gardenToast = pick('+{n} 成长', '+{n} growth', { n: result.growth });
+          render();
+        }, reducedMotion() ? 0 : 1300);
+      });
+      document.querySelector('[data-garden-harvest]')?.addEventListener('click', () => {
+        const result = harvest(profile?.garden, dropsNow());
+        if (result.ok && saveGarden(result.data)) { gardenToast = pick('收获 +{n} 松果', 'Harvested +{n} pine cones', { n: 10 }); render(); }
+      });
+    }
+    if (document.querySelector('.tree-page')) {
+      const tree = growthTree(), steps = [...tree.items, ...tree.limbs.map(limb => limb.next).filter(Boolean)];
+      document.querySelectorAll('[data-tree-step]').forEach(button => { button.onclick = () => openStep(steps.find(step => step.key === button.dataset.treeStep)); });
+      document.querySelectorAll('.tree-meter b[data-tree-fill]').forEach(bar => { bar.style.width = `${bar.dataset.treeFill}%`; });
+      // The vine repeats every 240px and is centred at each repeat's ends: round its length up to whole repeats so it
+      // meets the seed's stem straight on.
+      const vine = document.querySelector('.tree-trunk');
+      if (vine) { vine.style.paddingBottom = ''; const extra = (240 - vine.offsetHeight % 240) % 240; vine.style.paddingBottom = `${parseFloat(getComputedStyle(vine).paddingBottom) + extra}px`; }
+    }
     document.querySelectorAll('[data-pet-store]').forEach(button => { button.onclick = () => { petPage = 'store'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('[data-store-back]').forEach(button => { button.onclick = () => { petPage = 'room'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('.level-bar i[data-level]').forEach(bar => { bar.style.width = `${bar.dataset.level}%`; });

@@ -66,14 +66,16 @@ function units({ events, goal, cards, questions, books }) {
   };
 }
 
-// → { level, badges: [{ id, tier (0–3 reached), tiers, progress, next (target or null), earned: [{ tier, day }] }] }
+// → { level, badges: [{ id, tier (0–3 reached), tiers, progress, next (target or null), earned: [{ tier, day }] }], levelDays }
 export function achievements(input) {
   const counted = units(input), cones = counted.cones.length;
   const badges = BADGES.map(({ id, tiers }) => {
     const list = counted[id], earned = tiers.map((need, i) => list.length >= need ? { tier: i + 1, day: list[need - 1] } : null).filter(Boolean);
     return { id, tiers, tier: earned.length, progress: list.length, next: tiers[earned.length] ?? null, earned };
   });
-  return { level: levelOf(cones), badges };
+  // The day each level was reached (null for Lv1 and for levels not reached yet), for the growth tree.
+  const levelDays = LEVELS.map((need, i) => i && counted.cones.length >= need ? counted.cones[need - 1] : null);
+  return { level: levelOf(cones), badges, levelDays };
 }
 
 // Badge tiers not yet celebrated on this device ("id:tier" keys), newest tier of each badge only.

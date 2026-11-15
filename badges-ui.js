@@ -12,7 +12,7 @@ const NAME = {
   reviews: () => pick('复习达人', 'Reviewer'), cones: () => pick('松果收藏家', 'Cone collector'), polymath: () => pick('博学多才', 'All-rounder'),
   early: () => pick('早起鸟', 'Early bird'), night: () => pick('夜读', 'Night reader'), books: () => pick('藏书家', 'Book maker'), month: () => pick('全勤月', 'Perfect month'),
 };
-const RULE = {
+export const RULE = {
   first: () => pick('完成第一次提问', 'Ask your first question'), learned: n => pick('学会 {n} 个知识点', 'Learn {n} ideas', { n }),
   streak: n => pick('连续 {n} 天完成每日目标', 'Meet the daily goal {n} days in a row', { n }), reviews: n => pick('累计复习 {n} 次', 'Review {n} times', { n }),
   cones: n => pick('收集 {n} 颗松果', 'Collect {n} pine cones', { n }), polymath: n => pick('4 本书各学会 {n} 个知识点', 'Learn {n} ideas in each of 4 books', { n }),

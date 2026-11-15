@@ -68,6 +68,8 @@
   .dress-msg{grid-area:msg}
   .dress-bar{grid-area:bar;bottom:var(--sp-24)}
   .shop-grid{grid-template-columns:repeat(4,1fr)}
+  /* Beanstalk: a phone-shaped column in the middle (its pictures are portrait). */
+  .garden-page{max-width:520px;margin:0 auto}
   /* Backy outside its room: no tab bar under it here, it stands on the bottom of the window. */
   .float-home{bottom:var(--sp-24);right:var(--sp-32);width:96px}
 }
