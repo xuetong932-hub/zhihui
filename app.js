@@ -7,7 +7,8 @@ import { DAILY_GOALS, DEFAULT_GOAL, goalOf, doneToday, goalStreak, openShareDial
 import { pineCones, petMood, MOOD_POSE } from './pet.js';
 import { startPetPlay, flyCone } from './pet-physics.js';
 import { achievements, newBadges } from './achievements.js';
-import { storeView, showBadge, celebrateBadge } from './badges-ui.js';
+import { storeView, showBadge, celebrateBadge, levelCard, badgeWall, levelTitle } from './badges-ui.js';
+import { profileView, openAvatarSheet, avatarSrc, isPhotoAvatar } from './profile-ui.js';
 import { SCENES, SCENE_CATEGORIES, savedScene, saveScene, sceneImage, sceneThumb } from './scenes.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
@@ -271,7 +272,8 @@ function boot() {
     const zh = locale === 'zh', dark = window.knowledgeReviewTheme?.theme === 'dark';
     const row = (attrs, icon, label, value = '') => `<button class="me-row" ${attrs}><span class="me-icon">${icon}</span><span class="me-label">${label}</span>${value ? `<span class="me-value">${value}</span>` : ''}<span class="me-chevron" aria-hidden="true">›</span></button>`;
     const name = account?.local ? (pick('本地模式', 'Local mode')) : account?.username || (account?.is_admin ? (pick('管理员', 'Administrator')) : (pick('已登录', 'Signed in')));
-    return `<section class="me-head"><span class="me-avatar">${iconSvg('user', 28)}</span><div><h1>${esc(name)}</h1><p>${account?.local ? (pick('记录只保存在这台设备', 'Records stay on this device')) : (pick('学习记录保存在本机，可在账号中加密同步', 'Records are kept here; encrypted sync is in Account'))}</p></div></section>
+    const lv = petProgress().level;
+    return `<button type="button" class="me-head" data-me-profile aria-label="${pick('个人主页', 'Profile')}"><span class="me-avatar ${isPhotoAvatar() ? 'is-photo' : ''}"><img src="${avatarSrc()}" alt="" decoding="async"></span><div><h1>${esc(name)} <span class="me-lv">Lv.${lv.level} ${levelTitle(lv.level)}</span></h1><p>${account?.local ? (pick('记录只保存在这台设备', 'Records stay on this device')) : (pick('学习记录保存在本机，可在账号中加密同步', 'Records are kept here; encrypted sync is in Account'))}</p></div><span class="me-chevron" aria-hidden="true">›</span></button>
       <div class="me-group"><h2>${pick('学习', 'Learning')}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), pick('目标 {v0} 张', 'Goal {v0}', { v0: goalOf(profile) }))}${row('id="theme-toggle"', iconSvg('bulb'), pick('外观', 'Appearance'), dark ? (pick('黑夜', 'Night')) : (pick('白天', 'Day')))}${row('id="language"', iconSvg('globe'), pick('语言', 'Language'), localeName(locale))}</div>
       <div class="me-group"><h2>${pick('账号与设备', 'Account & device')}</h2>${account?.local ? row('data-signin', iconSvg('user'), pick('登录 / 注册', 'Sign in / Register')) : row('data-cloud', iconSvg('user'), pick('账号与同步', 'Account & sync'))}${row('data-device', iconSvg('camera'), pick('设备与提醒', 'Device & reminders'))}${account?.is_admin ? row('data-admin', iconSvg('chart'), pick('管理', 'Admin')) : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}${row('data-onboarding', iconSvg('compass'), pick('产品演示', 'Product tour'))}${row('data-tour', iconSvg('bulb'), pick('新手指引', 'Guided tour'))}</div>
       ${androidBrowser() ? `<div class="me-group"><h2>${pick('安卓 App', 'Android app')}</h2><a class="me-row" href="/zhihui.apk" download="zhihui.apk"><span class="me-icon">${iconSvg('download')}</span><span class="me-label">${pick('下载安卓 App', 'Download the Android app')}</span><span class="me-value">${pick('约 1 MB', 'About 1 MB')}</span><span class="me-chevron" aria-hidden="true">›</span></a><p class="me-note">${pick('安装时手机会提示"未知来源应用"，选择仍然安装即可。', 'Your phone will warn about an app from an unknown source; choose to install anyway.')}</p></div>` : ''}`;
@@ -434,7 +436,13 @@ function boot() {
     layer.querySelector('.scene-pick.active, .scene-pick')?.focus({ preventScroll: true });
   }
   // The squirrel's level and badges (achievements.js), and its store page (pet tab → 仓库).
-  let petPage = 'room';
+  let petPage = 'room', mePage = 'main';
+  // 我的 → avatar: the personal page (avatar, level, badge wall, features coming later).
+  function meProfileView() {
+    const progress = petProgress(), name = account?.local ? pick('本地模式', 'Local mode') : account?.username || (account?.is_admin ? pick('管理员', 'Administrator') : pick('已登录', 'Signed in'));
+    return profileView({ name, level: progress.level, levelCard: levelCard(progress.level, '/illustrations/mascot-cheer.webp'), badgeWall: badgeWall(progress.badges) });
+  }
+  const openBadgeWall = () => { petPage = 'room'; mePage = 'profile'; chat.go('me'); requestAnimationFrame(() => document.querySelector('#badge-wall')?.scrollIntoView({ block: 'start' })); };
   const petProgress = () => achievements({ events: chat.reviewEvents(), goal: goalOf(profile), cards: chat.knowledgeCards(), questions: chat.questionDates(), books: Object.keys(profile?.modules || {}).filter(isCustomModule).length });
   function petStoreView() {
     const progress = petProgress();
@@ -453,7 +461,7 @@ function boot() {
     save(keys);
     for (const item of fresh.slice(0, 3)) {
       if (chat.page !== 'pet' || petPage !== 'room') break;
-      await celebrateBadge(badges.find(badge => badge.id === item.id), item.tier);
+      if (await celebrateBadge(badges.find(badge => badge.id === item.id), item.tier) === 'go') { openBadgeWall(); break; }
     }
   }
   // The squirrel's home (phone, middle tab): its tree-hollow room fills the top of the screen with the squirrel in the
@@ -483,7 +491,7 @@ function boot() {
         <button type="button" class="today-mascot pet-mascot" data-pose="${pose}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async" draggable="false"></button>
         <div class="pet-floor"><button type="button" class="pet-jar" data-pet-jar="${cones.total}" aria-label="${pick('松果罐，{n} 颗', 'Pine-cone jar, {n}', { n: cones.total })}"><img class="pet-jar-glass" src="/illustrations/pine-jar.webp" alt="" decoding="async"><span class="pet-jar-pile" aria-hidden="true"></span><span class="pet-jar-tag" aria-hidden="true"></span></button></div></section>
       <section class="m-section frost-panel pet-world"><div class="section-heading"><h2>${pick('小回的小世界', 'Backy’s little world')}</h2></div><div class="pet-tiles">
-        <button type="button" class="pet-tile" data-pet-store><span class="pet-tile-icon"><img class="pet-tile-badge" src="/illustrations/badges/learned.webp" alt="" decoding="async"></span><strong>${pick('仓库', 'Store')}</strong><span class="pet-tile-value">Lv.${progress.level.level}</span><span class="muted">${pick('徽章 {n}', '{n} badges', { n: progress.badges.reduce((sum, badge) => sum + badge.tier, 0) })}</span></button>
+        <button type="button" class="pet-tile" data-pet-store><span class="pet-tile-icon">${PINE_ICON}</span><strong>${pick('仓库', 'Store')}</strong><span class="pet-tile-value">Lv.${progress.level.level}</span><span class="muted">${pick('松果 {n}', '{n} pine cones', { n: progress.level.cones })}</span></button>
         <button type="button" class="pet-tile" data-pet-feed><span class="pet-tile-icon">🍽</span><strong>${pick('喂食', 'Feed')}</strong><span class="pet-tile-value">${done}/${goal}</span><span class="pet-meter" role="presentation"><i data-fed="${fed}"></i></span></button>
         <div class="pet-tile"><span class="pet-tile-icon">🔥</span><strong>${pick('连续', 'Streak')}</strong><span class="pet-tile-value">${streak}</span><span class="muted">${pick('{n} 天', '{n} days', { n: streak })}</span></div>
         <div class="pet-tile is-soon" aria-disabled="true"><span class="pet-tile-icon">🛒</span><strong>${pick('商城', 'Shop')}</strong><span class="muted">${pick('即将开放', 'Coming soon')}</span></div>
@@ -536,10 +544,15 @@ function boot() {
     app.innerHTML = `
       <header class="header"><a class="brand" href="${phone ? '/m/' : '/'}" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
         ${tabs ? '' : `<div class="header-actions">${inApp && profile && !editing && !guide ? chat.nav() : ''}${themeButton()}<button class="text-button" id="language" aria-haspopup="dialog" aria-label="${pick('界面语言', 'Interface language')}" ${locked ? 'disabled' : ''}><span aria-hidden="true">🌐</span> ${localeName(locale)}</button></div>`}</header>
-      <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? meView() : tabs && chat.page === 'pet' ? (petPage === 'store' ? petStoreView() : petView()) : tabs && ['library', 'discover', 'recommend', 'square'].includes(chat.page) ? librarySwitch() + chat.view() : chat.isHome ? homeView() : chat.view()}</main>
+      <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? (mePage === 'profile' ? meProfileView() : meView()) : tabs && chat.page === 'pet' ? (petPage === 'store' ? petStoreView() : petView()) : tabs && ['library', 'discover', 'recommend', 'square'].includes(chat.page) ? librarySwitch() + chat.view() : chat.isHome ? homeView() : chat.view()}</main>
       ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
-    document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => { petPage = 'room'; chat.go(button.dataset.tab); }; });
+    document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => { petPage = 'room'; mePage = 'main'; chat.go(button.dataset.tab); }; });
+    document.querySelectorAll('[data-me-profile]').forEach(button => { button.onclick = () => { mePage = 'profile'; render(); window.scrollTo(0, 0); }; });
+    document.querySelectorAll('[data-profile-back]').forEach(button => { button.onclick = () => { mePage = 'main'; render(); window.scrollTo(0, 0); }; });
+    document.querySelectorAll('[data-avatar-change]').forEach(button => { button.onclick = () => openAvatarSheet(() => render()); });
+    document.querySelectorAll('[data-go-badges]').forEach(button => { button.onclick = openBadgeWall; });
+    document.querySelectorAll('[data-soon]').forEach(button => { button.onclick = () => { button.classList.remove('is-poke'); void button.offsetWidth; button.classList.add('is-poke'); }; });
     document.querySelectorAll('[data-scene-picker]').forEach(button => { button.onclick = () => openScenePicker(button); });
     document.querySelectorAll('[data-pet-store]').forEach(button => { button.onclick = () => { petPage = 'store'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('[data-store-back]').forEach(button => { button.onclick = () => { petPage = 'room'; render(); window.scrollTo(0, 0); }; });

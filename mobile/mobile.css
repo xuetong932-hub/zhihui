@@ -641,3 +641,32 @@ main:has(.book-page) .library-switch{display:none}
 [data-theme="dark"] .home-scene-wrap .task-start,[data-theme="dark"] .home-scene-wrap~.frost-panel .module-strip{border-color:rgba(255,255,255,.16);background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05));box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 8px 24px rgba(0,0,0,.35);color:#f3eadb}
 [data-theme="dark"] .home-scene-wrap .task-start::before,[data-theme="dark"] .home-scene-wrap~.frost-panel .module-strip::before{background:radial-gradient(120% 80% at 20% 0%,rgba(255,255,255,.12),rgba(255,255,255,0) 55%)}
 [data-theme="dark"] .home-scene-wrap~.frost-panel .strip-thumb{background:none}
+/* Profile (我的 → avatar, profile-ui.js) */
+button.me-head{width:calc(100% - 8px);padding:0;border:0;background:none;color:var(--ink);text-align:left;cursor:pointer}
+.me-head>div{flex:1;min-width:0}
+.me-avatar{overflow:hidden;background:radial-gradient(circle at 40% 35%,#fffdf8,#f1dfbd);box-shadow:inset 0 0 0 2px #e0b46a}
+.me-avatar img{width:48px;height:48px;object-fit:contain}
+.me-avatar.is-photo img,.profile-avatar.is-photo img{width:100%;height:100%;object-fit:cover}
+.me-lv{display:inline-block;margin-left:var(--sp-4);padding:0 var(--sp-8);border-radius:999px;background:linear-gradient(135deg,#e9c27a,#c9963f);color:#fff;font-family:var(--font-ui,inherit);font-size:11px;line-height:20px;vertical-align:middle}
+.profile-page{padding-bottom:var(--sp-24)}
+.profile-hero{display:flex;flex-direction:column;align-items:center;gap:var(--sp-8);margin:var(--sp-8) 0 var(--sp-24)}
+.profile-hero h1{margin:0;font-size:24px}
+.profile-lv{padding:0 var(--sp-12);border-radius:999px;background:linear-gradient(135deg,#e9c27a,#c9963f);color:#fff;font-size:12px;font-weight:700;line-height:24px}
+.profile-avatar{position:relative;display:grid;place-items:center;width:112px;height:112px;padding:0;border:0;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 40% 35%,#fffdf8,#f1dfbd);box-shadow:inset 0 0 0 3px #e0b46a,0 8px 24px rgba(120,84,30,.18);cursor:pointer}
+.profile-avatar img{width:92px;height:92px;object-fit:contain}
+.profile-avatar-edit{position:absolute;right:8px;bottom:8px;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:14px}
+.profile-page .section-heading{margin-top:var(--sp-32)}
+.soon-row{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-12)}
+.soon-card{display:flex;flex-direction:column;align-items:center;gap:var(--sp-4);padding:var(--sp-16) var(--sp-8);border:1px dashed rgba(86,64,32,.2);border-radius:16px;background:rgba(255,253,249,.6);color:var(--ink)}
+.soon-card span{font-size:24px;filter:grayscale(.3)}
+.soon-card strong{font-size:13px}
+.soon-card em{font-style:normal;font-size:11px;color:var(--muted)}
+.soon-card.is-poke{animation:jar-bump .45s cubic-bezier(.3,.7,.4,1)}
+.store-link{display:block;width:100%;min-height:44px;padding:0 var(--sp-16);border:0;border-radius:16px;background:rgba(255,253,249,.8);color:var(--accent);font-weight:600;text-align:center}
+.badge-actions{display:flex;justify-content:center;gap:var(--sp-8);margin-top:var(--sp-8)}
+.avatar-sheet .avatar-upload{display:flex;align-items:center;justify-content:center;min-height:48px;margin-top:var(--sp-8);cursor:pointer}
+.avatar-note{min-height:20px;margin:var(--sp-8) 0 0;font-size:13px;color:var(--muted)}
+.avatar-poses{display:grid;grid-template-columns:repeat(6,1fr);gap:var(--sp-8)}
+.avatar-poses button{aspect-ratio:1;padding:var(--sp-4);border:0;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fffdf8,#f1dfbd)}
+.avatar-poses img{width:100%;height:100%;object-fit:contain}
+.avatar-reset{display:block;margin:var(--sp-16) auto 0}

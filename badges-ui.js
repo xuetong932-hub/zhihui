@@ -23,24 +23,34 @@ export const badgeName = id => NAME[id]();
 const stars = (tier, max) => max > 1 ? `<span class="badge-stars" aria-hidden="true">${Array.from({ length: max }, (_, i) => `<i class="${i < tier ? 'on' : ''}"></i>`).join('')}</span>` : '';
 const tierLabel = (badge, tier) => badge.tiers.length > 1 ? TIER()[tier - 1] : '';
 
+// Level card: avatar, Lv pill, title, progress bar and the cones needed for the next level.
+export function levelCard(level, avatar) {
+  const next = level.next === null ? pick('已经是最高等级啦', 'Top level reached') : pick('再收集 {n} 颗松果升到 Lv.{lv} {title}', '{n} more pine cones to Lv.{lv} {title}', { n: level.next - level.cones, lv: level.level + 1, title: levelTitle(level.level + 1) });
+  return `<div class="level-card"><span class="level-avatar"><img src="${avatar}" alt="" decoding="async"></span>
+      <div class="level-text"><span class="level-lv">Lv.${level.level}</span><strong>${levelTitle(level.level)}</strong>
+      <span class="level-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(level.progress * 100)}" aria-label="${e(next)}"><i data-level="${Math.round(level.progress * 100)}"></i></span><span class="level-next">${e(next)}</span></div></div>`;
+}
+export const badgeCount = badges => ({ got: badges.reduce((sum, badge) => sum + badge.tier, 0), total: BADGES.reduce((sum, badge) => sum + badge.tiers.length, 0) });
+
+// The squirrel's store: its level and pine cones; the badge wall lives on the profile page (我的 → avatar).
 export function storeView({ level, badges, cones, mascot }) {
-  const total = BADGES.reduce((sum, badge) => sum + badge.tiers.length, 0), got = badges.reduce((sum, badge) => sum + badge.tier, 0);
-  const next = level.next === null ? pick('已经是最高等级啦', 'Top level reached') : pick('再收集 {n} 颗松果升到 Lv.{lv} {title}', '{n} more pine cones to Lv.{lv} {title}', { n: level.next - cones, lv: level.level + 1, title: levelTitle(level.level + 1) });
+  const { got, total } = badgeCount(badges);
   return `<section class="store-page">
     <header class="book-top store-top"><button type="button" class="book-back" data-store-back aria-label="${pick('回到小窝', 'Back to the nest')}">‹</button><strong>${pick('小回的仓库', 'Backy’s store')}</strong><span></span></header>
-    <div class="level-card"><span class="level-avatar"><img src="/illustrations/mascot-${mascot}.webp" alt="" decoding="async"></span>
-      <div class="level-text"><span class="level-lv">Lv.${level.level}</span><strong>${levelTitle(level.level)}</strong>
-      <span class="level-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(level.progress * 100)}" aria-label="${e(next)}"><i data-level="${Math.round(level.progress * 100)}"></i></span><span class="level-next">${e(next)}</span></div></div>
+    ${levelCard(level, `/illustrations/mascot-${mascot}.webp`)}
     <div class="store-stats"><span><b>${cones}</b>${pick('松果', 'pine cones')}</span><span><b>${got}/${total}</b>${pick('徽章', 'badges')}</span></div>
-    <div class="section-heading"><h2>${pick('徽章墙', 'Badge wall')}</h2></div>
-    <div class="badge-wall">${badges.map(badge => {
+    <button type="button" class="store-link" data-go-badges>${pick('徽章墙在「我的 → 个人主页」', 'The badge wall is in Me → Profile')} ›</button>
+  </section>`;
+}
+
+export function badgeWall(badges) {
+  return `<div class="badge-wall">${badges.map(badge => {
       const last = badge.earned[badge.earned.length - 1];
       const sub = badge.tier ? (last.day ? last.day.slice(5).replace('-', '.') : pick('已获得', 'Earned')) : `${Math.min(badge.progress, badge.next)}/${badge.next}`;
       return `<button type="button" class="badge tier-${badge.tier}" data-badge="${badge.id}" aria-label="${e(badgeName(badge.id))}${badge.tier ? ` ${tierLabel(badge, badge.tier)}` : ''}，${e(sub)}">
         <span class="badge-art"><img src="/illustrations/badges/${badge.id}.webp" alt="" decoding="async">${badge.tier ? '' : '<span class="badge-lock" aria-hidden="true">🔒</span>'}</span>
         ${stars(badge.tier, badge.tiers.length)}<strong>${e(badgeName(badge.id))}</strong><span class="badge-sub">${e(sub)}</span></button>`;
-    }).join('')}</div>
-  </section>`;
+    }).join('')}</div>`;
 }
 
 const reduced = () => globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -50,11 +60,12 @@ function overlay(html, className) {
   layer.innerHTML = html; document.body.append(layer);
   void layer.offsetWidth; layer.classList.add('open');
   return new Promise(resolve => {
-    const close = () => { layer.classList.remove('open'); document.removeEventListener('keydown', onKey); setTimeout(() => layer.remove(), reduced() ? 0 : 220); resolve(); };
+    // Resolves with 'go' when "See it" was chosen.
+    const close = choice => { layer.classList.remove('open'); document.removeEventListener('keydown', onKey); setTimeout(() => layer.remove(), reduced() ? 0 : 220); resolve(choice); };
     const onKey = event => { if (event.key === 'Escape') close(); };
     document.addEventListener('keydown', onKey);
-    layer.addEventListener('click', event => { if (event.target === layer || event.target.closest('[data-badge-close]')) close(); });
-    layer.querySelector('[data-badge-close]')?.focus({ preventScroll: true });
+    layer.addEventListener('click', event => { const button = event.target.closest('[data-badge-close]'); if (event.target === layer || button) close(button?.hasAttribute('data-badge-go') ? 'go' : undefined); });
+    layer.querySelector('.primary-button[data-badge-close]')?.focus({ preventScroll: true });
   });
 }
 
@@ -72,5 +83,5 @@ export function showBadge(badge) {
 export function celebrateBadge(badge, tier) {
   return overlay(`<div class="badge-celebrate"><span class="badge-rays" aria-hidden="true"></span><div class="badge-big tier-${tier}"><img src="/illustrations/badges/${badge.id}.webp" alt="" decoding="async"><span class="badge-sheen" aria-hidden="true"></span></div>
     <p class="badge-new">${pick('获得新徽章', 'New badge')}</p><h2>${e(badgeName(badge.id))}${tierLabel(badge, tier) ? ` · ${tierLabel(badge, tier)}` : ''}</h2>${stars(tier, badge.tiers.length)}
-    <button type="button" class="primary-button" data-badge-close>${pick('收下', 'Keep it')}</button></div>`, 'is-celebrate');
+    <div class="badge-actions"><button type="button" class="text-button" data-badge-close data-badge-go>${pick('去看看', 'See it')}</button><button type="button" class="primary-button" data-badge-close>${pick('收下', 'Keep it')}</button></div></div>`, 'is-celebrate');
 }
