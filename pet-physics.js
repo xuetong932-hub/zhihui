@@ -1,3 +1,4 @@
+import { sfx } from './sfx.js';
 // The squirrel on the pet page lives in a small physics world: it can be picked up, thrown, bounces off the edges of
 // the screen and lands on the floor of its room, squashing and stretching like jelly on every hit. Idle, it strolls,
 // hops and peeks out from the screen edges. The pure step functions are tested in Node; startPetPlay() is the DOM part.
@@ -125,6 +126,7 @@ export function startPetPlay(button, scene, hooks) {
 
   function hit({ side, speed }) {
     const power = clamp(speed / 2400, 0, 1);
+    if (speed > 900) sfx('bounce', power, 120); else if (side === 'floor' && speed > 220) sfx('land', undefined, 160);
     kick(side === 'floor' ? 10 * power + 1 : -8 * power, side === 'floor' ? 'bottom' : side);
     if (speed > 900) navigator.vibrate?.(8);
   }
@@ -195,7 +197,7 @@ export function startPetPlay(button, scene, hooks) {
     samples.push({ x: event.clientX, y: event.clientY, t: event.timeStamp }); if (samples.length > 8) samples.shift();
     if (!pointer.dragging && !pointer.long && Math.hypot(event.clientX - pointer.x, event.clientY - pointer.y) > 8) {
       pointer.dragging = true; clearTimeout(pressTimer); body.held = true; body.walking = false; walkTo = null; peek = null; peekUntil = 0; peekBack = false; spin = null;
-      pose('lifted'); img.classList.remove('is-left'); kick(-5, 'top'); navigator.vibrate?.(6);
+      pose('lifted'); img.classList.remove('is-left'); kick(-5, 'top'); navigator.vibrate?.(6); sfx('lift');
     }
     if (pointer.dragging) {
       const b = box(), prevX = body.x;
@@ -212,6 +214,7 @@ export function startPetPlay(button, scene, hooks) {
       body.held = false; body.grounded = false;
       const v = event.type === 'pointercancel' ? { vx: 0, vy: 0 } : throwVelocity(samples, event.timeStamp);
       body.vx = v.vx; body.vy = v.vy; dizzy = Math.hypot(v.vx, v.vy) > 1500;
+      if (Math.hypot(v.vx, v.vy) > 900) sfx('throw');
       return;
     }
     if (was.long || event.type === 'pointercancel') return;
@@ -220,11 +223,11 @@ export function startPetPlay(button, scene, hooks) {
       lastTap = 0; spins = now - lastSpin < 1400 ? spins + 1 : 0; lastSpin = now;
       spin = { at: now, ms: Math.max(220, 720 * Math.pow(0.82, spins)), dir: facing || 1 };
       if (body.grounded) { body.vy = -780; body.grounded = false; }
-      show('cheer', 1100);
+      show('cheer', 1100); sfx('flip');
     } else {
       lastTap = now;
       if (!peek) walkTo = null;
-      kick(7); if (body.grounded) { body.vy = -380; body.grounded = false; }
+      kick(7); if (body.grounded) { body.vy = -380; body.grounded = false; } sfx('tap');
       show(['wave', 'cheer', 'shy'][Math.floor(Math.random() * 3)], 900);
     }
   }
@@ -277,7 +280,7 @@ export function startPetPlay(button, scene, hooks) {
       const mouth = jar.getBoundingClientRect();
       await flyCone(svg, { x: body.x - w * 0.2, y: body.y - height * 0.5 }, { x: mouth.left + mouth.width * 0.31, y: mouth.top + mouth.height * 0.22 }, { ms: i ? 380 : 540, lift: 54, spin: -1 });
       if (!running) break;
-      drop(1);
+      drop(1); sfx('jar');
       await wait(i ? 140 : 360);
     }
     if (running && count > shown) drop(count - shown);

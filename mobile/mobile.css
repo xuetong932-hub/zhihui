@@ -998,3 +998,4 @@ body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
 [data-theme="dark"] .garden-height{background:rgba(20,24,28,.7)}
 [data-theme="dark"] .garden-height span{color:var(--steel)}
 @media (prefers-reduced-motion:reduce){.garden-scene,.garden-fruit,.is-rising .garden-scene-old{animation:none}.garden-scene-old{display:none}}
+.pet-chip.pet-sound{border:0;font:inherit;cursor:pointer}

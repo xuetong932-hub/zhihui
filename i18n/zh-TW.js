@@ -1,5 +1,8 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Off": "關",
+ "On": "開",
+ "Sound effects": "音效",
  "{n} cm": "{n} 公分",
  "{n} m": "{n} 公尺",
  "+{n} growth": "+{n} 成長",

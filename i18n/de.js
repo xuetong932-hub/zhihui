@@ -1,5 +1,8 @@
 // de interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Off": "Aus",
+ "On": "An",
+ "Sound effects": "Soundeffekte",
  "{n} cm": "{n} cm",
  "{n} m": "{n} m",
  "+{n} growth": "+{n} Wachstum",

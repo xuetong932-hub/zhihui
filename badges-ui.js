@@ -4,6 +4,7 @@
 import { escapeHtml as e } from './chat-store.js';
 import { pick } from './i18n.js';
 import { BADGES } from './achievements.js';
+import { sfx } from './sfx.js';
 
 export const levelTitle = level => [pick('小松苗', 'Sprout'), pick('拾果学徒', 'Cone gatherer'), pick('储粮能手', 'Keen storer'), pick('林间学者', 'Forest scholar'), pick('松林智者', 'Pine sage'), pick('森林守护者', 'Forest keeper')][level - 1];
 const TIER = () => [pick('铜', 'Bronze'), pick('银', 'Silver'), pick('金', 'Gold')];
@@ -81,6 +82,7 @@ export function showBadge(badge) {
 
 // A newly earned tier: rays, the badge springs out turning, a sparkle, and its name.
 export function celebrateBadge(badge, tier) {
+  sfx('badge');
   return overlay(`<div class="badge-celebrate"><span class="badge-rays" aria-hidden="true"></span><div class="badge-big tier-${tier}"><img src="/illustrations/badges/${badge.id}.webp" alt="" decoding="async"><span class="badge-sheen" aria-hidden="true"></span></div>
     <p class="badge-new">${pick('获得新徽章', 'New badge')}</p><h2>${e(badgeName(badge.id))}${tierLabel(badge, tier) ? ` · ${tierLabel(badge, tier)}` : ''}</h2>${stars(tier, badge.tiers.length)}
     <div class="badge-actions"><button type="button" class="text-button" data-badge-close data-badge-go>${pick('去看看', 'See it')}</button><button type="button" class="primary-button" data-badge-close>${pick('收下', 'Keep it')}</button></div></div>`, 'is-celebrate');

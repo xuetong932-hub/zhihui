@@ -1,5 +1,8 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Off": "オフ",
+ "On": "オン",
+ "Sound effects": "効果音",
  "{n} cm": "{n} cm",
  "{n} m": "{n} m",
  "+{n} growth": "+{n} 成長",

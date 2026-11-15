@@ -11,6 +11,7 @@ import { storeView, showBadge, celebrateBadge, levelCard, badgeWall, levelTitle 
 import { profileView, openAvatarSheet, avatarSrc, isPhotoAvatar } from './profile-ui.js';
 import { cleanShop, shopState, buy, refund, equip, unequip, freezeDates, protectedStreak, wearOutfit, completeSets, itemById, ITEMS, PARTS, SETS } from './shop.js';
 import { journey } from './journey.js';
+import { sfx, sfxOn, setSfx } from './sfx.js';
 import { openStep } from './journey-ui.js';
 import { dropsEarned, gardenState, pour, harvest, cleanGarden } from './garden.js';
 import { gardenView, openLimb, heightText, stageName } from './garden-ui.js';
@@ -287,7 +288,7 @@ function boot() {
     const lv = petProgress().level;
     return `<button type="button" class="me-head" data-me-profile aria-label="${pick('个人主页', 'Profile')}"><span class="avatar-wrap"><span class="me-avatar ${isPhotoAvatar() ? 'is-photo' : ''}"><img src="${avatarSrc()}" alt="" decoding="async"></span>${frameImage(shopData().frame)}</span><div><h1>${esc(name)} <span class="me-lv">Lv.${lv.level} ${levelTitle(lv.level)}</span></h1><p>${account?.local ? (pick('记录只保存在这台设备', 'Records stay on this device')) : (pick('学习记录保存在本机，可在账号中加密同步', 'Records are kept here; encrypted sync is in Account'))}</p></div><span class="me-chevron" aria-hidden="true">›</span></button>
       ${meSummary()}
-      <div class="me-group"><h2>${pick('学习', 'Learning')}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), pick('目标 {v0} 张', 'Goal {v0}', { v0: goalOf(profile) }))}${row('id="theme-toggle"', iconSvg(dark ? 'moon' : 'sun'), pick('外观', 'Appearance'), dark ? (pick('黑夜', 'Night')) : (pick('白天', 'Day')))}${row('id="language"', iconSvg('globe'), pick('语言', 'Language'), localeName(locale))}</div>
+      <div class="me-group"><h2>${pick('学习', 'Learning')}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), pick('目标 {v0} 张', 'Goal {v0}', { v0: goalOf(profile) }))}${row('id="theme-toggle"', iconSvg(dark ? 'moon' : 'sun'), pick('外观', 'Appearance'), dark ? (pick('黑夜', 'Night')) : (pick('白天', 'Day')))}${row('id="language"', iconSvg('globe'), pick('语言', 'Language'), localeName(locale))}${row('id="sfx-toggle" data-sfx-toggle', iconSvg('music'), pick('音效', 'Sound effects'), sfxOn() ? pick('开', 'On') : pick('关', 'Off'))}</div>
       <div class="me-group"><h2>${pick('账号与设备', 'Account & device')}</h2>${account?.local ? row('data-signin', iconSvg('user'), pick('登录 / 注册', 'Sign in / Register')) : row('data-cloud', iconSvg('user'), pick('账号与同步', 'Account & sync'))}${row('data-device', iconSvg('camera'), pick('设备与提醒', 'Device & reminders'))}${account?.is_admin ? row('data-admin', iconSvg('chart'), pick('管理', 'Admin')) : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}${row('data-onboarding', iconSvg('compass'), pick('新手指引', 'Guided tour'))}</div>
       ${androidBrowser() ? `<div class="me-group"><h2>${pick('安卓 App', 'Android app')}</h2><a class="me-row" href="/zhihui.apk" download="zhihui.apk"><span class="me-icon">${iconSvg('download')}</span><span class="me-label">${pick('下载安卓 App', 'Download the Android app')}</span><span class="me-value">${pick('约 1 MB', 'About 1 MB')}</span><span class="me-chevron" aria-hidden="true">›</span></a><p class="me-note">${pick('安装时手机会提示"未知来源应用"，选择仍然安装即可。', 'Your phone will warn about an app from an unknown source; choose to install anyway.')}</p></div>` : ''}`;
   }
@@ -338,7 +339,7 @@ function boot() {
   }
   function openMascotRing(button) {
     if (document.querySelector('.mascot-ring')) return;
-    navigator.vibrate?.(12);
+    navigator.vibrate?.(12); sfx('ring');
     const from = button.getBoundingClientRect(), current = button.querySelector('img').getAttribute('src');
     const layer = document.createElement('div');
     layer.className = 'mascot-ring'; layer.setAttribute('role', 'dialog'); layer.setAttribute('aria-modal', 'true'); layer.setAttribute('aria-label', pick('松鼠的动作', 'Squirrel actions'));
@@ -354,7 +355,7 @@ function boot() {
     document.addEventListener('keydown', onKey);
     layer.addEventListener('click', event => {
       const item = event.target.closest('.ring-item');
-      if (item) playMascot(button, item.dataset.action, item.dataset.action === 'sleep' ? 4500 : 3200);
+      if (item) { playMascot(button, item.dataset.action, item.dataset.action === 'sleep' ? 4500 : 3200); sfx(item.dataset.action); }
       close();
     });
     layer.querySelector('.ring-item').focus({ preventScroll: true });
@@ -392,7 +393,7 @@ function boot() {
     if (before === null || total <= before || !avatar || chat.page === 'pet' || reducedMotion()) return;
     const to = avatar.getBoundingClientRect();
     flyCone(PINE_ICON, { x: innerWidth / 2, y: innerHeight * 0.42 }, { x: to.left + to.width / 2, y: to.top + to.height / 2 }, { ms: 700, lift: 120 })
-      .then(() => { const tab = document.querySelector('.tab-pet'); if (tab) { tab.classList.remove('is-fed'); void tab.offsetWidth; tab.classList.add('is-fed'); } });
+      .then(() => { sfx('jar'); const tab = document.querySelector('.tab-pet'); if (tab) { tab.classList.remove('is-fed'); void tab.offsetWidth; tab.classList.add('is-fed'); } });
   }
   // Backy outside its room: on the pages chosen there it roams the screen with the same physics (floor = tab bar).
   // Home uses its own squirrel from the scene; the other pages get one standing at the bottom right.
@@ -446,7 +447,7 @@ function boot() {
       lastTap = double ? 0 : now;
       if (reducedMotion()) { playMascot(button, button.dataset.pose, 900); return; }
       button.classList.remove('acting-jelly', 'acting-flip'); void button.offsetWidth;
-      button.classList.add(double ? 'acting-flip' : 'acting-jelly');
+      button.classList.add(double ? 'acting-flip' : 'acting-jelly'); sfx(double ? 'flip' : 'tap', undefined, 0);
       clearTimeout(button.mascotTimer);
       button.mascotTimer = setTimeout(() => button.classList.remove('acting-jelly', 'acting-flip'), 900);
     });
@@ -514,7 +515,7 @@ function boot() {
     const done = completeSets(shopData().outfit).filter(id => !before.has(id));
     dressGood = done.length > 0;
     dressNote = done.length ? pick('集齐「{name}」套装！', 'The {name} set is complete!', { name: setName(done[0]) }) : '';
-    render();
+    render(); sfx(done.length ? 'set' : 'wear');
     if (done.length) cheerDress();
   }
   function cheerDress() {
@@ -603,7 +604,7 @@ function boot() {
     const pose = MOOD_POSE[mood], fed = Math.min(100, Math.round(done / Math.max(1, goal) * 100)), progress = petProgress();
     return `<section class="pet-scene-wrap"><img class="home-scene pet-scene" src="/illustrations/pet-nest.webp" alt="" decoding="async">${decorLayer(shopData().equipped)}
         <div class="pet-hello"><h1>${pick('嗨，我是小回', 'Hi, I’m Backy')}</h1><p>${greeting}</p></div>
-        <div class="pet-row"><div class="pet-status"><span class="pet-status-avatar"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async"></span><span class="pet-status-text"><strong>${statusTitle}</strong><span>${statusSub}</span></span></div><span class="pet-chip">🍽 ${done}/${goal}</span></div>
+        <div class="pet-row"><div class="pet-status"><span class="pet-status-avatar"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async"></span><span class="pet-status-text"><strong>${statusTitle}</strong><span>${statusSub}</span></span></div><span class="pet-chip">🍽 ${done}/${goal}</span><button type="button" class="pet-chip pet-sound" data-sfx-toggle aria-pressed="${sfxOn()}" aria-label="${pick('音效', 'Sound effects')}">${sfxOn() ? '🔊' : '🔇'}</button></div>
         <button type="button" class="today-mascot pet-mascot ${dressedClass()}" data-pose="${pose}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}">${mascotPicture(pose)}</button>
         <div class="pet-floor"><button type="button" class="pet-jar" data-pet-jar="${cones.total}" aria-label="${pick('松果罐，{n} 颗', 'Pine-cone jar, {n}', { n: cones.total })}"><img class="pet-jar-glass" src="/illustrations/pine-jar.webp" alt="" decoding="async"><span class="pet-jar-pile" aria-hidden="true"></span><span class="pet-jar-tag" aria-hidden="true"></span></button></div></section>
       <section class="m-section frost-panel pet-world"><div class="section-heading"><h2>${pick('小回的小世界', 'Backy’s little world')}</h2></div><div class="pet-tiles">
@@ -702,18 +703,18 @@ function boot() {
         const button = event.currentTarget; button.disabled = true;
         const result = pour(profile?.garden, dropsNow());
         if (!result.ok) return;
-        stageEl?.classList.add('is-watering'); navigator.vibrate?.(12);
+        stageEl?.classList.add('is-watering'); navigator.vibrate?.(12); sfx('water');
         setTimeout(() => {
           if (!saveGarden(result.data)) return;
           const after = gardenNow();
-          if (after.index > garden.index) { gardenRise = garden.stage.id; gardenToast = `${stageName(after.stage.id)}！`; }
+          if (after.index > garden.index) { gardenRise = garden.stage.id; gardenToast = `${stageName(after.stage.id)}！`; setTimeout(() => sfx('levelup'), 300); }
           else gardenToast = pick('+{n} 成长', '+{n} growth', { n: result.growth });
           render();
         }, reducedMotion() ? 0 : 1300);
       });
       document.querySelector('[data-garden-harvest]')?.addEventListener('click', () => {
         const result = harvest(profile?.garden, dropsNow());
-        if (result.ok && saveGarden(result.data)) { gardenToast = pick('收获 +{n} 松果', 'Harvested +{n} pine cones', { n: 10 }); render(); }
+        if (result.ok && saveGarden(result.data)) { sfx('set'); gardenToast = pick('收获 +{n} 松果', 'Harvested +{n} pine cones', { n: 10 }); render(); }
       });
     }
     if (document.querySelector('.tree-page')) {
@@ -730,6 +731,7 @@ function boot() {
     document.querySelectorAll('.level-bar i[data-level]').forEach(bar => { bar.style.width = `${bar.dataset.level}%`; });
     document.querySelectorAll('[data-badge]').forEach(button => { button.onclick = () => { const badge = petProgress().badges.find(item => item.id === button.dataset.badge); if (badge) showBadge(badge).then(() => button.focus({ preventScroll: true })); }; });
     document.querySelectorAll('[data-lib-page]').forEach(button => { button.onclick = () => chat.go(button.dataset.libPage); });
+    document.querySelectorAll('[data-sfx-toggle]').forEach(button => { button.onclick = () => { setSfx(!sfxOn()); if (sfxOn()) sfx('tap', undefined, 0); render(); }; });
     document.querySelectorAll('[data-pet-page]').forEach(button => { button.onclick = () => {
       const candidate = { ...profile, petPages: togglePetPage(petPagesOf(profile), button.dataset.petPage) };
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate)); profile = candidate; } catch { return; }

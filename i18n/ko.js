@@ -1,5 +1,8 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Off": "끔",
+ "On": "켬",
+ "Sound effects": "효과음",
  "{n} cm": "{n}cm",
  "{n} m": "{n}m",
  "+{n} growth": "+{n} 성장",
