@@ -1,5 +1,8 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Cloudy sky": "雲朵晴空",
+ "Compare with what you recalled, then press 1–4.": "和你想到的對比一下，按 1–4 評分。",
+ "Recall what it means and an example, then press Space.": "先在心裡回想它的意思和一個例子，想好了按空白鍵翻開。",
  "Shows up on": "出現在",
  "Pine-cone sweater set": "松果毛衣套裝",
  "School uniform": "學院制服",

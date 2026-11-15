@@ -1,5 +1,8 @@
 // fr interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Cloudy sky": "Ciel nuageux",
+ "Compare with what you recalled, then press 1–4.": "Compare avec ce dont tu te souviens, puis appuie sur 1–4.",
+ "Recall what it means and an example, then press Space.": "Rappelle-toi le sens et un exemple, puis appuie sur Espace.",
  "Shows up on": "Apparaît sur",
  "Pine-cone sweater set": "Ensemble pull pomme de pin",
  "School uniform": "Uniforme scolaire",

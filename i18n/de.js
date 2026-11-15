@@ -1,5 +1,8 @@
 // de interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Cloudy sky": "Wolkenhimmel",
+ "Compare with what you recalled, then press 1–4.": "Vergleichen Sie mit Ihrer Erinnerung und drücken Sie 1–4.",
+ "Recall what it means and an example, then press Space.": "Erinnern Sie sich an Bedeutung und ein Beispiel, dann drücken Sie die Leertaste.",
  "Shows up on": "Erscheint auf",
  "Pine-cone sweater set": "Zapfenpullover-Set",
  "School uniform": "Schuluniform",

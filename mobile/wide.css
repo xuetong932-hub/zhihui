@@ -1,0 +1,73 @@
+/* 知回 on wide screens (900px and up, 2026-11-15): the same app pages as the phone (mobile.css), with the tab bar as a
+   left sidebar, the home and room scenes as rounded banners, and two-column pages where the content allows.
+   Narrower windows keep the phone layout. */
+@media (min-width:900px){
+  [data-layout="mobile"]{--side:232px}
+  /* Sidebar: brand on top, then the five tabs as rows (icon + name); the active row is tinted. */
+  [data-layout="mobile"] #app:has(> .tabbar) .header{position:fixed;top:0;left:0;width:var(--side);padding:var(--sp-24) var(--sp-24) var(--sp-16);background:transparent;border:0;z-index:31;backdrop-filter:none;-webkit-backdrop-filter:none}
+  [data-layout="mobile"] #app:has(> .tabbar):has(.home-scene) .header{position:fixed}
+  [data-layout="mobile"] #app .header .brand,[data-layout="mobile"] #app:has(.home-scene) .header .brand{color:var(--ink);text-shadow:none}
+  [data-layout="mobile"] #app .header .brand-mark,[data-layout="mobile"] #app:has(.home-scene) .header .brand-mark{background:var(--brand);color:#fff;box-shadow:none}
+  .tabbar{left:var(--sp-16);right:auto;top:var(--sp-16);bottom:var(--sp-16);width:calc(var(--side) - var(--sp-32));height:auto;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:var(--sp-4);padding:72px var(--sp-12) var(--sp-12);border-radius:var(--r-20)}
+  .tabbar .tab{flex:none;height:48px;flex-direction:row;justify-content:flex-start;gap:var(--sp-12);padding:0 var(--sp-16);border-radius:var(--r-12);color:var(--steel)}
+  .tabbar .tab:hover{background:rgba(48,105,79,.06)}
+  .tabbar .tab.active{background:rgba(48,105,79,.12);color:var(--accent)}
+  .tabbar .tab .tab-label{font-size:var(--fs-15)}
+  .tabbar .tab-pill{display:none}
+  .tabbar .tab-pet{order:0}
+  .tabbar .tab-pet .pet-avatar{width:32px;height:32px;margin:0}
+  .tabbar .tab-pet::after{content:attr(aria-label);font-size:var(--fs-15);font-weight:500}
+  .tabbar .tab-pet.active::after{font-weight:700}
+  [data-theme="dark"] .tabbar .tab.active{background:rgba(124,196,160,.16)}
+  [data-layout="mobile"] body:has(.review-session.answering) .tabbar{display:flex}
+  /* Content column next to the sidebar. */
+  [data-layout="mobile"] main{max-width:1120px;margin:0 auto;padding:var(--sp-32) var(--sp-48) var(--sp-48)}
+  [data-layout="mobile"] #app:has(> .tabbar) main{margin-left:calc(var(--side) + max(0px, (100vw - var(--side) - 1120px) / 2))}
+  /* Before signing in (no sidebar): one centred column. */
+  [data-layout="mobile"] main:has(.auth-hello),[data-layout="mobile"] main:has(.auth-panel){max-width:560px}
+  .library-switch{max-width:420px}
+  [data-layout="mobile"] main:has(> .pet-scene-wrap) > .m-section + .m-section{margin-top:var(--sp-24)}
+  /* Home: the scene is a rounded banner with the greeting, due count and actions on it; the starter pack and today's
+     list sit side by side below. */
+  [data-layout="mobile"] main:has(> .home-scene-wrap){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sp-24);align-items:start}
+  main > .home-scene-wrap{grid-column:1 / -1;position:relative;min-height:440px;padding:var(--sp-32) var(--sp-48) var(--sp-32);border-radius:28px;overflow:hidden;isolation:isolate}
+  .home-scene-wrap .home-scene{position:absolute;inset:0;width:100%;height:100%;max-height:none;object-position:center 42%;-webkit-mask-image:none;mask-image:none;z-index:-1}
+  .home-scene-wrap::after{border-radius:inherit}
+  .home-scene-wrap .m-hello{margin:0 0 var(--sp-16)}
+  .home-scene-wrap .today-status{max-width:560px}
+  .home-scene-wrap .today-mascot{right:-220px;top:-24px;width:160px}
+  .home-scene-wrap .task-start{max-width:420px}
+  main:has(> .home-scene-wrap) > .m-section{margin:0}
+  main > .home-starter{margin-top:0}
+  /* The squirrel's room keeps its portrait shape (the cushion, jar and furniture are placed on that picture) as a
+     left column; its little world, the page choice and the note sit on the right. */
+  [data-layout="mobile"] main:has(> .pet-scene-wrap){display:grid;grid-template-columns:420px minmax(0,1fr);column-gap:var(--sp-32);align-items:start}
+  main > .pet-scene-wrap{grid-row:1 / span 4;position:relative;min-height:597px;padding:var(--sp-24) var(--sp-24) var(--sp-16);border-radius:28px;overflow:hidden;isolation:isolate}
+  .pet-scene-wrap .pet-scene,.pet-scene-wrap .pet-decor{position:absolute;top:0;left:0;width:100%;height:747px;max-height:none;-webkit-mask-image:none;mask-image:none}
+  main:has(> .pet-scene-wrap) > .m-section{grid-column:2;margin-top:0}
+  /* Review: one centred column; the rating row sits under the card instead of at the bottom of the screen. */
+  [data-layout="mobile"] #app:has(> .tabbar) main:has(.review-session){max-width:720px;margin-left:calc(var(--side) + max(0px, (100vw - var(--side) - 720px) / 2))}
+  [data-layout="mobile"] body:has(.review-session.answering) main{padding-bottom:var(--sp-48)}
+  .review-session .review-bar{position:static;background:transparent}
+  @media (pointer:fine){
+    .review-bar .rating-btn{position:relative}
+    .review-bar .rating-btn::before{position:absolute;top:var(--sp-4);left:var(--sp-8);font-size:var(--fs-12);font-weight:600;opacity:.45}
+    .review-bar .rating-btn:nth-child(1)::before{content:"1"}.review-bar .rating-btn:nth-child(2)::before{content:"2"}
+    .review-bar .rating-btn:nth-child(3)::before{content:"3"}.review-bar .rating-btn:nth-child(4)::before{content:"4"}
+  }
+  /* Me: two columns that flow like a newspaper. */
+  [data-layout="mobile"] main:has(> .me-head){columns:2;column-gap:var(--sp-48)}
+  main > .me-head,main > .me-summary,main > .me-group{break-inside:avoid}
+  /* Shop and dressing room: stage and sets on the left, parts and pieces on the right. */
+  .dress-room{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);grid-template-areas:"stage parts" "stage grid" "sets grid" "msg grid" "bar bar";column-gap:var(--sp-32);align-items:start}
+  .dress-stage{grid-area:stage;height:420px}
+  .dress-mascot{width:260px}
+  .dress-sets{grid-area:sets}
+  .dress-parts{grid-area:parts}
+  .dress-grid{grid-area:grid;grid-template-columns:repeat(4,1fr)}
+  .dress-msg{grid-area:msg}
+  .dress-bar{grid-area:bar;bottom:var(--sp-24)}
+  .shop-grid{grid-template-columns:repeat(4,1fr)}
+  /* Backy outside its room: no tab bar under it here, it stands on the bottom of the window. */
+  .float-home{bottom:var(--sp-24);right:var(--sp-32);width:96px}
+}

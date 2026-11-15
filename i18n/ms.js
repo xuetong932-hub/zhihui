@@ -1,5 +1,8 @@
 // ms interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Cloudy sky": "Langit berawan",
+ "Compare with what you recalled, then press 1–4.": "Bandingkan dengan yang anda ingat, kemudian tekan 1–4.",
+ "Recall what it means and an example, then press Space.": "Ingat maksud dan satu contoh, kemudian tekan Space.",
  "Shows up on": "Muncul di",
  "Pine-cone sweater set": "Set sweater buah pain",
  "School uniform": "Pakaian seragam sekolah",

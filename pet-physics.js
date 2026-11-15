@@ -102,10 +102,13 @@ export function startPetPlay(button, scene, hooks) {
   const box = () => {
     // Walls are the app's own edges (the room's content box is inset), the floor is where the cushion is.
     const r = scene.getBoundingClientRect(), app = (document.getElementById('app') || document.body).getBoundingClientRect();
-    const bar = document.querySelector('.tabbar')?.getBoundingClientRect();
+    // The tab bar is at the bottom on phones (the floor) and a left sidebar on wide screens (a wall).
+    const tabbar = document.querySelector('.tabbar')?.getBoundingClientRect(), side = tabbar && tabbar.top < innerHeight / 2 ? tabbar : null, bar = side ? null : tabbar;
     const floor = hooks.float ? (bar ? bar.top - 6 : innerHeight - 8) : Math.min(r.bottom - floorGap, bar ? bar.top - 6 : innerHeight);
-    const edge = peek ? w * 0.42 : 0;
-    return { left: Math.max(0, app.left) - (peek === 'left' ? edge : 0), right: Math.min(innerWidth, app.right) + (peek === 'right' ? edge : 0), top: 0, floor };
+    // On wide screens the room is a card beside other content: its own edges are the walls.
+    const room = side && !hooks.float ? r : null;
+    const edge = peek ? w * 0.42 : 0, wall = Math.max(0, app.left, side ? side.right + 8 : 0, room ? room.left : 0), right = Math.min(innerWidth, app.right, room ? room.right : Infinity);
+    return { left: wall - (peek === 'left' && !side ? edge : 0), right: right + (peek === 'right' && !room ? edge : 0), top: room ? Math.max(0, room.top) : 0, floor };
   };
   // Dressed (shop outfits), the squirrel keeps its front-standing picture with the outfit on; only being lifted or
   // asleep has its own picture, shown without the outfit for that moment.

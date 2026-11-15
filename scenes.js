@@ -13,6 +13,7 @@ export const SCENES = [
   { id: 'anime', cat: 'anime', day: '/scenes/anime-day.webp', night: '/scenes/anime-night.webp', name: () => pick('晴空与夜色', 'Day and night') },
   { id: 'pixel', cat: 'pixel', day: '/scenes/pixel-day.webp', night: '/scenes/pixel-night.webp', name: () => pick('像素小书房', 'Pixel study') },
   { id: 'game', cat: 'game', day: '/scenes/game-day.webp', night: '/scenes/game-night.webp', name: () => pick('森林小屋', 'Forest cottage') },
+  { id: 'sky', cat: 'game', day: '/scenes/sky-day.webp', night: '/scenes/sky-night.webp', name: () => pick('云朵晴空', 'Cloudy sky') },
   { id: 'lake', cat: 'nature', day: '/scenes/lake.webp', name: () => pick('湖光山色', 'Mountain lake') },
   { id: 'forest', cat: 'nature', day: '/scenes/forest.webp', name: () => pick('林间光束', 'Forest light') },
   { id: 'sea', cat: 'nature', day: '/scenes/sea.webp', name: () => pick('黄昏海面', 'Sunset sea') },

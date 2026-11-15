@@ -1,5 +1,8 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Cloudy sky": "뭉게구름 하늘",
+ "Compare with what you recalled, then press 1–4.": "떠올린 내용과 비교한 뒤 1–4를 누르세요.",
+ "Recall what it means and an example, then press Space.": "뜻과 예를 떠올린 뒤 스페이스를 누르세요.",
  "Shows up on": "나타나는 곳",
  "Pine-cone sweater set": "솔방울 스웨터 세트",
  "School uniform": "교복",

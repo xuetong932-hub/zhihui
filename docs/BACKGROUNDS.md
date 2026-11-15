@@ -13,6 +13,7 @@ Made for this app; no third-party rights. Prompts kept the top half calm and sli
 | fresh-day / fresh-night | 窗边阳台 | i-JIxfJsITJZ / i-FIyyB8MAY0 |
 | pixel-day / pixel-night | 像素小书房 | i-1UnuCf5uzO / i-Eg5InWbjiC |
 | game-day / game-night | 森林小屋 | i-yHhW1GGUqt / i-dlvKo91ONj |
+| sky-day / sky-night | 云朵晴空（2026-11-15，以森林小屋为画风参考；夜晚版由白天版改成） | i-fQcIE1TGJ9 / i-AWVUveNcy6 |
 | street-day | 街角咖啡 | i-QaWxMq4dYo (photo style, no people) |
 | portrait-day | 窗边阅读 | i-CKUJRGiRh6 (photo style, seen from behind, no face) |
 

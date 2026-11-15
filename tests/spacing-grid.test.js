@@ -8,7 +8,7 @@ const onGrid = v => v === 0 || (v <= 16 ? v % 4 === 0 : v % 8 === 0);
 // Geometry, not spacing: the ring buttons are 72px circles centred on their anchor with a negative half-size margin.
 const EXCEPTIONS = ['margin:-36px 0 0 -36px'];
 
-for (const file of ['styles.css', 'mobile/mobile.css']) {
+for (const file of ['styles.css', 'mobile/mobile.css', 'mobile/wide.css']) {
   test(`${file}: every margin, padding and gap is on the spacing grid`, () => {
     const css = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
     const off = [];
@@ -27,7 +27,7 @@ test('spacing tokens are defined once, on the grid', () => {
 
 // Type floor (DESIGN.md, 2026-11-15): no text smaller than 12px, and the token layer defines the scale, radii,
 // shadows and motion that new components use.
-for (const file of ['styles.css', 'mobile/mobile.css', 'welcome/welcome.css']) {
+for (const file of ['styles.css', 'mobile/mobile.css', 'mobile/wide.css', 'welcome/welcome.css']) {
   test(`${file}: no font size below 12px`, () => {
     const css = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
     const small = [...css.matchAll(/font-size\s*:\s*(\d*\.?\d+)px/g)].map(match => Number(match[1])).filter(size => size < 12);

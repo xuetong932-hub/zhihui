@@ -1,5 +1,8 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Cloudy sky": "ふわふわ雲の青空",
+ "Compare with what you recalled, then press 1–4.": "思い出した内容と比べて、1〜4 キーで評価。",
+ "Recall what it means and an example, then press Space.": "意味と例を思い浮かべてから、スペースキーでめくる。",
  "Shows up on": "表示するページ",
  "Pine-cone sweater set": "松ぼっくりセーターのセット",
  "School uniform": "制服",

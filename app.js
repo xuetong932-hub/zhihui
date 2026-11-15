@@ -638,7 +638,7 @@ function boot() {
     if (choosingLanguage) { renderLanguageChoice(); return; }
     const inApp = Boolean(chat), locked = inApp ? chat.locked : gate.busy, guide = inApp && chat.page === 'onboarding', tabs = phone && inApp && profile && !editing && !guide;
     app.innerHTML = `
-      <header class="header"><a class="brand" href="${phone ? '/m/' : '/'}" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
+      <header class="header"><a class="brand" href="${location.pathname.startsWith('/m') ? '/m/' : '/'}" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
         ${tabs ? '' : `<div class="header-actions">${inApp && profile && !editing && !guide ? chat.nav() : ''}${themeButton()}<button class="text-button" id="language" aria-haspopup="dialog" aria-label="${pick('界面语言', 'Interface language')}" ${locked ? 'disabled' : ''}><span aria-hidden="true">🌐</span> ${localeName(locale)}</button></div>`}</header>
       <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? (mePage === 'profile' ? meProfileView() : meView()) : tabs && chat.page === 'pet' ? (petPage === 'store' ? petStoreView() : petPage === 'shop' ? petShopView() : petView()) : tabs && ['library', 'discover', 'recommend', 'square'].includes(chat.page) ? librarySwitch() + chat.view() : chat.isHome ? homeView() : chat.view()}</main>
       ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
