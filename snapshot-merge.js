@@ -21,6 +21,12 @@ function mergeProfile(keep, other) {
     const hidden = item.archived || visible() >= MAX_CUSTOM_MODULES || names().has(item.name.toLowerCase());
     result.modules[id] = hidden ? { ...clone(item), archived: true, enabled: false } : clone(item);
   }
+  // Shop purchases (profile.shop) from both sides are kept by id; a return on either side counts.
+  if (other?.shop?.purchases || result.shop?.purchases) {
+    const byId = new Map();
+    for (const p of [...(result.shop?.purchases || []), ...(other?.shop?.purchases || [])]) if (p?.id && (!byId.has(p.id) || p.refunded)) byId.set(p.id, clone(p));
+    result.shop = { version: 1, equipped: {}, frame: null, ...(result.shop || {}), purchases: [...byId.values()] };
+  }
   return result;
 }
 

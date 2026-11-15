@@ -47,10 +47,10 @@ export async function photoToAvatar(file) {
 }
 
 const SOON = () => [['vip', '👑', pick('知回会员', 'KnowBack Plus')], ['report', '📊', pick('学习报告', 'Learning report')], ['frame', '🖼', pick('头像框', 'Avatar frames')]];
-export function profileView({ name, level, levelCard, badgeWall }) {
+export function profileView({ name, level, levelCard, badgeWall, frame = '' }) {
   return `<section class="profile-page">
     <header class="book-top store-top"><button type="button" class="book-back" data-profile-back aria-label="${pick('返回', 'Back')}">‹</button><strong>${pick('个人主页', 'Profile')}</strong><span></span></header>
-    <div class="profile-hero"><button type="button" class="profile-avatar ${isPhotoAvatar() ? 'is-photo' : ''}" data-avatar-change aria-label="${pick('换头像', 'Change avatar')}"><img src="${avatarSrc()}" alt="" decoding="async"><span class="profile-avatar-edit" aria-hidden="true">✎</span></button>
+    <div class="profile-hero"><span class="avatar-wrap profile-avatar-wrap"><button type="button" class="profile-avatar ${isPhotoAvatar() ? 'is-photo' : ''}" data-avatar-change aria-label="${pick('换头像', 'Change avatar')}"><img src="${avatarSrc()}" alt="" decoding="async"><span class="profile-avatar-edit" aria-hidden="true">✎</span></button>${frame}</span>
       <h1>${e(name)}</h1><span class="profile-lv">Lv.${level.level}</span></div>
     ${levelCard}
     <div class="section-heading" id="badge-wall"><h2>${pick('徽章墙', 'Badge wall')}</h2></div>

@@ -9,6 +9,8 @@ import { startPetPlay, flyCone } from './pet-physics.js';
 import { achievements, newBadges } from './achievements.js';
 import { storeView, showBadge, celebrateBadge, levelCard, badgeWall, levelTitle } from './badges-ui.js';
 import { profileView, openAvatarSheet, avatarSrc, isPhotoAvatar } from './profile-ui.js';
+import { cleanShop, shopState, buy, refund, equip, unequip, freezeDates, protectedStreak } from './shop.js';
+import { shopView, openItemSheet, decorLayer, frameImage } from './shop-ui.js';
 import { SCENES, SCENE_CATEGORIES, savedScene, saveScene, sceneImage, sceneThumb } from './scenes.js';
 import { PROFILE_KEY as STORAGE_KEY } from './local-space.js';
 import { createAuth } from './auth.js';
@@ -273,7 +275,7 @@ function boot() {
     const row = (attrs, icon, label, value = '') => `<button class="me-row" ${attrs}><span class="me-icon">${icon}</span><span class="me-label">${label}</span>${value ? `<span class="me-value">${value}</span>` : ''}<span class="me-chevron" aria-hidden="true">›</span></button>`;
     const name = account?.local ? (pick('本地模式', 'Local mode')) : account?.username || (account?.is_admin ? (pick('管理员', 'Administrator')) : (pick('已登录', 'Signed in')));
     const lv = petProgress().level;
-    return `<button type="button" class="me-head" data-me-profile aria-label="${pick('个人主页', 'Profile')}"><span class="me-avatar ${isPhotoAvatar() ? 'is-photo' : ''}"><img src="${avatarSrc()}" alt="" decoding="async"></span><div><h1>${esc(name)} <span class="me-lv">Lv.${lv.level} ${levelTitle(lv.level)}</span></h1><p>${account?.local ? (pick('记录只保存在这台设备', 'Records stay on this device')) : (pick('学习记录保存在本机，可在账号中加密同步', 'Records are kept here; encrypted sync is in Account'))}</p></div><span class="me-chevron" aria-hidden="true">›</span></button>
+    return `<button type="button" class="me-head" data-me-profile aria-label="${pick('个人主页', 'Profile')}"><span class="avatar-wrap"><span class="me-avatar ${isPhotoAvatar() ? 'is-photo' : ''}"><img src="${avatarSrc()}" alt="" decoding="async"></span>${frameImage(shopData().frame)}</span><div><h1>${esc(name)} <span class="me-lv">Lv.${lv.level} ${levelTitle(lv.level)}</span></h1><p>${account?.local ? (pick('记录只保存在这台设备', 'Records stay on this device')) : (pick('学习记录保存在本机，可在账号中加密同步', 'Records are kept here; encrypted sync is in Account'))}</p></div><span class="me-chevron" aria-hidden="true">›</span></button>
       <div class="me-group"><h2>${pick('学习', 'Learning')}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), pick('目标 {v0} 张', 'Goal {v0}', { v0: goalOf(profile) }))}${row('id="theme-toggle"', iconSvg('bulb'), pick('外观', 'Appearance'), dark ? (pick('黑夜', 'Night')) : (pick('白天', 'Day')))}${row('id="language"', iconSvg('globe'), pick('语言', 'Language'), localeName(locale))}</div>
       <div class="me-group"><h2>${pick('账号与设备', 'Account & device')}</h2>${account?.local ? row('data-signin', iconSvg('user'), pick('登录 / 注册', 'Sign in / Register')) : row('data-cloud', iconSvg('user'), pick('账号与同步', 'Account & sync'))}${row('data-device', iconSvg('camera'), pick('设备与提醒', 'Device & reminders'))}${account?.is_admin ? row('data-admin', iconSvg('chart'), pick('管理', 'Admin')) : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}${row('data-onboarding', iconSvg('compass'), pick('产品演示', 'Product tour'))}${row('data-tour', iconSvg('bulb'), pick('新手指引', 'Guided tour'))}</div>
       ${androidBrowser() ? `<div class="me-group"><h2>${pick('安卓 App', 'Android app')}</h2><a class="me-row" href="/zhihui.apk" download="zhihui.apk"><span class="me-icon">${iconSvg('download')}</span><span class="me-label">${pick('下载安卓 App', 'Download the Android app')}</span><span class="me-value">${pick('约 1 MB', 'About 1 MB')}</span><span class="me-chevron" aria-hidden="true">›</span></a><p class="me-note">${pick('安装时手机会提示"未知来源应用"，选择仍然安装即可。', 'Your phone will warn about an app from an unknown source; choose to install anyway.')}</p></div>` : ''}`;
@@ -281,7 +283,7 @@ function boot() {
   // Daily goal: cards reviewed today against the goal, days in a row it was met, and the check-in image once reached.
   function goalState() {
     const events = chat.reviewEvents(), goal = goalOf(profile);
-    return { goal, done: doneToday(events), streak: streakDays(events), goalStreak: goalStreak(events, goal) };
+    return { goal, done: doneToday(events), streak: shieldStreaks().any, goalStreak: shieldStreaks().goal };
   }
   function shareData() {
     const state = goalState(), date = new Intl.DateTimeFormat(intlLocale(currentLocale()), { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
@@ -436,11 +438,32 @@ function boot() {
     layer.querySelector('.scene-pick.active, .scene-pick')?.focus({ preventScroll: true });
   }
   // The squirrel's level and badges (achievements.js), and its store page (pet tab → 仓库).
-  let petPage = 'room', mePage = 'main';
+  let petPage = 'room', mePage = 'main', shopTab = 'decor';
+  // Shop (shop.js): purchases and furniture live in the profile (profile.shop) so they travel with the encrypted cloud
+  // snapshot. Balance = pine cones earned (from history) − spent. Streak shields keep both streaks alive.
+  const shopData = () => cleanShop(profile?.shop);
+  const reviewDays = goalOnly => { const days = new Map(); for (const event of chat.reviewEvents()) { const day = localDay(event.at); if (!days.has(day)) days.set(day, new Set()); days.get(day).add(event.cardId); } const goal = goalOf(profile); return day => (days.get(day)?.size || 0) >= (goalOnly ? goal : 1); };
+  const shieldStreaks = () => { const freezes = freezeDates(shopData()), goal = protectedStreak(reviewDays(true), freezes); return { goal: goal.streak, any: protectedStreak(reviewDays(false), freezes).streak, used: goal.used }; };
+  const shopNow = () => shopState(shopData(), pineCones(chat.reviewEvents(), goalOf(profile)).total, shieldStreaks().used);
+  function saveShop(next) {
+    const candidate = { ...profile, shop: next };
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate)); } catch { return false; }
+    profile = candidate; return true;
+  }
+  const SHOP_ERRORS = { funds: () => pick('松果不够', 'Not enough pine cones'), owned: () => pick('已经拥有了', 'You already have it'), max: () => pick('最多同时持有 2 张', 'You can hold at most 2'), unknown: () => pick('买不了这个', 'This cannot be bought') };
+  function petShopView() { return shopView({ state: shopNow(), data: shopData(), tab: shopTab }); }
+  function openShopItem(id) {
+    const earned = () => pineCones(chat.reviewEvents(), goalOf(profile)).total, used = () => shieldStreaks().used;
+    openItemSheet(id, { state: shopNow, data: shopData, earned, shieldsUsed: used,
+      onBuy: itemId => { const result = buy(shopData(), itemId, earned(), { shieldsUsed: used() }); if (!result.ok) return SHOP_ERRORS[result.error](); if (!saveShop(result.data)) return pick('保存失败', 'Could not save'); render(); return ''; },
+      onRefund: purchaseId => { const result = refund(shopData(), purchaseId, { shieldsUsed: used() }); if (result.ok) { saveShop(result.data); render(); } },
+      onEquip: itemId => { saveShop(equip(shopData(), itemId)); render(); },
+      onUnequip: itemId => { saveShop(unequip(shopData(), itemId)); render(); } });
+  }
   // 我的 → avatar: the personal page (avatar, level, badge wall, features coming later).
   function meProfileView() {
     const progress = petProgress(), name = account?.local ? pick('本地模式', 'Local mode') : account?.username || (account?.is_admin ? pick('管理员', 'Administrator') : pick('已登录', 'Signed in'));
-    return profileView({ name, level: progress.level, levelCard: levelCard(progress.level, '/illustrations/mascot-cheer.webp'), badgeWall: badgeWall(progress.badges) });
+    return profileView({ name, level: progress.level, levelCard: levelCard(progress.level, '/illustrations/mascot-cheer.webp'), badgeWall: badgeWall(progress.badges), frame: frameImage(shopData().frame) });
   }
   const openBadgeWall = () => { petPage = 'room'; mePage = 'profile'; chat.go('me'); requestAnimationFrame(() => document.querySelector('#badge-wall')?.scrollIntoView({ block: 'start' })); };
   const petProgress = () => achievements({ events: chat.reviewEvents(), goal: goalOf(profile), cards: chat.knowledgeCards(), questions: chat.questionDates(), books: Object.keys(profile?.modules || {}).filter(isCustomModule).length });
@@ -470,7 +493,7 @@ function boot() {
   function petView() {
     const events = chat.reviewEvents(), today = localDay(new Date()), goal = goalOf(profile);
     const done = new Set(events.filter(event => localDay(event.at) === today).map(event => event.cardId)).size;
-    const cones = pineCones(events, goal), mood = petMood(done, goal), streak = streakDays(events), left = Math.max(0, goal - done);
+    const cones = pineCones(events, goal), mood = petMood(done, goal), streak = shieldStreaks().any, left = Math.max(0, goal - done), shop = shopNow();
     const [statusTitle, statusSub] = {
       sleep: [pick('小回在睡觉', 'Backy is asleep'), pick('明天见～', 'See you tomorrow~')],
       full: [pick('小回吃饱啦', 'Backy is full'), pick('心满意足', 'Happy and content')],
@@ -485,7 +508,7 @@ function boot() {
       : mood === 'eating' ? pick('再复习 {n} 张就吃饱啦。', '{n} more cards and I’m full.', { n: left })
       : pick('今天还没吃东西呢，复习几张卡片就能喂饱我。', 'I haven’t eaten today. Review a few cards to feed me.');
     const pose = MOOD_POSE[mood], fed = Math.min(100, Math.round(done / Math.max(1, goal) * 100)), progress = petProgress();
-    return `<section class="pet-scene-wrap"><img class="home-scene pet-scene" src="/illustrations/pet-nest.webp" alt="" decoding="async">
+    return `<section class="pet-scene-wrap"><img class="home-scene pet-scene" src="/illustrations/pet-nest.webp" alt="" decoding="async">${decorLayer(shopData().equipped)}
         <div class="pet-hello"><h1>${pick('嗨，我是小回', 'Hi, I’m Backy')}</h1><p>${greeting}</p></div>
         <div class="pet-row"><div class="pet-status"><span class="pet-status-avatar"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async"></span><span class="pet-status-text"><strong>${statusTitle}</strong><span>${statusSub}</span></span></div><span class="pet-chip">🍽 ${done}/${goal}</span></div>
         <button type="button" class="today-mascot pet-mascot" data-pose="${pose}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async" draggable="false"></button>
@@ -494,7 +517,7 @@ function boot() {
         <button type="button" class="pet-tile" data-pet-store><span class="pet-tile-icon">${PINE_ICON}</span><strong>${pick('仓库', 'Store')}</strong><span class="pet-tile-value">Lv.${progress.level.level}</span><span class="muted">${pick('松果 {n}', '{n} pine cones', { n: progress.level.cones })}</span></button>
         <button type="button" class="pet-tile" data-pet-feed><span class="pet-tile-icon">🍽</span><strong>${pick('喂食', 'Feed')}</strong><span class="pet-tile-value">${done}/${goal}</span><span class="pet-meter" role="presentation"><i data-fed="${fed}"></i></span></button>
         <div class="pet-tile"><span class="pet-tile-icon">🔥</span><strong>${pick('连续', 'Streak')}</strong><span class="pet-tile-value">${streak}</span><span class="muted">${pick('{n} 天', '{n} days', { n: streak })}</span></div>
-        <div class="pet-tile is-soon" aria-disabled="true"><span class="pet-tile-icon">🛒</span><strong>${pick('商城', 'Shop')}</strong><span class="muted">${pick('即将开放', 'Coming soon')}</span></div>
+        <button type="button" class="pet-tile" data-pet-shop><span class="pet-tile-icon">🛒</span><strong>${pick('商城', 'Shop')}</strong><span class="pet-tile-value">${shop.balance}</span><span class="muted">${pick('可用松果', 'to spend')}</span></button>
       </div></section>
       <section class="m-section pet-letter"><span class="pet-letter-avatar"><img src="/illustrations/mascot-cheer.webp" alt="" decoding="async"></span><div><h2>${pick('小回的信', 'A note from Backy')}</h2><p>${note}</p></div><span class="pet-letter-mark" aria-hidden="true">💌</span></section>`;
   }
@@ -502,8 +525,8 @@ function boot() {
   const MODULE_ART = ['coding', 'english', 'work', 'life'];
   function homePhoneView() {
     const zh = locale === 'zh', due = chat.reviewCount(), events = chat.reviewEvents(), today = localDay(new Date());
-    const done = new Set(events.filter(event => localDay(event.at) === today).map(event => event.cardId)).size, total = done + due, streak = streakDays(events);
-    const goal = goalOf(profile), reached = done >= goal, met = goalStreak(events, goal);
+    const done = new Set(events.filter(event => localDay(event.at) === today).map(event => event.cardId)).size, total = done + due, shields = shieldStreaks(), streak = shields.any;
+    const goal = goalOf(profile), reached = done >= goal, met = shields.goal;
     const length = 2 * Math.PI * 42, progress = Math.min(1, done / goal);
     const ring = `<svg class="task-ring-svg" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="8"/><circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(length * progress).toFixed(1)} ${length.toFixed(1)}" transform="rotate(-90 50 50)"/></svg>`;
     const date = new Intl.DateTimeFormat(intlLocale(currentLocale()), { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
@@ -544,7 +567,7 @@ function boot() {
     app.innerHTML = `
       <header class="header"><a class="brand" href="${phone ? '/m/' : '/'}" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
         ${tabs ? '' : `<div class="header-actions">${inApp && profile && !editing && !guide ? chat.nav() : ''}${themeButton()}<button class="text-button" id="language" aria-haspopup="dialog" aria-label="${pick('界面语言', 'Interface language')}" ${locked ? 'disabled' : ''}><span aria-hidden="true">🌐</span> ${localeName(locale)}</button></div>`}</header>
-      <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? (mePage === 'profile' ? meProfileView() : meView()) : tabs && chat.page === 'pet' ? (petPage === 'store' ? petStoreView() : petView()) : tabs && ['library', 'discover', 'recommend', 'square'].includes(chat.page) ? librarySwitch() + chat.view() : chat.isHome ? homeView() : chat.view()}</main>
+      <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? (mePage === 'profile' ? meProfileView() : meView()) : tabs && chat.page === 'pet' ? (petPage === 'store' ? petStoreView() : petPage === 'shop' ? petShopView() : petView()) : tabs && ['library', 'discover', 'recommend', 'square'].includes(chat.page) ? librarySwitch() + chat.view() : chat.isHome ? homeView() : chat.view()}</main>
       ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
     document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => { petPage = 'room'; mePage = 'main'; chat.go(button.dataset.tab); }; });
@@ -552,6 +575,10 @@ function boot() {
     document.querySelectorAll('[data-profile-back]').forEach(button => { button.onclick = () => { mePage = 'main'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('[data-avatar-change]').forEach(button => { button.onclick = () => openAvatarSheet(() => render()); });
     document.querySelectorAll('[data-go-badges]').forEach(button => { button.onclick = openBadgeWall; });
+    document.querySelectorAll('[data-pet-shop]').forEach(button => { button.onclick = () => { petPage = 'shop'; render(); window.scrollTo(0, 0); }; });
+    document.querySelectorAll('[data-shop-back]').forEach(button => { button.onclick = () => { petPage = 'room'; render(); window.scrollTo(0, 0); }; });
+    document.querySelectorAll('[data-shop-tab]').forEach(button => { button.onclick = () => { shopTab = button.dataset.shopTab; render(); }; });
+    document.querySelectorAll('[data-shop-item]').forEach(button => { button.onclick = () => openShopItem(button.dataset.shopItem); });
     document.querySelectorAll('[data-soon]').forEach(button => { button.onclick = () => { button.classList.remove('is-poke'); void button.offsetWidth; button.classList.add('is-poke'); }; });
     document.querySelectorAll('[data-scene-picker]').forEach(button => { button.onclick = () => openScenePicker(button); });
     document.querySelectorAll('[data-pet-store]').forEach(button => { button.onclick = () => { petPage = 'store'; render(); window.scrollTo(0, 0); }; });
