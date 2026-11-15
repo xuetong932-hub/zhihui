@@ -1,5 +1,12 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Day streak": "連續天數",
+ "Learning summary, open the library": "學習小結，打開知識庫",
+ "Reviewed, 7 days": "近 7 天複習",
+ "Six basic cards per subject, written for KnowBack; no model needed. Edit or delete them any time.": "每個分類 6 張由知回編寫的基礎知識卡片，不呼叫模型。新增後可以隨時修改或刪除。",
+ "Tap here to ask anything. Answers become knowledge cards, filed under the right subject.": "有問題就點這裡問。回答會自動整理成知識卡片，歸到對應的分類裡。",
+ "The library holds all your cards, plus memory status, the knowledge graph and mind maps.": "知識庫裡有全部卡片，還有記憶狀態、知識圖譜和心智圖。",
+ "This is Backy. Reviewing every day feeds it, and the pine cones you save buy decorations in the shop.": "這是小回。每天複習就能餵飽牠，攢下的松果可以在商城換裝飾。",
  "{n} d": "{n} 天",
  "{n} mo": "{n} 個月",
  "{n} to practise": "可加練 {n} 張",

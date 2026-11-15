@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { goalOf, doneToday, goalStreak, reminderCalendar, DEFAULT_GOAL } from '../habit.js';
+import { goalOf, doneToday, goalStreak, reminderCalendar, weekSummary, DEFAULT_GOAL } from '../habit.js';
 import { validProfile } from '../app.js';
 
 const at = (day, hour = 10) => new Date(`${day}T${String(hour).padStart(2, '0')}:00:00`).toISOString();
@@ -28,4 +28,15 @@ test('calendar reminder: one daily event at the chosen local time with an alert'
   assert.match(ics, /^BEGIN:VCALENDAR\r\n/); assert.match(ics, /RRULE:FREQ=DAILY/); assert.match(ics, /DTSTART:2026110\dT073000\r\n/);
   assert.match(ics, /BEGIN:VALARM[\s\S]*TRIGGER:PT0M[\s\S]*END:VALARM/); assert.match(ics, /SUMMARY:知回 · 每日复习/);
   assert.match(reminderCalendar({ time: 'bad', locale: 'en', url: 'https://example.test/' }), /T190000\r\n/, 'falls back to 19:00');
+});
+
+test('week summary: live cards and different cards reviewed on each of the last seven days', () => {
+  const now = new Date('2026-11-15T20:00:00');
+  const events = [...reviews('2026-11-08', 4), ...reviews('2026-11-09', 2), ...reviews('2026-11-15', 3), { cardId: 'c0', at: at('2026-11-15', 12) }];
+  const cards = [{ status: 'active' }, { status: 'paused' }, { status: 'deleted' }, { status: 'merged' }];
+  const summary = weekSummary(events, cards, now);
+  assert.equal(summary.cards, 2);
+  assert.deepEqual(summary.week.map(item => item.count), [2, 0, 0, 0, 0, 0, 3]);
+  assert.equal(summary.week[0].day, '2026-11-09');
+  assert.equal(summary.reviewed, 5);
 });

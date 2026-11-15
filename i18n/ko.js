@@ -1,5 +1,12 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Day streak": "연속 일수",
+ "Learning summary, open the library": "학습 요약, 라이브러리 열기",
+ "Reviewed, 7 days": "최근 7일 복습",
+ "Six basic cards per subject, written for KnowBack; no model needed. Edit or delete them any time.": "분야마다 KnowBack이 만든 기본 카드 6장. 모델을 쓰지 않아요. 추가한 뒤 언제든 수정하거나 삭제할 수 있어요.",
+ "Tap here to ask anything. Answers become knowledge cards, filed under the right subject.": "궁금한 건 여기를 눌러 물어보세요. 답변은 지식 카드로 정리되어 알맞은 분야에 들어가요.",
+ "The library holds all your cards, plus memory status, the knowledge graph and mind maps.": "라이브러리에는 모든 카드와 기억 상태, 지식 그래프, 마인드맵이 있어요.",
+ "This is Backy. Reviewing every day feeds it, and the pine cones you save buy decorations in the shop.": "Backy예요. 매일 복습하면 배부르게 먹고, 모은 솔방울로 상점에서 장식을 살 수 있어요.",
  "{n} d": "{n}일",
  "{n} mo": "{n}개월",
  "{n} to practise": "{n}장 더 연습 가능",

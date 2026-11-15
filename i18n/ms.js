@@ -1,5 +1,12 @@
 // ms interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Day streak": "Hari berturut-turut",
+ "Learning summary, open the library": "Ringkasan pembelajaran, buka perpustakaan",
+ "Reviewed, 7 days": "Diulang kaji, 7 hari",
+ "Six basic cards per subject, written for KnowBack; no model needed. Edit or delete them any time.": "Enam kad asas bagi setiap subjek, ditulis untuk KnowBack; tanpa model. Sunting atau padam bila-bila masa.",
+ "Tap here to ask anything. Answers become knowledge cards, filed under the right subject.": "Ketik di sini untuk bertanya apa sahaja. Jawapan menjadi kad pengetahuan, difailkan di bawah subjek yang betul.",
+ "The library holds all your cards, plus memory status, the knowledge graph and mind maps.": "Perpustakaan menyimpan semua kad anda, serta status ingatan, graf pengetahuan dan peta minda.",
+ "This is Backy. Reviewing every day feeds it, and the pine cones you save buy decorations in the shop.": "Ini Backy. Ulang kaji setiap hari memberinya makan, dan buah pain yang dikumpul boleh membeli hiasan di kedai.",
  "{n} d": "{n} h",
  "{n} mo": "{n} bln",
  "{n} to practise": "{n} untuk latihan",

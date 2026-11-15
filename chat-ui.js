@@ -313,7 +313,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     // Leaving local mode: forget the choice and show the sign-in page; local records stay and are offered to the account.
     document.querySelectorAll('[data-signin]').forEach(button=>button.onclick=()=>{if(locked())return;try{localStorage.removeItem(LOCAL_MODE_KEY);}catch{/* Ignored. */}location.reload();});
     if (page === 'onboarding') onboarding.bind();
-    document.querySelectorAll('[data-onboarding]').forEach(button=>button.onclick=()=>{if(locked())return;onboarding.reset();page='onboarding';refresh();window.scrollTo(0,0);});
+    document.querySelectorAll('[data-onboarding]').forEach(button=>button.onclick=()=>{if(locked())return;replayGuide=button.classList.contains('me-row');onboarding.reset();page='onboarding';refresh();window.scrollTo(0,0);});
     document.querySelectorAll('[data-tour]').forEach(button=>button.onclick=()=>{if(locked())return;button.closest('details')?.removeAttribute('open');startTour();});
     document.querySelectorAll('[data-starter-add]').forEach(button=>button.onclick=()=>{if(locked())return;const ids=button.dataset.starterAdd==='all'?starterModules():[button.dataset.starterAdd];const added=library.addCards(ids.flatMap(id=>starterCards(id,getLocale())));if(added){starterAdded=added;}refresh();});
     document.querySelectorAll('[data-starter-dismiss]').forEach(button=>button.onclick=()=>{try{localStorage.setItem(STARTER_DISMISS_KEY,'1');}catch{/* Hidden for this page only. */}starterAdded=0;refresh();});
@@ -499,9 +499,10 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
       if (answer?.role !== 'assistant' || answer.status !== 'done') return { error: notice || undefined };
       return { answer: answer.content, card: library.cards().find(card => card.origins.some(origin => origin.id === answer.id)) || null };
     },
-    finish: () => { markOnboardingDone(); onboarding.reset(); page = 'home'; notice = ''; refresh(); window.scrollTo(0, 0); if (!tourDone()) startTour(); } });
+    finish: () => { markOnboardingDone(); onboarding.reset(); page = 'home'; notice = ''; refresh(); window.scrollTo(0, 0); if (!tourDone() || replayGuide) startTour(); replayGuide = false; } });
   // The spotlight tour runs on the home screen: once after the first-run guide, and again from 我的 / 更多.
   const tour = createTour({ locale: getLocale });
+  let replayGuide = false; // 我的 → 新手指引 plays the guide, then the spotlight tour
   function startTour() { page = 'home'; refresh(); window.scrollTo(0, 0); setTimeout(() => tour.start(), 250); }
   // A brand-new user (nothing asked, empty library) starts with the guide; anyone can replay it from 我的 / 更多.
   if (!onboardingDone() && !Object.values(chats.modules).some(list => list.length) && !library.activeCount()) page = 'onboarding';

@@ -1,5 +1,12 @@
 // fr interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Day streak": "Jours d’affilée",
+ "Learning summary, open the library": "Résumé d’apprentissage, ouvrir la bibliothèque",
+ "Reviewed, 7 days": "Révisées, 7 jours",
+ "Six basic cards per subject, written for KnowBack; no model needed. Edit or delete them any time.": "Six cartes de base par matière, écrites pour KnowBack ; sans modèle. Modifie-les ou supprime-les quand tu veux.",
+ "Tap here to ask anything. Answers become knowledge cards, filed under the right subject.": "Touche ici pour poser n’importe quelle question. Les réponses deviennent des cartes, classées dans la bonne matière.",
+ "The library holds all your cards, plus memory status, the knowledge graph and mind maps.": "La bibliothèque contient toutes tes cartes, plus l’état de mémoire, le graphe de connaissances et les cartes mentales.",
+ "This is Backy. Reviewing every day feeds it, and the pine cones you save buy decorations in the shop.": "Voici Backy. Réviser chaque jour le nourrit, et les pommes de pin économisées achètent des décorations dans la boutique.",
  "{n} d": "{n} j",
  "{n} mo": "{n} mois",
  "{n} to practise": "{n} à pratiquer",

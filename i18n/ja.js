@@ -1,5 +1,12 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Day streak": "連続日数",
+ "Learning summary, open the library": "学習のまとめ、ライブラリを開く",
+ "Reviewed, 7 days": "直近7日の復習",
+ "Six basic cards per subject, written for KnowBack; no model needed. Edit or delete them any time.": "各分野に KnowBack が用意した基本カードが 6 枚。モデルは使いません。追加後いつでも編集・削除できます。",
+ "Tap here to ask anything. Answers become knowledge cards, filed under the right subject.": "ここをタップして何でも質問。回答は知識カードになり、ぴったりの分野に整理されます。",
+ "The library holds all your cards, plus memory status, the knowledge graph and mind maps.": "ライブラリには全カードと、記憶の状態、知識グラフ、マインドマップがあります。",
+ "This is Backy. Reviewing every day feeds it, and the pine cones you save buy decorations in the shop.": "これは Backy。毎日復習するとお腹いっぱいに。貯めた松ぼっくりはショップで飾りと交換できます。",
  "{n} d": "{n}日",
  "{n} mo": "{n}か月",
  "{n} to practise": "{n} 枚練習できます",

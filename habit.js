@@ -22,6 +22,13 @@ export function goalStreak(events, goal, now = new Date()) {
   return count;
 }
 
+// The 我的 page summary: live cards, and different cards reviewed on each of the last seven days (oldest first).
+export function weekSummary(events, cards, now = new Date()) {
+  const days = cardsPerDay(events), today = localDay(now);
+  const week = Array.from({ length: 7 }, (_, i) => { const day = shift(today, i - 6); return { day, count: days.get(day)?.size || 0 }; });
+  return { cards: cards.filter(card => ['active', 'paused'].includes(card.status)).length, week, reviewed: week.reduce((sum, item) => sum + item.count, 0) };
+}
+
 // A daily repeating calendar event with an alert at the start (iCalendar, RFC 5545). Floating local time, so it
 // rings at the same clock time wherever the phone is.
 export function reminderCalendar({ time, locale, url, now = new Date() }) {

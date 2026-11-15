@@ -24,3 +24,18 @@ test('spacing tokens are defined once, on the grid', () => {
   const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
   for (const n of [4, 8, 12, 16, 24, 32, 48]) assert.match(css, new RegExp(`--sp-${n}:${n}px`));
 });
+
+// Type floor (DESIGN.md, 2026-11-15): no text smaller than 12px, and the token layer defines the scale, radii,
+// shadows and motion that new components use.
+for (const file of ['styles.css', 'mobile/mobile.css', 'welcome/welcome.css']) {
+  test(`${file}: no font size below 12px`, () => {
+    const css = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
+    const small = [...css.matchAll(/font-size\s*:\s*(\d*\.?\d+)px/g)].map(match => Number(match[1])).filter(size => size < 12);
+    assert.deepEqual(small, []);
+  });
+}
+test('design tokens are defined at the top level', () => {
+  const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+  const root = css.match(/^:root\{--fs-12:[^}]*\}/m)?.[0] || '';
+  for (const token of ['--fs-12:12px', '--fs-34:34px', '--r-pill:999px', '--shadow-1:', '--ease-spring:', '--dur-2:250ms']) assert.ok(root.includes(token), token);
+});

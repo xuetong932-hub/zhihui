@@ -3,7 +3,7 @@ import { moduleStyles } from './memory-viz.js';
 import { moduleIcon, iconSvg, CUSTOM_ICONS } from './module-icons.js';
 import { localDay } from './knowledge-store.js';
 import { streakDays } from './review-store.js';
-import { DAILY_GOALS, DEFAULT_GOAL, goalOf, doneToday, goalStreak, openShareDialog } from './habit.js';
+import { DAILY_GOALS, DEFAULT_GOAL, goalOf, doneToday, goalStreak, weekSummary, openShareDialog } from './habit.js';
 import { pineCones, petMood, MOOD_POSE } from './pet.js';
 import { startPetPlay, flyCone } from './pet-physics.js';
 import { achievements, newBadges } from './achievements.js';
@@ -282,9 +282,18 @@ function boot() {
     const name = account?.local ? (pick('本地模式', 'Local mode')) : account?.username || (account?.is_admin ? (pick('管理员', 'Administrator')) : (pick('已登录', 'Signed in')));
     const lv = petProgress().level;
     return `<button type="button" class="me-head" data-me-profile aria-label="${pick('个人主页', 'Profile')}"><span class="avatar-wrap"><span class="me-avatar ${isPhotoAvatar() ? 'is-photo' : ''}"><img src="${avatarSrc()}" alt="" decoding="async"></span>${frameImage(shopData().frame)}</span><div><h1>${esc(name)} <span class="me-lv">Lv.${lv.level} ${levelTitle(lv.level)}</span></h1><p>${account?.local ? (pick('记录只保存在这台设备', 'Records stay on this device')) : (pick('学习记录保存在本机，可在账号中加密同步', 'Records are kept here; encrypted sync is in Account'))}</p></div><span class="me-chevron" aria-hidden="true">›</span></button>
-      <div class="me-group"><h2>${pick('学习', 'Learning')}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), pick('目标 {v0} 张', 'Goal {v0}', { v0: goalOf(profile) }))}${row('id="theme-toggle"', iconSvg('bulb'), pick('外观', 'Appearance'), dark ? (pick('黑夜', 'Night')) : (pick('白天', 'Day')))}${row('id="language"', iconSvg('globe'), pick('语言', 'Language'), localeName(locale))}</div>
-      <div class="me-group"><h2>${pick('账号与设备', 'Account & device')}</h2>${account?.local ? row('data-signin', iconSvg('user'), pick('登录 / 注册', 'Sign in / Register')) : row('data-cloud', iconSvg('user'), pick('账号与同步', 'Account & sync'))}${row('data-device', iconSvg('camera'), pick('设备与提醒', 'Device & reminders'))}${account?.is_admin ? row('data-admin', iconSvg('chart'), pick('管理', 'Admin')) : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}${row('data-onboarding', iconSvg('compass'), pick('产品演示', 'Product tour'))}${row('data-tour', iconSvg('bulb'), pick('新手指引', 'Guided tour'))}</div>
+      ${meSummary()}
+      <div class="me-group"><h2>${pick('学习', 'Learning')}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), pick('目标 {v0} 张', 'Goal {v0}', { v0: goalOf(profile) }))}${row('id="theme-toggle"', iconSvg(dark ? 'moon' : 'sun'), pick('外观', 'Appearance'), dark ? (pick('黑夜', 'Night')) : (pick('白天', 'Day')))}${row('id="language"', iconSvg('globe'), pick('语言', 'Language'), localeName(locale))}</div>
+      <div class="me-group"><h2>${pick('账号与设备', 'Account & device')}</h2>${account?.local ? row('data-signin', iconSvg('user'), pick('登录 / 注册', 'Sign in / Register')) : row('data-cloud', iconSvg('user'), pick('账号与同步', 'Account & sync'))}${row('data-device', iconSvg('camera'), pick('设备与提醒', 'Device & reminders'))}${account?.is_admin ? row('data-admin', iconSvg('chart'), pick('管理', 'Admin')) : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}${row('data-onboarding', iconSvg('compass'), pick('新手指引', 'Guided tour'))}</div>
       ${androidBrowser() ? `<div class="me-group"><h2>${pick('安卓 App', 'Android app')}</h2><a class="me-row" href="/zhihui.apk" download="zhihui.apk"><span class="me-icon">${iconSvg('download')}</span><span class="me-label">${pick('下载安卓 App', 'Download the Android app')}</span><span class="me-value">${pick('约 1 MB', 'About 1 MB')}</span><span class="me-chevron" aria-hidden="true">›</span></a><p class="me-note">${pick('安装时手机会提示"未知来源应用"，选择仍然安装即可。', 'Your phone will warn about an app from an unknown source; choose to install anyway.')}</p></div>` : ''}`;
+  }
+  // 我的 → learning summary: streak, live cards, cards reviewed in the last 7 days, with a bar for each day.
+  function meSummary() {
+    const { cards, week, reviewed } = weekSummary(chat.reviewEvents(), chat.knowledgeCards()), top = Math.max(1, ...week.map(item => item.count));
+    const weekday = new Intl.DateTimeFormat(intlLocale(currentLocale()), { weekday: 'narrow' });
+    const stat = (value, label) => `<span class="me-stat"><b>${value}</b><small>${label}</small></span>`;
+    return `<button type="button" class="me-summary" data-me-library aria-label="${pick('学习小结，打开知识库', 'Learning summary, open the library')}"><span class="me-stats">${stat(shieldStreaks().any, pick('连续天数', 'Day streak'))}${stat(cards, pick('知识卡片', 'Cards'))}${stat(reviewed, pick('近 7 天复习', 'Reviewed, 7 days'))}</span>
+      <span class="me-week" aria-hidden="true">${week.map((item, i) => { const [y, m, d] = item.day.split('-').map(Number); return `<span class="me-day ${i === 6 ? 'today' : ''}"><i data-bar="${Math.round(item.count / top * 100)}"></i><small>${weekday.format(new Date(y, m - 1, d))}</small></span>`; }).join('')}</span></button>`;
   }
   // Daily goal: cards reviewed today against the goal, days in a row it was met, and the check-in image once reached.
   function goalState() {
@@ -545,7 +554,7 @@ function boot() {
         <div class="today-status"><button type="button" class="today-mascot" data-pose="${due ? 'wave' : total ? 'cheer' : 'think'}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}"><img src="/illustrations/mascot-${due ? 'wave' : total ? 'cheer' : 'think'}.webp" alt="" decoding="async" draggable="false"></button>${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
           <div class="today-meta"><span class="today-goal"><span class="task-ring" aria-hidden="true">${ring}</span>${goalText}</span><span><b>${streak}</b>${pick(' 天连续', ' day streak')}</span><span><b>${met}</b>${pick(' 天达成', ' days met')}</span></div></div>
         ${total ? `<button class="task-start" data-review>${due ? (pick('开始复习', 'Start review')) : (pick('再练一会', 'Practise more'))} →</button><button class="task-start task-ask" data-open-module="${ASK_MODULE}">${pick('继续提问', 'Keep asking')} →</button>` : `<button class="task-start" data-open-module="${ASK_MODULE}">${pick('去提问', 'Ask a question')} →</button>`}${reached ? shareButton('task-share') : ''}</section>
-      ${chat.starterHome() ? `<div class="m-section">${chat.starterHome()}</div>` : ''}
+      ${chat.starterHome() ? `<div class="m-section frost-panel home-starter">${chat.starterHome()}</div>` : ''}
       <section class="m-section"><div class="section-heading"><h2>${pick('今日清单', 'Today’s list')}</h2></div>${reviewPreview()}</section>`;
   }
 
@@ -574,6 +583,8 @@ function boot() {
       ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
     document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => { petPage = 'room'; mePage = 'main'; chat.go(button.dataset.tab); }; });
+    document.querySelectorAll('[data-me-library]').forEach(button => { button.onclick = () => { chat.go('library'); window.scrollTo(0, 0); }; });
+    document.querySelectorAll('.me-day i[data-bar]').forEach(bar => { bar.style.height = `${Math.max(4, Math.round(Number(bar.dataset.bar) * 0.48))}px`; /* 48px tallest */ });
     document.querySelectorAll('[data-me-profile]').forEach(button => { button.onclick = () => { mePage = 'profile'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('[data-profile-back]').forEach(button => { button.onclick = () => { mePage = 'main'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('[data-avatar-change]').forEach(button => { button.onclick = () => openAvatarSheet(() => render()); });

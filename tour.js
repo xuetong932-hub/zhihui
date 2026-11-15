@@ -8,10 +8,10 @@ export const tourDone = () => { try { return localStorage.getItem(TOUR_KEY) === 
 const markDone = () => { try { localStorage.setItem(TOUR_KEY, '1'); } catch { /* Shown again next time. */ } };
 
 export const TOUR_STEPS = [
-  { targets: ['.module-grid', '.module-strip'], zh: '这里是你的学习模块。编程、英语等各自独立记录，按模块提问和复习。', en: 'These are your learning modules. Each one, such as coding or English, keeps its own questions and reviews.' },
-  { targets: ['.module-open', '.strip-card'], zh: '点这里进入提问框，输入或说出想学的问题。回答会自动整理成知识卡片。', en: 'Tap here to open the question box and type or say what you want to learn. Answers become knowledge cards automatically.' },
+  { targets: ['.home-scene-wrap .task-ask', '.home-scene-wrap .task-start[data-open-module]', '.module-open'], zh: '有问题就点这里问。回答会自动整理成知识卡片，归到对应的分类里。', en: 'Tap here to ask anything. Answers become knowledge cards, filed under the right subject.' },
   { targets: ['[data-tab="review"]', 'nav [data-review]'], zh: '每天到这里复习。系统按遗忘曲线安排，快忘的先复习。', en: 'Review here every day. The forgetting curve decides what comes up, so what you are about to forget comes first.' },
-  { targets: ['[data-tab="library"]', 'nav [data-library]'], zh: '知识库里有全部卡片，还有遗忘曲线、知识图谱和思维导图。', en: 'The library holds all your cards, plus the forgetting curve, knowledge graph and mind maps.' },
+  { targets: ['[data-tab="pet"]'], zh: '这是小回。每天复习就能喂饱它，攒下的松果可以在商城换装饰。', en: 'This is Backy. Reviewing every day feeds it, and the pine cones you save buy decorations in the shop.' },
+  { targets: ['[data-tab="library"]', 'nav [data-library]'], zh: '知识库里有全部卡片，还有记忆状态、知识图谱和思维导图。', en: 'The library holds all your cards, plus memory status, the knowledge graph and mind maps.' },
   { targets: ['[data-tab="discover"]', 'nav [data-recommend]'], zh: '这里有精选的博主、书籍和论文，学完可以去看更多。', en: 'Curated creators, books and papers to explore once you have learned something.' },
 ];
 const visible = element => element && element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden';
