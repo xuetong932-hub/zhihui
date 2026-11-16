@@ -889,6 +889,14 @@ body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
 .tree-seed small{font-size:var(--fs-12);color:var(--muted)}
 .tree-seed q{font-size:var(--fs-13);color:var(--ink);quotes:"「" "」"}
 .pet-world .pet-tiles{grid-template-columns:repeat(5,1fr)}
+.pet-world .pet-tiles{position:relative;gap:0;padding:var(--sp-12) var(--sp-4);border:1px solid rgba(255,255,255,.5);border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,.2));-webkit-backdrop-filter:blur(18px) saturate(1.8);backdrop-filter:blur(18px) saturate(1.8);box-shadow:inset 0 1px 0 rgba(255,255,255,.75),inset 0 -1px 0 rgba(255,255,255,.18),0 8px 24px rgba(40,28,12,.16)}
+.pet-world .pet-tiles::before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(120% 80% at 20% 0%,rgba(255,255,255,.38),rgba(255,255,255,0) 55%);pointer-events:none}
+.pet-world .pet-tile{position:relative;padding:var(--sp-4);border-radius:20px}
+.pet-world button.pet-tile:active{background:rgba(255,255,255,.3)}
+.pet-world .pet-tile-icon,[data-theme="dark"] .pet-world .pet-tile-icon{width:48px;height:48px;background:none;box-shadow:none}
+.pet-world .pet-tile-icon img{width:44px;height:44px;filter:drop-shadow(0 4px 6px rgba(70,48,24,.18))}
+[data-theme="dark"] .pet-world .pet-tiles{border-color:rgba(255,255,255,.16);background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05));box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 8px 24px rgba(0,0,0,.35)}
+[data-theme="dark"] .pet-world .pet-tiles::before{background:radial-gradient(120% 80% at 20% 0%,rgba(255,255,255,.12),rgba(255,255,255,0) 55%)}
 .tree-link{margin-top:var(--sp-12);border-top:1px solid var(--divider)}
 [data-theme="dark"] .tree-badge{background:#1f2327}
 /* 小回's beanstalk (2026-11-16; garden.js, garden-ui.js): one whole picture per stage (the camera follows the top of the
