@@ -260,7 +260,7 @@ a.me-row{text-decoration:none}
 .pet-tile{display:flex;flex-direction:column;align-items:center;gap:var(--sp-4);padding:var(--sp-12) var(--sp-4);border:0;border-radius:16px;background:transparent;color:var(--ink);font:inherit;text-align:center}
 button.pet-tile{cursor:pointer}
 .pet-tile-icon{display:grid;place-items:center;width:52px;height:52px;margin-bottom:var(--sp-4);border-radius:50%;background:#ffffffb3;box-shadow:0 4px 14px rgba(86,64,32,.08);font-size:26px}
-.pet-tile-icon .pine-icon{width:30px;height:30px;vertical-align:0}
+.pet-tile-icon img{width:40px;height:40px;object-fit:contain}
 .pet-tile strong{font-size:13px;font-weight:600}
 .pet-tile-value{font-family:var(--font-display);font-size:20px;line-height:1.1}
 .pet-tile .muted{font-size:12px}
