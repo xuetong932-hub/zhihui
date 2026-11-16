@@ -964,6 +964,7 @@ body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
 [data-theme="dark"] .garden-height span{color:var(--steel)}
 @media (prefers-reduced-motion:reduce){.garden-scene,.garden-fruit,.is-rising .garden-scene-old{animation:none}.garden-scene-old{display:none}}
 .pet-chip.pet-sound{border:0;font:inherit;cursor:pointer}
+.pet-sound img{width:32px;height:32px;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(70,48,24,.18))}
 /* 小回's speech bubble on home (2026-11-16; tips.js): one tip with a × to close it; tapping the words does what they say.
    Beside the squirrel in the scene, or above it while it roams (it rides inside the physics holder and fades while
    the squirrel is held). */
