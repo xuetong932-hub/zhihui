@@ -736,12 +736,18 @@ button.me-head{width:calc(100% - 8px);padding:0;border:0;background:none;color:v
 .avatar-wrap{position:relative;display:inline-grid;place-items:center;flex:none}
 .avatar-frame{position:absolute;left:50%;top:50%;width:132%;height:132%;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 2px 4px rgba(60,40,20,.2))}
 @media (prefers-reduced-motion:reduce){.decor.is-preview,.shop-sheet.is-bought .shop-big img,.shop-sheet.is-bought .shop-preview{animation:none}}
-/* Home: "继续提问" is a second glass pill under the review pill (it shares .task-start's glass); the model files
-   each question into a subject (2026-11-15). */
-.task-start.task-ask{margin-top:var(--sp-12)}
-/* One primary action (2026-11-15): 继续提问 keeps the frosted glass but drops the green, a step quieter than 开始复习. */
-.home-scene-wrap .task-start.task-ask{min-height:48px;font-size:var(--fs-15);font-weight:600;background:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,.14));color:#fffaf2}
-[data-theme="dark"] .home-scene-wrap .task-start.task-ask{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03))}
+/* Home: under 开始复习, a round frosted-glass microphone (2026-11-16) opens 提问 and starts dictation; it breathes softly
+   and ripples when pressed. No label (screen readers say "语音提问"); the green stays on the main pill. */
+.home-scene-wrap .ask-mic{position:relative;display:grid;place-items:center;width:68px;height:68px;margin:var(--sp-16) auto 0;padding:0;border:1px solid rgba(255,255,255,.55);border-radius:50%;background:linear-gradient(180deg,rgba(255,255,255,.38),rgba(255,255,255,.14));-webkit-backdrop-filter:blur(18px) saturate(1.8);backdrop-filter:blur(18px) saturate(1.8);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 0 -1px 0 rgba(255,255,255,.18),0 8px 22px rgba(40,28,12,.18);color:#fffaf2;cursor:pointer;transition:transform var(--dur-1) var(--ease-out)}
+.home-scene-wrap .ask-mic::before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(90% 70% at 30% 18%,rgba(255,255,255,.5),rgba(255,255,255,0) 60%);pointer-events:none}
+.home-scene-wrap .ask-mic::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(255,255,255,.45);opacity:0;pointer-events:none;animation:mic-breathe 3s ease-in-out infinite}
+.home-scene-wrap .ask-mic svg{position:relative;filter:drop-shadow(0 1px 2px rgba(40,24,8,.35))}
+.home-scene-wrap .ask-mic:active{transform:scale(.92)}
+.home-scene-wrap .ask-mic:active::after{animation:mic-ripple .45s var(--ease-out)}
+@keyframes mic-breathe{0%,100%{opacity:0;transform:scale(.92)}50%{opacity:.9;transform:scale(1.06)}}
+@keyframes mic-ripple{from{opacity:.9;transform:scale(1)}to{opacity:0;transform:scale(1.5)}}
+[data-theme="dark"] .home-scene-wrap .ask-mic{border-color:rgba(255,255,255,.18);background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05));box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 8px 22px rgba(0,0,0,.35);color:#f3eadb}
+@media (prefers-reduced-motion:reduce){.home-scene-wrap .ask-mic::after{animation:none}}
 /* The starter pack sits where the photo fades out: a frosted panel keeps its text readable over the picture. */
 .home-starter,[data-theme="dark"] .home-starter{position:relative;padding:var(--sp-16);border-radius:var(--r-20);background:rgba(255,253,249,.72);-webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4);box-shadow:var(--shadow-1)}
 [data-theme="dark"] .home-starter{background:rgba(26,29,33,.72)}

@@ -633,7 +633,7 @@ function boot() {
         <div class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1><button type="button" class="scene-button" data-scene-picker aria-haspopup="dialog" aria-label="${pick('换背景', 'Change background')}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m4 17 4.5-4.5 3.5 3.5 2.5-2.5 5.5 5"/></svg></button></div>
         <div class="today-status"><button type="button" class="today-mascot ${dressedClass()}" data-pose="${due ? 'wave' : total ? 'cheer' : 'think'}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}">${mascotPicture(due ? 'wave' : total ? 'cheer' : 'think')}</button>${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
           <div class="today-meta"><span class="today-goal"><span class="task-ring" aria-hidden="true">${ring}</span>${goalText}</span><span><b>${streak}</b>${pick(' 天连续', ' day streak')}</span><span><b>${met}</b>${pick(' 天达成', ' days met')}</span></div></div>
-        ${total ? `<button class="task-start" data-review>${due ? (pick('开始复习', 'Start review')) : (pick('再练一会', 'Practise more'))} →</button><button class="task-start task-ask" data-open-module="${ASK_MODULE}">${pick('继续提问', 'Keep asking')} →</button>` : `<button class="task-start" data-open-module="${ASK_MODULE}">${pick('去提问', 'Ask a question')} →</button>`}${reached ? shareButton('task-share') : ''}</section>
+        ${total ? `<button class="task-start" data-review>${due ? (pick('开始复习', 'Start review')) : (pick('再练一会', 'Practise more'))} →</button><button type="button" class="ask-mic" data-open-module="${ASK_MODULE}" data-ask-mic aria-label="${pick('语音提问', 'Ask by voice')}"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg></button>` : `<button class="task-start" data-open-module="${ASK_MODULE}">${pick('去提问', 'Ask a question')} →</button>`}${reached ? shareButton('task-share') : ''}</section>
       ${chat.starterHome() ? `<div class="m-section frost-panel home-starter">${chat.starterHome()}</div>` : ''}
       <section class="m-section"><div class="section-heading"><h2>${pick('今日清单', 'Today’s list')}</h2></div>${reviewPreview()}</section>`;
   }
@@ -721,6 +721,12 @@ function boot() {
     document.querySelectorAll('.level-bar i[data-level]').forEach(bar => { bar.style.width = `${bar.dataset.level}%`; });
     document.querySelectorAll('[data-badge]').forEach(button => { button.onclick = () => { const badge = petProgress().badges.find(item => item.id === button.dataset.badge); if (badge) showBadge(badge).then(() => button.focus({ preventScroll: true })); }; });
     document.querySelectorAll('[data-lib-page]').forEach(button => { button.onclick = () => chat.go(button.dataset.libPage); });
+    // The home mic opens 提问 (the chat binds data-open-module) and then starts dictation there; without speech
+    // recognition the question box just gets the focus.
+    document.querySelector('[data-ask-mic]')?.addEventListener('click', () => setTimeout(() => {
+      const voice = document.querySelector('#voice-input');
+      if (voice && (window.SpeechRecognition || window.webkitSpeechRecognition)) voice.click(); else document.querySelector('#question')?.focus();
+    }, 150));
     document.querySelectorAll('[data-sfx-toggle]').forEach(button => { button.onclick = () => { setSfx(!sfxOn()); if (sfxOn()) sfx('tap', undefined, 0); render(); }; });
     document.querySelectorAll('[data-pet-page]').forEach(button => { button.onclick = () => {
       const candidate = { ...profile, petPages: togglePetPage(petPagesOf(profile), button.dataset.petPage) };
