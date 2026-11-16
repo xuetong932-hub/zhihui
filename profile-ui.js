@@ -46,7 +46,7 @@ export async function photoToAvatar(file) {
   } finally { URL.revokeObjectURL(url); }
 }
 
-const SOON = () => [['vip', '👑', pick('知回会员', 'KnowBack Plus')], ['report', '📊', pick('学习报告', 'Learning report')], ['frame', '🖼', pick('头像框', 'Avatar frames')]];
+const SOON = () => [['vip', pick('知回会员', 'KnowBack Plus')], ['report', pick('学习报告', 'Learning report')], ['frame', pick('头像框', 'Avatar frames')]];
 export function profileView({ name, level, levelCard, badgeWall, frame = '' }) {
   return `<section class="profile-page">
     <header class="book-top store-top"><button type="button" class="book-back" data-profile-back aria-label="${pick('返回', 'Back')}">‹</button><strong>${pick('个人主页', 'Profile')}</strong><span></span></header>
@@ -56,7 +56,7 @@ export function profileView({ name, level, levelCard, badgeWall, frame = '' }) {
     <div class="section-heading" id="badge-wall"><h2>${pick('徽章墙', 'Badge wall')}</h2></div>
     ${badgeWall}
     <div class="section-heading"><h2>${pick('即将开放', 'Coming soon')}</h2></div>
-    <div class="soon-row">${SOON().map(([id, icon, label]) => `<button type="button" class="soon-card" data-soon="${id}"><span aria-hidden="true">${icon}</span><strong>${label}</strong><em>${pick('即将开放', 'Coming soon')}</em></button>`).join('')}</div>
+    <div class="soon-row">${SOON().map(([id, label]) => `<button type="button" class="soon-card" data-soon="${id}"><img src="/illustrations/world/${id}.webp" alt="" decoding="async"><strong>${label}</strong><em>${pick('即将开放', 'Coming soon')}</em></button>`).join('')}</div>
   </section>`;
 }
 
