@@ -12,7 +12,6 @@ import { profileView, openAvatarSheet, avatarSrc, isPhotoAvatar } from './profil
 import { cleanShop, shopState, buy, refund, equip, unequip, freezeDates, protectedStreak, wearOutfit, completeSets, itemById, ITEMS, PARTS, SETS } from './shop.js';
 import { journey } from './journey.js';
 import { sfx, sfxOn, setSfx } from './sfx.js';
-import { openStep } from './journey-ui.js';
 import { dropsEarned, gardenState, pour, harvest, cleanGarden } from './garden.js';
 import { gardenView, openLimb, heightText, stageName } from './garden-ui.js';
 import { shopView, openItemSheet, decorLayer, frameImage, dressedSquirrel, isDressed, setName } from './shop-ui.js';
@@ -716,15 +715,6 @@ function boot() {
         const result = harvest(profile?.garden, dropsNow());
         if (result.ok && saveGarden(result.data)) { sfx('set'); gardenToast = pick('收获 +{n} 松果', 'Harvested +{n} pine cones', { n: 10 }); render(); }
       });
-    }
-    if (document.querySelector('.tree-page')) {
-      const tree = growthTree(), steps = [...tree.items, ...tree.limbs.map(limb => limb.next).filter(Boolean)];
-      document.querySelectorAll('[data-tree-step]').forEach(button => { button.onclick = () => openStep(steps.find(step => step.key === button.dataset.treeStep)); });
-      document.querySelectorAll('.tree-meter b[data-tree-fill]').forEach(bar => { bar.style.width = `${bar.dataset.treeFill}%`; });
-      // The vine repeats every 240px and is centred at each repeat's ends: round its length up to whole repeats so it
-      // meets the seed's stem straight on.
-      const vine = document.querySelector('.tree-trunk');
-      if (vine) { vine.style.paddingBottom = ''; const extra = (240 - vine.offsetHeight % 240) % 240; vine.style.paddingBottom = `${parseFloat(getComputedStyle(vine).paddingBottom) + extra}px`; }
     }
     document.querySelectorAll('[data-pet-store]').forEach(button => { button.onclick = () => { petPage = 'store'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('[data-store-back]').forEach(button => { button.onclick = () => { petPage = 'room'; render(); window.scrollTo(0, 0); }; });
