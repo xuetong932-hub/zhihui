@@ -1,5 +1,6 @@
 // ms interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Share what you learn.": "Kongsi apa yang anda pelajari.",
  "{n} cards are waiting for you today": "{n} kad sedang menunggu anda hari ini",
  "Backy’s tips": "Petua Backy",
  "Close the tip": "Tutup petua",

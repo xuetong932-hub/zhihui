@@ -1,5 +1,6 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Share what you learn.": "배운 것을 모두와 나눠요.",
  "{n} cards are waiting for you today": "오늘 카드 {n}장이 기다리고 있어요",
  "Backy’s tips": "Backy의 팁",
  "Close the tip": "팁 닫기",

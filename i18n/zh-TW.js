@@ -1,5 +1,6 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Share what you learn.": "學到的，說給大家聽。",
  "{n} cards are waiting for you today": "今天有 {n} 張卡片在等你複習哦",
  "Backy’s tips": "小回提示",
  "Close the tip": "關閉提示",

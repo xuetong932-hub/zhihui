@@ -1,5 +1,6 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Share what you learn.": "学んだことを、みんなに。",
  "{n} cards are waiting for you today": "今日は {n} 枚のカードが待ってるよ",
  "Backy’s tips": "Backy のヒント",
  "Close the tip": "ヒントを閉じる",

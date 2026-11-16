@@ -1,5 +1,6 @@
 // fr interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "Share what you learn.": "Partage ce que tu apprends.",
  "{n} cards are waiting for you today": "{n} cartes t’attendent aujourd’hui",
  "Backy’s tips": "Conseils de Backy",
  "Close the tip": "Fermer le conseil",

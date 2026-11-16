@@ -165,7 +165,7 @@ export function createSquareUI({ auth, getAccount, locale, refresh, moduleName }
       <div class="actions"><span class="field-hint">${tr('内容公开可见，请勿发布个人信息。翻译由智谱 AI 处理。', 'Posts are public; do not share personal information. Translation is done by Zhipu AI.')}</span><button class="primary-button" id="square-publish" ${posting || !length || length > POST_MAX ? 'disabled' : ''}>${posting ? tr('发布中…', 'Posting…') : tr('发布', 'Post')}</button></div></section>`;
   }
   function view() {
-    const head = `<section class="intro"><span class="eyebrow">${tr('学习广场', 'Learning square')}</span><h1>${tr('学习广场', 'Learning square')}</h1><p>${tr('分享学到的东西，讨论问题，互相鼓励。', 'Share what you learn, discuss questions and cheer each other on.')}</p></section>`;
+    const head = `<section class="intro"><span class="eyebrow">${tr('广场', 'Square')}</span><h1>${tr('学到的，说给大家听。', 'Share what you learn.')}</h1></section>`;
     if (!available()) return `${head}<p class="square-empty">${tr('广场需要连接账号服务，当前不可用。', 'The square needs the account service, which is not available here.')}</p>`;
     return `${head}${composeView()}
       ${message ? `<p class="error" role="alert">${e(message)}</p>` : ''}
