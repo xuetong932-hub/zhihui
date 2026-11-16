@@ -12,6 +12,7 @@ import { profileView, openAvatarSheet, avatarSrc, isPhotoAvatar } from './profil
 import { cleanShop, shopState, buy, refund, equip, unequip, freezeDates, protectedStreak, wearOutfit, completeSets, itemById, ITEMS, PARTS, SETS } from './shop.js';
 import { journey } from './journey.js';
 import { sfx, sfxOn, setSfx } from './sfx.js';
+import { pickTip, closeTip, readTips, writeTips } from './tips.js';
 import { dropsEarned, gardenState, pour, harvest, cleanGarden } from './garden.js';
 import { gardenView, openLimb, heightText, stageName } from './garden-ui.js';
 import { shopView, openItemSheet, decorLayer, frameImage, dressedSquirrel, isDressed, setName } from './shop-ui.js';
@@ -287,7 +288,7 @@ function boot() {
     const lv = petProgress().level;
     return `<button type="button" class="me-head" data-me-profile aria-label="${pick('个人主页', 'Profile')}"><span class="avatar-wrap"><span class="me-avatar ${isPhotoAvatar() ? 'is-photo' : ''}"><img src="${avatarSrc()}" alt="" decoding="async"></span>${frameImage(shopData().frame)}</span><div><h1>${esc(name)} <span class="me-lv">Lv.${lv.level} ${levelTitle(lv.level)}</span></h1><p>${account?.local ? (pick('记录只保存在这台设备', 'Records stay on this device')) : (pick('学习记录保存在本机，可在账号中加密同步', 'Records are kept here; encrypted sync is in Account'))}</p></div><span class="me-chevron" aria-hidden="true">›</span></button>
       ${meSummary()}
-      <div class="me-group"><h2>${pick('学习', 'Learning')}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), pick('目标 {v0} 张', 'Goal {v0}', { v0: goalOf(profile) }))}${row('id="theme-toggle"', iconSvg(dark ? 'moon' : 'sun'), pick('外观', 'Appearance'), dark ? (pick('黑夜', 'Night')) : (pick('白天', 'Day')))}${row('id="language"', iconSvg('globe'), pick('语言', 'Language'), localeName(locale))}${row('id="sfx-toggle" data-sfx-toggle', iconSvg('music'), pick('音效', 'Sound effects'), sfxOn() ? pick('开', 'On') : pick('关', 'Off'))}</div>
+      <div class="me-group"><h2>${pick('学习', 'Learning')}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), pick('目标 {v0} 张', 'Goal {v0}', { v0: goalOf(profile) }))}${row('id="theme-toggle"', iconSvg(dark ? 'moon' : 'sun'), pick('外观', 'Appearance'), dark ? (pick('黑夜', 'Night')) : (pick('白天', 'Day')))}${row('id="language"', iconSvg('globe'), pick('语言', 'Language'), localeName(locale))}${row('id="sfx-toggle" data-sfx-toggle', iconSvg('music'), pick('音效', 'Sound effects'), sfxOn() ? pick('开', 'On') : pick('关', 'Off'))}${row('id="tips-toggle" data-tips-toggle', iconSvg('smile'), pick('小回提示', 'Backy’s tips'), readTips().off ? pick('关', 'Off') : pick('开', 'On'))}</div>
       <div class="me-group"><h2>${pick('账号与设备', 'Account & device')}</h2>${account?.local ? row('data-signin', iconSvg('user'), pick('登录 / 注册', 'Sign in / Register')) : row('data-cloud', iconSvg('user'), pick('账号与同步', 'Account & sync'))}${row('data-device', iconSvg('camera'), pick('设备与提醒', 'Device & reminders'))}${account?.is_admin ? row('data-admin', iconSvg('chart'), pick('管理', 'Admin')) : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}${row('data-onboarding', iconSvg('compass'), pick('新手指引', 'Guided tour'))}</div>
       ${androidBrowser() ? `<div class="me-group"><h2>${pick('安卓 App', 'Android app')}</h2><a class="me-row" href="/zhihui.apk" download="zhihui.apk"><span class="me-icon">${iconSvg('download')}</span><span class="me-label">${pick('下载安卓 App', 'Download the Android app')}</span><span class="me-value">${pick('约 1 MB', 'About 1 MB')}</span><span class="me-chevron" aria-hidden="true">›</span></a><p class="me-note">${pick('安装时手机会提示"未知来源应用"，选择仍然安装即可。', 'Your phone will warn about an app from an unknown source; choose to install anyway.')}</p></div>` : ''}`;
   }
@@ -411,6 +412,64 @@ function boot() {
     if (reducedMotion()) { button.onclick = () => openMascotRing(button); return true; }
     startPetPlay(button, document.querySelector('main'), { float: true, usual: () => button.dataset.pose, sleepy: () => false, ring: () => openMascotRing(button) });
     return true;
+  }
+  // 小回's speech bubble on home (tips.js): one tip, a × to close it, a tap on the words does what it says. It rides
+  // with the squirrel (inside the physics holder when it roams, beside it in the scene otherwise).
+  function tipText(tip) {
+    return {
+      mic: pick('点一下麦克风，说出你想问的吧～', 'Tap the mic and ask me anything~'),
+      due: pick('今天有 {n} 张卡片在等你复习哦', '{n} cards are waiting for you today', { n: tip.n }),
+      water: pick('水壶装满啦，去给通天藤浇水吧 💧', 'The can is full, let’s water the beanstalk 💧'),
+      goal: pick('今天的目标完成啦，你真棒！', 'Goal done for today. Well done!'),
+      back: pick('好久不见，我好想你～', 'Long time no see. I missed you~'),
+      badge: pick('我拿到新徽章啦，快来看看', 'I got a new badge, come and see'),
+    }[tip.id];
+  }
+  function tipContext() {
+    const events = chat.reviewEvents(), today = localDay(new Date()), goal = goalOf(profile);
+    const done = new Set(events.filter(event => localDay(event.at) === today).map(event => event.cardId)).size;
+    const days = [...new Set(events.map(event => localDay(event.at)))].filter(day => day < today).sort();
+    const last = days.at(-1), away = last && !done ? Math.round((new Date(today) - new Date(last)) / 86400000) : 0;
+    let seen = null; try { seen = JSON.parse(localStorage.getItem(BADGES_SEEN_KEY) || 'null'); } catch { /* None. */ }
+    const fresh = Array.isArray(seen) ? newBadges(petProgress().badges, new Set(seen))[0] : null;
+    const garden = gardenNow();
+    return { today, due: chat.reviewCount(), doneToday: done, goalReached: done >= goal, canFull: garden.inCan > 0 && garden.inCan >= garden.can.capacity, daysAway: away, newBadge: fresh ? `${fresh.id}:${fresh.tier}` : null };
+  }
+  function showTip() {
+    const button = document.querySelector('.home-scene-wrap .today-mascot, .pet-play .today-mascot');
+    if (!button) return;
+    const ctx = tipContext(), tip = pickTip(ctx, readTips());
+    if (!tip) return;
+    const holder = button.closest('.pet-body'), bubble = document.createElement('div');
+    bubble.className = `mascot-tip ${holder ? 'on-free' : 'on-scene'}`; bubble.setAttribute('role', 'status');
+    bubble.innerHTML = `<span class="tip-text" role="button" tabindex="0">${esc(tipText(tip))}</span><button type="button" class="tip-close" aria-label="${pick('关闭提示', 'Close the tip')}">×</button>`;
+    (holder?.parentElement || button.parentElement).append(bubble);
+    bubble.addEventListener('pointerdown', event => event.stopPropagation());
+    // A free squirrel moves: the bubble follows it upright from the layer above, kept on screen, hidden in flight.
+    if (holder) {
+      let last = null;
+      const follow = () => {
+        if (!bubble.isConnected || !holder.isConnected || !chat.isHome) { clearInterval(timer); bubble.remove(); return; }
+        const at = holder.getBoundingClientRect(), w = bubble.offsetWidth, h = bubble.offsetHeight, layer = holder.parentElement.getBoundingClientRect();
+        const cx = at.left + at.width / 2, left = Math.min(Math.max(cx - w / 2, layer.left + 8), layer.right - w - 8);
+        bubble.style.left = `${left - layer.left}px`; bubble.style.top = `${Math.max(at.top - h - 8, 8) - layer.top}px`;
+        bubble.style.setProperty('--tail', `${Math.min(Math.max(cx - left - 6, 12), w - 24)}px`);
+        bubble.classList.toggle('is-moving', !!last && Math.hypot(at.left - last.left, at.top - last.top) > 3);
+        last = at;
+      };
+      const timer = setInterval(follow, 120); follow();
+    }
+    const close = () => { writeTips(closeTip(readTips(), tip, ctx.today)); bubble.classList.add('is-leaving'); setTimeout(() => bubble.remove(), 200); };
+    bubble.querySelector('.tip-close').onclick = event => { event.stopPropagation(); close(); };
+    const go = event => {
+      event.stopPropagation(); close();
+      if (tip.id === 'mic') document.querySelector('[data-ask-mic]')?.click();
+      else if (tip.id === 'due') document.querySelector('[data-review]')?.click();
+      else if (tip.id === 'water') { petPage = 'tree'; chat.go('pet'); }
+      else if (tip.id === 'badge') openBadgeWall();
+    };
+    const text = bubble.querySelector('.tip-text');
+    text.onclick = go; text.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') go(event); };
   }
   function bindMascot(tabs) {
     if (floatMascot(tabs)) return;
@@ -723,10 +782,12 @@ function boot() {
     document.querySelectorAll('[data-lib-page]').forEach(button => { button.onclick = () => chat.go(button.dataset.libPage); });
     // The home mic opens 提问 (the chat binds data-open-module) and then starts dictation there; without speech
     // recognition the question box just gets the focus.
+    document.querySelector('[data-ask-mic]')?.addEventListener('click', () => { const tips = readTips(); if (!tips.usedMic) writeTips({ ...tips, usedMic: true }); });
     document.querySelector('[data-ask-mic]')?.addEventListener('click', () => setTimeout(() => {
       const voice = document.querySelector('#voice-input');
       if (voice && (window.SpeechRecognition || window.webkitSpeechRecognition)) voice.click(); else document.querySelector('#question')?.focus();
     }, 150));
+    document.querySelectorAll('[data-tips-toggle]').forEach(button => { button.onclick = () => { const tips = readTips(); writeTips({ ...tips, off: !tips.off }); render(); }; });
     document.querySelectorAll('[data-sfx-toggle]').forEach(button => { button.onclick = () => { setSfx(!sfxOn()); if (sfxOn()) sfx('tap', undefined, 0); render(); }; });
     document.querySelectorAll('[data-pet-page]').forEach(button => { button.onclick = () => {
       const candidate = { ...profile, petPages: togglePetPage(petPagesOf(profile), button.dataset.petPage) };
@@ -738,6 +799,7 @@ function boot() {
     document.querySelectorAll('.pet-meter i[data-fed]').forEach(bar => { bar.style.width = `${bar.dataset.fed}%`; });
     placeTabPill();
     bindMascot(tabs);
+    if (tabs && chat.isHome) showTip();
     if (tabs) flyNewCones();
     document.querySelectorAll('[data-share-card]').forEach(button => { button.onclick = () => openShareDialog({ locale, data: shareData() }); });
     // Day / night switch (theme.js applies it before paint and remembers it per device).

@@ -1,5 +1,13 @@
 // ms interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{n} cards are waiting for you today": "{n} kad sedang menunggu anda hari ini",
+ "Backy’s tips": "Petua Backy",
+ "Close the tip": "Tutup petua",
+ "Goal done for today. Well done!": "Matlamat hari ini selesai. Syabas!",
+ "I got a new badge, come and see": "Saya dapat lencana baharu, mari lihat",
+ "Long time no see. I missed you~": "Lama tak jumpa. Saya rindu~",
+ "Tap the mic and ask me anything~": "Ketik mikrofon dan tanya apa sahaja~",
+ "The can is full, let’s water the beanstalk 💧": "Tin sudah penuh, jom siram pokok kacang 💧",
  "Off": "Mati",
  "On": "Hidup",
  "Sound effects": "Kesan bunyi",

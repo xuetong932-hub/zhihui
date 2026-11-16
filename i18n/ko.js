@@ -1,5 +1,13 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{n} cards are waiting for you today": "오늘 카드 {n}장이 기다리고 있어요",
+ "Backy’s tips": "Backy의 팁",
+ "Close the tip": "팁 닫기",
+ "Goal done for today. Well done!": "오늘 목표 달성! 정말 잘했어요!",
+ "I got a new badge, come and see": "새 배지를 받았어요, 보러 와요",
+ "Long time no see. I missed you~": "오랜만이에요, 보고 싶었어요～",
+ "Tap the mic and ask me anything~": "마이크를 누르고 뭐든 물어보세요～",
+ "The can is full, let’s water the beanstalk 💧": "물뿌리개가 가득 찼어요, 덩굴에 물 주러 가요 💧",
  "Off": "끔",
  "On": "켬",
  "Sound effects": "효과음",

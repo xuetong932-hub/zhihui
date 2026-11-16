@@ -1,5 +1,13 @@
 // de interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{n} cards are waiting for you today": "Heute warten {n} Karten auf Sie",
+ "Backy’s tips": "Backys Tipps",
+ "Close the tip": "Tipp schließen",
+ "Goal done for today. Well done!": "Tagesziel erreicht. Super!",
+ "I got a new badge, come and see": "Ich habe ein neues Abzeichen, schauen Sie mal",
+ "Long time no see. I missed you~": "Lange nicht gesehen. Ich habe Sie vermisst~",
+ "Tap the mic and ask me anything~": "Tippen Sie aufs Mikro und fragen Sie mich~",
+ "The can is full, let’s water the beanstalk 💧": "Die Kanne ist voll, gießen wir die Ranke 💧",
  "Off": "Aus",
  "On": "An",
  "Sound effects": "Soundeffekte",

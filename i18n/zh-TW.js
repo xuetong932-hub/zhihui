@@ -1,5 +1,13 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{n} cards are waiting for you today": "今天有 {n} 張卡片在等你複習哦",
+ "Backy’s tips": "小回提示",
+ "Close the tip": "關閉提示",
+ "Goal done for today. Well done!": "今天的目標完成啦，你真棒！",
+ "I got a new badge, come and see": "我拿到新徽章啦，快來看看",
+ "Long time no see. I missed you~": "好久不見，我好想你～",
+ "Tap the mic and ask me anything~": "點一下麥克風，說出你想問的吧～",
+ "The can is full, let’s water the beanstalk 💧": "水壺裝滿啦，去給通天藤澆水吧 💧",
  "Off": "關",
  "On": "開",
  "Sound effects": "音效",

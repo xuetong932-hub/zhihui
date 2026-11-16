@@ -956,3 +956,19 @@ body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
 [data-theme="dark"] .garden-height span{color:var(--steel)}
 @media (prefers-reduced-motion:reduce){.garden-scene,.garden-fruit,.is-rising .garden-scene-old{animation:none}.garden-scene-old{display:none}}
 .pet-chip.pet-sound{border:0;font:inherit;cursor:pointer}
+/* 小回's speech bubble on home (2026-11-16; tips.js): one tip with a × to close it; tapping the words does what they say.
+   Beside the squirrel in the scene, or above it while it roams (it rides inside the physics holder and fades while
+   the squirrel is held). */
+.mascot-tip{position:absolute;z-index:3;display:flex;align-items:flex-start;gap:var(--sp-4);width:max-content;max-width:200px;padding:var(--sp-8) var(--sp-8) var(--sp-8) var(--sp-12);border-radius:var(--r-12);background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:var(--shadow-2);color:var(--ink);font-size:var(--fs-13);line-height:1.4;text-shadow:none;animation:tip-in .35s var(--ease-spring) both;transition:opacity var(--dur-1)}
+.mascot-tip::after{content:"";position:absolute;width:12px;height:12px;background:inherit;transform:rotate(45deg)}
+.mascot-tip.on-scene{top:var(--sp-8);right:116px}
+.mascot-tip.on-scene::after{right:-5px;top:16px}
+.mascot-tip.on-free{pointer-events:auto;transition:opacity var(--dur-1),left .12s linear,top .12s linear}
+.mascot-tip.on-free::after{left:var(--tail,24px);bottom:-5px}
+.mascot-tip.is-moving{opacity:0;pointer-events:none}
+.tip-text{cursor:pointer}
+.tip-close{flex:none;width:24px;height:24px;margin:-4px -4px 0 0;padding:0;border:0;border-radius:50%;background:rgba(0,0,0,.06);color:var(--muted);font-size:var(--fs-15);line-height:24px;cursor:pointer}
+.mascot-tip.is-leaving{opacity:0}
+@keyframes tip-in{from{opacity:0;transform:scale(.8) translateY(6px)}}
+[data-theme="dark"] .mascot-tip{background:rgba(30,34,38,.9);color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.mascot-tip{animation:none}}

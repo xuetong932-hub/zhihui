@@ -1,5 +1,13 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{n} cards are waiting for you today": "今日は {n} 枚のカードが待ってるよ",
+ "Backy’s tips": "Backy のヒント",
+ "Close the tip": "ヒントを閉じる",
+ "Goal done for today. Well done!": "今日の目標達成！すごいね！",
+ "I got a new badge, come and see": "新しいバッジをもらったよ、見に来て",
+ "Long time no see. I missed you~": "久しぶり、会いたかったよ～",
+ "Tap the mic and ask me anything~": "マイクをタップして、なんでも聞いてね～",
+ "The can is full, let’s water the beanstalk 💧": "じょうろが満タン、つるに水をあげよう 💧",
  "Off": "オフ",
  "On": "オン",
  "Sound effects": "効果音",
