@@ -43,9 +43,9 @@ export function createDiscoverUI({ locale, cards, profile, modules, account, ref
     return newest?.module || ids[0] || '';
   };
   const KINDS = [
-    { key: 'creators', zh: '博主与视频', en: 'Creators & videos', icon: '▶' },
-    { key: 'books', zh: '书籍', en: 'Books', icon: '▤' },
-    { key: 'papers', zh: '论文与指南', en: 'Papers & guides', icon: '§' },
+    { key: 'creators', zh: '博主与视频', en: 'Creators & videos', icon: 'video' },
+    { key: 'books', zh: '书籍', en: 'Books', icon: 'book' },
+    { key: 'papers', zh: '论文与指南', en: 'Papers & guides', icon: 'guide' },
   ];
 
   function recommendView() {
@@ -55,7 +55,7 @@ export function createDiscoverUI({ locale, cards, profile, modules, account, ref
     const item = entry => `<a class="pick-card" href="${e(entry.url)}" target="_blank" rel="noopener noreferrer"><strong>${e(entry.name)}${entry.kind === 'guide' ? ` <span class="pick-tag">${tr('权威指南', 'Guideline')}</span>` : ''} <span aria-hidden="true">↗</span></strong><p>${e(tr(entry.zh, entry.en))}</p></a>`;
     const column = kind => {
       const picks = curatedItems(current, kind.key, area);
-      return `<section class="panel discover-column"><div class="section-heading"><h2><span class="discover-glyph" aria-hidden="true">${kind.icon}</span>${tr(kind.zh, kind.en)}</h2></div>
+      return `<section class="panel discover-column"><div class="section-heading"><h2><img class="discover-glyph" src="/illustrations/world/${kind.icon}.webp" alt="" decoding="async">${tr(kind.zh, kind.en)}</h2></div>
       ${picks.length ? picks.map(item).join('') : `<p class="muted">${tr('这个模块还没有精选资源，可以用下面的搜索。', 'No picks for this module yet; use the searches below.')}</p>`}
       <div class="search-links" role="group" aria-label="${tr('搜索更多：', 'Search more:')}">${keyword ? sources[kind.key].map(source => `<a class="search-link" href="${e(source.url(keyword))}" target="_blank" rel="noopener noreferrer">${tr('在 {v0} 搜索「{v1}」', 'Search {v0} for “{v1}”', { v0: source.name, v1: e(keyword) })} <span aria-hidden="true">↗</span></a>`).join('') : ''}</div></section>`;
     };
