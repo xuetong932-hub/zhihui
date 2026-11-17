@@ -10,6 +10,7 @@ import { achievements, newBadges } from './achievements.js';
 import { storeView, showBadge, celebrateBadge, levelCard, badgeWall, levelTitle } from './badges-ui.js';
 import { profileView, openAvatarSheet, avatarSrc, isPhotoAvatar } from './profile-ui.js';
 import { memberView, dailyTasks, openMemberAbout } from './member-ui.js';
+import { createFriendsUI, codeIn } from './friends-ui.js';
 import { openLearningCalendar, activityByDay, activeDaysIn } from './calendar-ui.js';
 import { planOf, itemSeconds, PLAN_MINUTES, PLAN_NEW, PLAN_RETENTION } from './review-store.js';
 import { cleanShop, shopState, buy, refund, equip, unequip, freezeDates, protectedStreak, wearOutfit, completeSets, itemById, ITEMS, PARTS, SETS } from './shop.js';
@@ -167,6 +168,15 @@ function boot() {
   // The gate runs first; the learning app is created after sign-in or after the user picks local mode ({ local: true }).
   const auth = createAuth();
   let chat = null, account = null;
+  const friends = createFriendsUI({ auth, getAccount: () => account, refresh: () => render() });
+  // A friend link (/add/KB-XXXXXX → /m/?add=…) opens the friends page with that person once the app is ready; it waits
+  // here (this tab only) through sign-in.
+  let pendingFriend = '';
+  try {
+    const fromLink = codeIn(new URLSearchParams(location.search).get('add'));
+    if (fromLink) { sessionStorage.setItem('knowledge-review.add-friend', fromLink); history.replaceState(null, '', location.pathname); }
+    pendingFriend = sessionStorage.getItem('knowledge-review.add-friend') || '';
+  } catch { /* Private mode: the link just opens the app. */ }
   const gate = createAuthGate({ auth, locale: () => locale, refresh: () => render(), onReady: acct => {
     account = acct;
     profile = readProfile();
@@ -689,7 +699,7 @@ function boot() {
   }
   function meProfileView() {
     const progress = petProgress(), name = account?.local ? pick('本地模式', 'Local mode') : account?.username || (account?.is_admin ? pick('管理员', 'Administrator') : pick('已登录', 'Signed in'));
-    return profileView({ name, level: progress.level, levelCard: levelCard(progress.level, '/illustrations/mascot-cheer.webp') + `<button type="button" class="me-row tree-link" data-open-tree><span class="me-icon">🌱</span><span class="me-label">${pick('通天藤', 'Beanstalk')}</span><span class="me-value">${pick('已点亮 {n} 个', '{n} lit', { n: growthTree().total })}</span><span class="me-chevron" aria-hidden="true">›</span></button>`, badgeWall: badgeWall(progress.badges), frame: frameImage(shopData().frame) });
+    return profileView({ name, level: progress.level, levelCard: levelCard(progress.level, '/illustrations/mascot-cheer.webp') + `<button type="button" class="me-row tree-link" data-open-tree><span class="me-icon">🌱</span><span class="me-label">${pick('通天藤', 'Beanstalk')}</span><span class="me-value">${pick('已点亮 {n} 个', '{n} lit', { n: growthTree().total })}</span><span class="me-chevron" aria-hidden="true">›</span></button><button type="button" class="me-row tree-link" data-open-friends><span class="me-icon">${iconSvg('user')}</span><span class="me-label">${pick('好友', 'Friends')}</span>${friends.requests ? `<span class="me-value"><span class="friend-dot">${friends.requests}</span></span>` : ''}<span class="me-chevron" aria-hidden="true">›</span></button>`, badgeWall: badgeWall(progress.badges), frame: frameImage(shopData().frame) });
   }
   const openBadgeWall = () => { petPage = 'room'; mePage = 'profile'; chat.go('me'); requestAnimationFrame(() => document.querySelector('#badge-wall')?.scrollIntoView({ block: 'start' })); };
   const petProgress = () => achievements({ events: chat.reviewEvents(), goal: goalOf(profile), cards: chat.knowledgeCards(), questions: chat.questionDates(), books: Object.keys(profile?.modules || {}).filter(isCustomModule).length });
@@ -804,7 +814,7 @@ function boot() {
     app.innerHTML = `
       <header class="header"><a class="brand" href="${location.pathname.startsWith('/m') ? '/m/' : '/'}" aria-label="${t('brand')}"><span class="brand-mark" aria-hidden="true">↗</span>${t('brand')}</a>
         ${tabs ? '' : `<div class="header-actions">${inApp && profile && !editing && !guide ? chat.nav() : ''}${themeButton()}<button class="text-button" id="language" aria-haspopup="dialog" aria-label="${pick('界面语言', 'Interface language')}" ${locked ? 'disabled' : ''}><span aria-hidden="true">🌐</span> ${localeName(locale)}</button></div>`}</header>
-      <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? (mePage === 'profile' ? meProfileView() : mePage === 'member' ? meMemberView() : meView()) : tabs && chat.page === 'pet' ? (petPage === 'store' ? petStoreView() : petPage === 'shop' ? petShopView() : petPage === 'tree' ? petTreeView() : petView()) : tabs && ['library', 'discover', 'recommend', 'square'].includes(chat.page) ? librarySwitch() + chat.view() : chat.isHome ? homeView() : chat.view()}</main>
+      <main>${!inApp ? gate.view() : editing ? setupView() : tabs && chat.isHome ? homePhoneView() : tabs && chat.page === 'me' ? (mePage === 'profile' ? meProfileView() : mePage === 'member' ? meMemberView() : mePage === 'friends' ? friends.view() : meView()) : tabs && chat.page === 'pet' ? (petPage === 'store' ? petStoreView() : petPage === 'shop' ? petShopView() : petPage === 'tree' ? petTreeView() : petView()) : tabs && ['library', 'discover', 'recommend', 'square'].includes(chat.page) ? librarySwitch() + chat.view() : chat.isHome ? homeView() : chat.view()}</main>
       ${tabs ? tabBar(locked) : `<footer>${t('preview')}</footer>`}`;
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
     document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => { petPage = 'room'; mePage = 'main'; chat.go(button.dataset.tab); }; });
@@ -838,6 +848,15 @@ function boot() {
       button.classList.remove('is-poke'); void button.offsetWidth; button.classList.add('is-poke');
     }; });
     document.querySelectorAll('[data-member-back]').forEach(button => { button.onclick = () => { mePage = 'profile'; render(); window.scrollTo(0, 0); }; });
+    document.querySelectorAll('[data-open-friends]').forEach(button => { button.onclick = () => { mePage = 'friends'; render(); window.scrollTo(0, 0); friends.load(); }; });
+    document.querySelectorAll('[data-friends-back]').forEach(button => { button.onclick = () => { mePage = 'profile'; render(); window.scrollTo(0, 0); }; });
+    if (mePage === 'friends' && chat?.page === 'me') friends.bind();
+    // A friend link waiting from start-up: open the friends page and the add sheet once signed in.
+    if (pendingFriend && chat && account && !account.local) {
+      const code = pendingFriend; pendingFriend = '';
+      try { sessionStorage.removeItem('knowledge-review.add-friend'); } catch { /* Nothing to clear. */ }
+      setTimeout(() => { petPage = 'room'; mePage = 'friends'; chat.go('me'); friends.load(); setTimeout(() => friends.openAdd(code), 300); }, 0);
+    }
     document.querySelectorAll('[data-member-about]').forEach(button => { button.onclick = () => openMemberAbout(button.dataset.memberAbout || ''); });
     document.querySelectorAll('[data-member-shop]').forEach(button => { button.onclick = () => { petPage = 'shop'; shopTab = 'outfit'; mePage = 'main'; chat.go('pet'); }; });
     document.querySelectorAll('[data-member-task]').forEach(button => { button.onclick = () => {

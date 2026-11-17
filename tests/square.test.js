@@ -132,5 +132,5 @@ test('square: relative times, schema grants and no leftover placeholder', () => 
   const sql = readFileSync(new URL('../cloud-schema.sql', import.meta.url), 'utf8');
   for (const table of ['square_posts', 'square_comments', 'square_likes', 'square_reports']) assert.match(sql, new RegExp(`alter table public\\.${table} enable row level security`));
   assert.match(sql, /grant execute on function public\.square_feed\(timestamptz, int\), public\.square_comments\(uuid\) to anon, authenticated;/, 'only reading is open to everyone');
-  assert.doesNotMatch(sql.split('grant execute on function public.square_post(')[1] || '', /\banon\b/, 'writing is never granted to anon');
+  assert.doesNotMatch((sql.split('grant execute on function public.square_post(')[1] || '').split(';')[0], /\banon\b/, 'writing is never granted to anon');
 });

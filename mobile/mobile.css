@@ -1204,3 +1204,52 @@ body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
 .home-scene-wrap .ask-bar{border-color:rgba(255,255,255,.5);background:linear-gradient(180deg,color-mix(in srgb,var(--brand) 62%,transparent),color-mix(in srgb,var(--brand-deep) 48%,transparent));-webkit-backdrop-filter:blur(18px) saturate(1.8);backdrop-filter:blur(18px) saturate(1.8);box-shadow:inset 0 1px 0 rgba(255,255,255,.75),inset 0 -1px 0 rgba(255,255,255,.18),0 8px 24px rgba(40,28,12,.16)}
 .home-scene-wrap .ask-mic{background:rgba(255,255,255,.92);color:var(--brand-deep);box-shadow:0 4px 12px rgba(20,60,35,.25)}
 [data-theme="dark"] .home-scene-wrap .ask-bar{border-color:rgba(255,255,255,.16);background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05))}
+/* 好友 (friends-ui.js): my QR card, scan / enter buttons, requests and friends. */
+.friends-page{display:flex;flex-direction:column;gap:var(--sp-12);padding-bottom:var(--sp-24)}
+.friend-card{display:flex;flex-direction:column;align-items:center;gap:var(--sp-8);padding:var(--sp-24) var(--sp-16) var(--sp-16);border-radius:var(--r-20,20px);background:var(--canvas,#fff);box-shadow:var(--shadow-1)}
+.friend-qr{position:relative;width:216px;height:216px;padding:var(--sp-8);border-radius:var(--r-16,16px);background:#fff;box-shadow:inset 0 0 0 1px var(--line)}
+.friend-qr .qr-svg{display:block;width:100%;height:100%}
+.friend-qr-logo{position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:12px;background:#fff;box-shadow:0 0 0 3px #fff}
+.friend-id{display:flex;align-items:center;gap:var(--sp-8);margin:var(--sp-8) 0 0}
+.friend-id span{font-size:13px;color:var(--muted)}
+.friend-id strong{font-size:20px;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.friend-copy{min-height:32px;padding:0 var(--sp-12);border:1px solid var(--line);border-radius:999px;background:none;color:var(--brand-deep);font:inherit;font-size:13px;font-weight:600}
+.friend-hint{margin:0;font-size:13px;color:var(--muted);text-align:center}
+.friend-buttons{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-12)}
+.friend-buttons .primary-button,.friend-buttons .secondary-button{display:grid;place-items:center;min-height:48px;margin:0;border-radius:999px}
+.friends-status{min-height:20px;margin:0;font-size:14px;color:var(--muted);text-align:center}
+.friends-list h2{margin:var(--sp-8) var(--sp-4) var(--sp-8);font-size:15px}
+.friends-list ul{margin:0;padding:0;list-style:none;border-radius:var(--r-16,16px);background:var(--canvas,#fff);box-shadow:var(--shadow-1)}
+.friend-row{display:flex;align-items:center;gap:var(--sp-12);padding:var(--sp-12) var(--sp-16)}
+.friend-row+.friend-row{border-top:1px solid var(--divider)}
+.friend-avatar{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;background:var(--brand-soft);overflow:hidden}
+.friend-avatar img{width:36px;height:36px}
+.friend-avatar.big{width:72px;height:72px}
+.friend-avatar.big img{width:64px;height:64px}
+.friend-who{display:flex;flex-direction:column;gap:var(--sp-4);flex:1;min-width:0}
+.friend-who strong{font-size:15px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.friend-who small{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.friend-actions{display:flex;gap:var(--sp-8)}
+.friend-accept,.friend-plain{min-height:32px;padding:0 var(--sp-12);border-radius:999px;font:inherit;font-size:13px;font-weight:600}
+.friend-accept{border:0;background:var(--brand);color:#fff}
+.friend-plain{border:1px solid var(--line);background:none;color:var(--muted)}
+.friends-none{margin:var(--sp-8) 0;text-align:center;font-size:14px;color:var(--muted)}
+.friend-reset{align-self:center;margin-top:var(--sp-8);padding:var(--sp-8);border:0;background:none;color:var(--muted);font:inherit;font-size:13px;text-decoration:underline}
+.friends-empty{display:flex;flex-direction:column;align-items:center;gap:var(--sp-12);padding:var(--sp-32) var(--sp-16);text-align:center}
+.friends-empty img{width:120px}
+.friends-empty p{margin:0;color:var(--slate);line-height:1.6}
+.friend-dot{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 var(--sp-4);border-radius:999px;background:var(--pink);color:#fff;font-size:12px;font-weight:700}
+.scan-frame{position:relative;overflow:hidden;aspect-ratio:1;border-radius:var(--r-20,20px);background:#0f172a}
+.scan-frame video{width:100%;height:100%;object-fit:cover}
+.scan-box{position:absolute;inset:18%;border:3px solid rgba(255,255,255,.9);border-radius:var(--r-16,16px);box-shadow:0 0 0 999px rgba(15,23,42,.35)}
+.scan-photo{cursor:pointer}
+.friend-scan-layer .friends-status{margin:var(--sp-12) 0}
+.friend-found{display:flex;flex-direction:column;align-items:center;gap:var(--sp-8);padding:var(--sp-8) 0 var(--sp-16);text-align:center}
+.friend-found strong{font-size:18px}
+.friend-found small{color:var(--muted);letter-spacing:.04em}
+.friend-found p{margin:0;color:var(--slate)}
+.friend-found .primary-button{min-height:48px;margin-top:var(--sp-8);padding:0 var(--sp-32);border-radius:999px}
+.friend-enter{display:flex;flex-direction:column;gap:var(--sp-8)}
+.friend-enter input{min-height:48px;padding:0 var(--sp-16);border:1px solid var(--line);border-radius:var(--r-16,16px);background:var(--canvas,#fff);color:var(--ink);font:inherit;font-size:18px;letter-spacing:.06em;text-transform:uppercase}
+.friend-enter .primary-button{min-height:48px;border-radius:999px}
+[data-theme="dark"] .friend-card,[data-theme="dark"] .friends-list ul{background:#1e293b}

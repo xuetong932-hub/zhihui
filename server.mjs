@@ -13,7 +13,7 @@ import { translateText, validateTranslate } from './translate-service.mjs';
 const files = new Map([
   // The web version is the app itself (mobile/index.html); mobile/wide.css lays it out for wide screens.
   ['/', ['mobile/index.html', 'text/html; charset=utf-8']],
-  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','module-icons.js','discover-ui.js','recommend-data.js','starter-content.js','habit.js','pet.js','pet-physics.js','splash.js','bookshelf.js','achievements.js','badges-ui.js','scenes.js','profile-ui.js','mindmap-canvas.js','shop.js','shop-ui.js','journey.js','journey-ui.js','garden.js','garden-ui.js','sfx.js','tips.js', 'member-ui.js', 'calendar-ui.js','fsrs.js','onboarding.js','tour.js', 'square-ui.js','i18n.js','theme.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','graph-view.js','mindmap.js','viz-edit.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
+  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','module-icons.js','discover-ui.js','recommend-data.js','starter-content.js','habit.js','pet.js','pet-physics.js','splash.js','bookshelf.js','achievements.js','badges-ui.js','scenes.js','profile-ui.js','mindmap-canvas.js','shop.js','shop-ui.js','journey.js','journey-ui.js','garden.js','garden-ui.js','sfx.js','tips.js', 'member-ui.js', 'calendar-ui.js', 'qr.js', 'friends-ui.js','fsrs.js','onboarding.js','tour.js', 'square-ui.js','i18n.js','theme.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','graph-view.js','mindmap.js','viz-edit.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
   ['/manifest.webmanifest',['manifest.webmanifest','application/manifest+json']],['/icon.svg',['icon.svg','image/svg+xml']],
   // PNG icons for installing to a phone (Android app package, home screen); made from icon.svg.
   ...['icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png'].map(name => [`/${name}`, [name, 'image/png']]),
@@ -30,7 +30,7 @@ const files = new Map([
   // Interface languages beyond Chinese and English (i18n.js loads the chosen one on demand).
   ...['zh-TW', 'ja', 'ko', 'ms', 'es', 'fr', 'pt', 'de'].map(code => [`/i18n/${code}.js`, [`i18n/${code}.js`, 'text/javascript; charset=utf-8']]),
   // Product page (welcome/): what 知回 does, download and install links.
-  ['/welcome', ['welcome/index.html', 'text/html; charset=utf-8']], ['/welcome/', ['welcome/index.html', 'text/html; charset=utf-8']], ['/welcome/welcome.css', ['welcome/welcome.css', 'text/css; charset=utf-8']], ['/welcome/welcome.js', ['welcome/welcome.js', 'text/javascript; charset=utf-8']],
+  ['/vendor/jsQR.js', ['vendor/jsQR.js', 'text/javascript; charset=utf-8']], ['/welcome', ['welcome/index.html', 'text/html; charset=utf-8']], ['/welcome/', ['welcome/index.html', 'text/html; charset=utf-8']], ['/welcome/welcome.css', ['welcome/welcome.css', 'text/css; charset=utf-8']], ['/welcome/welcome.js', ['welcome/welcome.js', 'text/javascript; charset=utf-8']],
   ['/m', ['mobile/index.html', 'text/html; charset=utf-8']], ['/m/', ['mobile/index.html', 'text/html; charset=utf-8']], ['/m/mobile.css', ['mobile/mobile.css', 'text/css; charset=utf-8']], ['/m/wide.css', ['mobile/wide.css', 'text/css; charset=utf-8']],
   ['/oauth-callback.html', ['oauth-callback.html', 'text/html; charset=utf-8']],
 ]);
@@ -97,6 +97,9 @@ export function createApp({ modelCaller = callModel, knowledgeCaller = extractKn
     if (request.headers.origin && request.headers.origin !== (isPublic ? publicOrigin : `http://${host}`)) { json(response, 403, { error: 'origin' }); return; }
     for (const [name, value] of Object.entries(isPublic ? publicHeaders : {})) response.setHeader(name, value);
     const url = new URL(request.url, `http://${host}`), path = url.pathname;
+    // A friend QR code read by a phone camera opens /add/KB-XXXXXX: send it to the app, which offers to add them.
+    const friendLink = /^\/add\/(KB-[2-9A-HJKMNP-Z]{6})\/?$/i.exec(path);
+    if (friendLink && request.method === 'GET') { response.writeHead(302, { ...headers, Location: `/m/?add=${friendLink[1].toUpperCase()}` }); response.end(); return; }
     if (path === '/' && !url.searchParams.has('desktop') && request.method === 'GET' && PHONE_AGENT.test(request.headers['user-agent'] || '')) {
       response.writeHead(302, { ...headers, Location: '/m/' }); response.end(); return;
     }

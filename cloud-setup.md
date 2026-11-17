@@ -37,3 +37,7 @@ The free allowance lets users ask questions and get review grading without their
    - Every free call: at most 40 per IP in 10 minutes.
 5. Not included in the free allowance: semantic relations and mind map expansion (the user's own key is needed).
 6. Before a public launch in China, check the requirements for generative AI services: registration and filing, and labelling AI-generated content.
+
+## 好友（2026-11-17）
+
+在 Supabase SQL 编辑器里运行 `cloud-schema.sql` 末尾的 “Friends” 一段（从 `create table if not exists public.friend_codes` 到最后的 `grant execute`）。它新增 `friend_codes`、`friend_requests`、`friend_links` 三张表（开启 RLS，不开放直接读写）和 `my_friend_code`、`friend_overview`、`friend_lookup`、`friend_request`、`friend_respond`、`friend_remove`、`friend_reset_code` 函数，只授权给已登录用户，并且只操作调用者自己的好友关系。运行前，App 的好友页会显示“好友服务暂未开放”。

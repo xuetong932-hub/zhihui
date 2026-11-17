@@ -373,3 +373,154 @@ revoke all on function public.square_can_write(), public.square_name(uuid), publ
 grant execute on function public.square_feed(timestamptz, int), public.square_comments(uuid) to anon, authenticated;
 grant execute on function public.square_post(text, text, text), public.square_comment(uuid, text, text), public.square_like(uuid, boolean),
   public.square_delete(text, uuid), public.square_report(text, uuid, text), public.admin_square_reports(), public.admin_square_moderate(text, uuid, text) to authenticated;
+
+-- ── Friends (个人主页 → 好友, 2026-11-17) ───────────────────────────────────────────────────────────────────
+-- Every registered account gets a public friend code (KB- + 6 characters, no 0/O/1/I/L) shown as text and as a QR
+-- code; it reveals nothing else and can be reset. Friend requests go by code; accepted requests become friendships.
+-- The tables are closed; everything goes through the functions below, which only touch the caller's own rows.
+create table if not exists public.friend_codes (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  code text not null unique check (code ~ '^KB-[2-9A-HJKMNP-Z]{6}$'),
+  created_at timestamptz not null default now()
+);
+create table if not exists public.friend_requests (
+  id uuid primary key default gen_random_uuid(),
+  from_user uuid not null references auth.users(id) on delete cascade,
+  to_user uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  check (from_user <> to_user),
+  unique (from_user, to_user)
+);
+create table if not exists public.friend_links (
+  user_a uuid not null references auth.users(id) on delete cascade,
+  user_b uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_a, user_b),
+  check (user_a < user_b)
+);
+alter table public.friend_codes enable row level security;
+alter table public.friend_requests enable row level security;
+alter table public.friend_links enable row level security;
+revoke all on public.friend_codes, public.friend_requests, public.friend_links from anon, authenticated;
+
+create or replace function public.friend_new_code() returns text
+language plpgsql volatile security definer set search_path = '' as $$
+declare alphabet text := '23456789ABCDEFGHJKMNPQRSTUVWXYZ'; candidate text;
+begin
+  loop
+    candidate := 'KB-' || (select string_agg(substr(alphabet, 1 + floor(random() * length(alphabet))::int, 1), '') from generate_series(1, 6));
+    exit when not exists(select 1 from public.friend_codes where code = candidate);
+  end loop;
+  return candidate;
+end $$;
+-- The caller's code, created on first use. Only registered (or administrator) accounts take part.
+create or replace function public.my_friend_code() returns text
+language plpgsql volatile security definer set search_path = '' as $$
+declare found text;
+begin
+  if not public.square_can_write() then raise exception 'not_eligible'; end if;
+  select code into found from public.friend_codes where user_id = auth.uid();
+  if found is null then
+    insert into public.friend_codes(user_id, code) values (auth.uid(), public.friend_new_code()) on conflict (user_id) do nothing;
+    select code into found from public.friend_codes where user_id = auth.uid();
+  end if;
+  return found;
+end $$;
+create or replace function public.friend_reset_code() returns text
+language plpgsql volatile security definer set search_path = '' as $$
+declare fresh text;
+begin
+  if not public.square_can_write() then raise exception 'not_eligible'; end if;
+  fresh := public.friend_new_code();
+  insert into public.friend_codes(user_id, code) values (auth.uid(), fresh) on conflict (user_id) do update set code = excluded.code, created_at = now();
+  return fresh;
+end $$;
+create or replace function public.friend_user(friend_code text) returns uuid
+language sql stable security definer set search_path = '' as $$
+  select user_id from public.friend_codes where code = upper(btrim(friend_code));
+$$;
+create or replace function public.friend_pair_exists(a uuid, b uuid) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists(select 1 from public.friend_links where user_a = least(a, b) and user_b = greatest(a, b));
+$$;
+-- Who a code belongs to (name only) and how the caller stands with them: self / friends / sent / received / none.
+create or replace function public.friend_lookup(friend_code text) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare target uuid;
+begin
+  if not public.square_can_write() then raise exception 'not_eligible'; end if;
+  target := public.friend_user(friend_code);
+  if target is null then raise exception 'not_found'; end if;
+  return jsonb_build_object('code', upper(btrim(friend_code)), 'name', public.square_name(target), 'state',
+    case when target = auth.uid() then 'self'
+         when public.friend_pair_exists(auth.uid(), target) then 'friends'
+         when exists(select 1 from public.friend_requests where from_user = auth.uid() and to_user = target) then 'sent'
+         when exists(select 1 from public.friend_requests where from_user = target and to_user = auth.uid()) then 'received'
+         else 'none' end);
+end $$;
+-- Send a request; when the other side already asked, this accepts theirs instead.
+create or replace function public.friend_request(friend_code text) returns text
+language plpgsql volatile security definer set search_path = '' as $$
+declare target uuid;
+begin
+  if not public.square_can_write() then raise exception 'not_eligible'; end if;
+  target := public.friend_user(friend_code);
+  if target is null then raise exception 'not_found'; end if;
+  if target = auth.uid() then raise exception 'friend_self'; end if;
+  if public.friend_pair_exists(auth.uid(), target) then return 'friends'; end if;
+  if exists(select 1 from public.friend_requests where from_user = target and to_user = auth.uid()) then
+    delete from public.friend_requests where (from_user = target and to_user = auth.uid()) or (from_user = auth.uid() and to_user = target);
+    insert into public.friend_links(user_a, user_b) values (least(auth.uid(), target), greatest(auth.uid(), target)) on conflict do nothing;
+    return 'friends';
+  end if;
+  if (select count(*) from public.friend_requests where from_user = auth.uid() and created_at > now() - interval '1 hour') >= 30 then raise exception 'rate_limited'; end if;
+  insert into public.friend_requests(from_user, to_user) values (auth.uid(), target) on conflict do nothing;
+  return 'sent';
+end $$;
+-- Accept or decline a request sent to the caller (by the sender's code).
+create or replace function public.friend_respond(friend_code text, accept boolean) returns text
+language plpgsql volatile security definer set search_path = '' as $$
+declare sender uuid;
+begin
+  if not public.square_can_write() then raise exception 'not_eligible'; end if;
+  sender := public.friend_user(friend_code);
+  if sender is null or not exists(select 1 from public.friend_requests where from_user = sender and to_user = auth.uid()) then raise exception 'not_found'; end if;
+  delete from public.friend_requests where from_user = sender and to_user = auth.uid();
+  if accept then
+    delete from public.friend_requests where from_user = auth.uid() and to_user = sender;
+    insert into public.friend_links(user_a, user_b) values (least(auth.uid(), sender), greatest(auth.uid(), sender)) on conflict do nothing;
+    return 'friends';
+  end if;
+  return 'declined';
+end $$;
+-- Remove a friend, or cancel a request the caller sent.
+create or replace function public.friend_remove(friend_code text) returns void
+language plpgsql volatile security definer set search_path = '' as $$
+declare target uuid;
+begin
+  if not public.square_can_write() then raise exception 'not_eligible'; end if;
+  target := public.friend_user(friend_code);
+  if target is null then return; end if;
+  delete from public.friend_links where user_a = least(auth.uid(), target) and user_b = greatest(auth.uid(), target);
+  delete from public.friend_requests where from_user = auth.uid() and to_user = target;
+end $$;
+-- Everything the friends page shows: the caller's code, friends, requests received and sent (names and codes only).
+create or replace function public.friend_overview() returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare mine text;
+begin
+  mine := public.my_friend_code();
+  return jsonb_build_object('code', mine,
+    'friends', coalesce((select jsonb_agg(jsonb_build_object('code', c.code, 'name', public.square_name(c.user_id), 'since', l.created_at) order by l.created_at desc)
+      from public.friend_links l join public.friend_codes c on c.user_id = case when l.user_a = auth.uid() then l.user_b else l.user_a end
+      where auth.uid() in (l.user_a, l.user_b)), '[]'::jsonb),
+    'received', coalesce((select jsonb_agg(jsonb_build_object('code', c.code, 'name', public.square_name(r.from_user), 'at', r.created_at) order by r.created_at desc)
+      from public.friend_requests r join public.friend_codes c on c.user_id = r.from_user where r.to_user = auth.uid()), '[]'::jsonb),
+    'sent', coalesce((select jsonb_agg(jsonb_build_object('code', c.code, 'name', public.square_name(r.to_user), 'at', r.created_at) order by r.created_at desc)
+      from public.friend_requests r join public.friend_codes c on c.user_id = r.to_user where r.from_user = auth.uid()), '[]'::jsonb));
+end $$;
+revoke all on function public.friend_new_code(), public.my_friend_code(), public.friend_reset_code(), public.friend_user(text),
+  public.friend_pair_exists(uuid, uuid), public.friend_lookup(text), public.friend_request(text), public.friend_respond(text, boolean),
+  public.friend_remove(text), public.friend_overview() from public, anon, authenticated;
+grant execute on function public.my_friend_code(), public.friend_reset_code(), public.friend_lookup(text), public.friend_request(text),
+  public.friend_respond(text, boolean), public.friend_remove(text), public.friend_overview() to authenticated;
