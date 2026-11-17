@@ -17,6 +17,11 @@ const NAME = {
   'neck-scarf': () => pick('红围巾', 'Red scarf'), 'neck-bell': () => pick('铃铛项圈', 'Bell collar'), 'neck-bow': () => pick('波点领结', 'Polka-dot bow tie'),
   'body-sweater': () => pick('松果毛衣套装', 'Pine-cone sweater set'), 'body-overalls': () => pick('背带裤', 'Dungarees'), 'body-raincoat': () => pick('小雨衣', 'Little raincoat'), 'body-blazer': () => pick('学院制服', 'School uniform'),
   'back-pouch': () => pick('松果挎包', 'Pine-cone pouch'), 'back-bag': () => pick('小书包', 'Little satchel'), 'back-wings': () => pick('星星小翅膀', 'Starry wings'),
+  'hat-chef': () => pick('厨师高帽', 'Chef’s hat'), 'face-flour': () => pick('面粉小花脸', 'Flour smudges'), 'neck-gingham': () => pick('红格餐巾', 'Gingham neckerchief'), 'body-chef': () => pick('小厨师服', 'Little chef’s whites'), 'back-basket': () => pick('面包篮', 'Bread basket'),
+  'hat-wizard': () => pick('星星尖顶帽', 'Starry wizard hat'), 'face-monocle': () => pick('金框单片镜', 'Gold monocle'), 'neck-moon': () => pick('月亮吊坠', 'Moon pendant'), 'body-wizard': () => pick('星空法师袍', 'Starry robe'), 'back-spellbook': () => pick('魔法书', 'Spellbook'),
+  'hat-sailor': () => pick('水手帽', 'Sailor cap'), 'face-anchor': () => pick('船锚贴纸', 'Anchor sticker'), 'neck-sailor': () => pick('水手领', 'Sailor collar'), 'body-sailor': () => pick('条纹水手服', 'Striped sailor suit'), 'back-lifebuoy': () => pick('救生圈', 'Life ring'),
+  'hat-space': () => pick('宇航头盔', 'Space helmet'), 'face-stargoggles': () => pick('星星眼镜', 'Star glasses'), 'neck-patch': () => pick('任务徽章', 'Mission badge'), 'body-space': () => pick('小宇航服', 'Little spacesuit'), 'back-rocket': () => pick('火箭背包', 'Rocket pack'),
+  'hat-tiger': () => pick('虎头帽', 'Tiger hat'), 'face-huadian': () => pick('新春红脸蛋', 'New Year rosy cheeks'), 'neck-goldlock': () => pick('长命锁', 'Golden longevity lock'), 'body-tang': () => pick('红色小唐装', 'Red Tang suit'),
 };
 const DESC = {
   fern: () => pick('放在圆窗下，让小窝多一点绿意。', 'Sits under the round window and adds some green.'),
@@ -62,7 +67,7 @@ export const dressedSquirrel = outfit => `<img class="dressed-base" src="${STAND
 
 const TABS = () => [['outfit', pick('装扮', 'Outfits')], ['decor', pick('家具', 'Furniture')], ['frame', pick('头像框', 'Frames')], ['tool', pick('道具', 'Items')]];
 const PART_NAME = () => ({ head: pick('头饰', 'Head'), face: pick('脸部', 'Face'), neck: pick('颈部', 'Neck'), body: pick('衣服', 'Clothes'), back: pick('背后', 'Back') });
-export const setName = id => ({ scholar: pick('学者', 'Scholar'), explorer: pick('探险家', 'Explorer'), cosy: pick('暖冬', 'Cosy') })[id] || id;
+export const setName = id => ({ scholar: pick('学者', 'Scholar'), explorer: pick('探险家', 'Explorer'), cosy: pick('暖冬', 'Cosy'), chef: pick('小厨师', 'Little chef'), wizard: pick('小魔法师', 'Little wizard'), sailor: pick('小水手', 'Little sailor'), space: pick('小宇航员', 'Little astronaut') })[id] || id;
 // Dressing room (商城 → 装扮): Backy large in the middle wearing the saved outfit plus anything being tried on, the
 // three sets with how many of their pieces are on, one tab per part and the pieces of that part. Tapping tries a piece
 // on; the bar at the bottom puts the look on (buying what is not owned yet in one go). The dice picks a random look.

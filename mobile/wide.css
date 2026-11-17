@@ -63,7 +63,7 @@
   .dress-room{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);grid-template-areas:"stage parts" "stage grid" "sets grid" "msg grid" "bar bar";column-gap:var(--sp-32);align-items:start}
   .dress-stage{grid-area:stage;height:420px}
   .dress-mascot{width:260px}
-  .dress-sets{grid-area:sets}
+  .dress-sets{grid-area:sets;flex-wrap:wrap;margin:0;padding:0;overflow:visible}
   .dress-parts{grid-area:parts}
   .dress-grid{grid-area:grid;grid-template-columns:repeat(4,1fr)}
   .dress-msg{grid-area:msg}

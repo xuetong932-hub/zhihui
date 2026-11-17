@@ -821,6 +821,30 @@ button.me-head{width:calc(100% - 8px);padding:0;border:0;background:none;color:v
 .dressed .dl-neck-bell{left:23.46%;top:59.55%;width:34.21%}
 .dressed .dl-neck-bow{left:24.09%;top:60.02%;width:32.52%}
 .dressed .dl-neck-scarf{left:18.43%;top:58.19%;width:42.64%}
+.dressed .dl-hat-chef{left:27.11%;top:-2.79%;width:34.84%}
+.dressed .dl-face-flour{left:15.47%;top:41.40%;width:49.37%}
+.dressed .dl-neck-gingham{left:20.88%;top:59.19%;width:39.50%}
+.dressed .dl-body-chef{left:14.59%;top:59.61%;width:49.81%}
+.dressed .dl-face-monocle{left:16.60%;top:33.27%;width:21.32%}
+.dressed .dl-neck-moon{left:26.48%;top:59.91%;width:30.13%}
+.dressed .dl-body-wizard{left:12.89%;top:58.96%;width:54.65%}
+.dressed .dl-back-spellbook{left:23.77%;top:60.26%;width:38.99%}
+.dressed .dl-face-anchor{left:16.29%;top:45.79%;width:47.42%}
+.dressed .dl-neck-sailor{left:17.48%;top:59.79%;width:43.27%}
+.dressed .dl-body-sailor{left:15.47%;top:59.96%;width:48.11%}
+.dressed .dl-back-lifebuoy{left:9.87%;top:56.88%;width:61.89%}
+.dressed .dl-hat-space{left:8.81%;top:4.98%;width:64.65%}
+.dressed .dl-face-stargoggles{left:11.89%;top:30.01%;width:57.61%}
+.dressed .dl-neck-patch{left:23.52%;top:59.49%;width:32.70%}
+.dressed .dl-body-space{left:14.59%;top:58.66%;width:50.25%}
+.dressed .dl-back-rocket{left:20.88%;top:59.02%;width:47.42%}
+.dressed .dl-hat-wizard{left:1.13%;top:-4.98%;width:72.70%}
+.dressed .dl-hat-sailor{left:27.23%;top:7.12%;width:43.77%}
+.dressed .dl-hat-tiger{left:13.33%;top:11.57%;width:55.60%}
+.dressed .dl-face-huadian{left:15.16%;top:29.89%;width:50.94%}
+.dressed .dl-neck-goldlock{left:24.53%;top:60.20%;width:32.14%}
+.dressed .dl-body-tang{left:14.59%;top:59.55%;width:50.57%}
+.dressed .dl-back-basket{left:0.44%;top:44.90%;width:59.06%}
 /* Dressing room (商城 → 装扮). */
 .dress-room{display:flex;flex-direction:column;gap:var(--sp-12);padding-bottom:var(--sp-24)}
 .dress-stage{position:relative;display:grid;place-items:center;height:248px;border-radius:var(--r-20);background:radial-gradient(70% 60% at 50% 45%,#fff8ea,#f1e2c6);box-shadow:inset 0 0 0 1px rgba(233,194,122,.35)}
@@ -833,8 +857,9 @@ button.me-head{width:calc(100% - 8px);padding:0;border:0;background:none;color:v
 .dress-tool{position:absolute;top:var(--sp-12);display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:50%;background:rgba(255,255,255,.75);box-shadow:var(--shadow-1);font-size:var(--fs-20);color:var(--ink);cursor:pointer}
 .dress-dice{left:var(--sp-12)}.dress-reset{right:var(--sp-12)}
 [data-theme="dark"] .dress-tool{background:rgba(255,255,255,.12)}
-.dress-sets{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-8)}
-.dress-set{display:flex;justify-content:space-between;align-items:center;min-height:40px;padding:0 var(--sp-12);border:1px solid var(--line);border-radius:var(--r-pill);background:transparent;color:var(--ink);font-size:var(--fs-13)}
+.dress-sets{display:flex;gap:var(--sp-8);margin:0 calc(var(--sp-16) * -1);padding:0 var(--sp-16);overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
+.dress-sets::-webkit-scrollbar{display:none}
+.dress-set{flex:none;gap:var(--sp-12);scroll-snap-align:start;display:flex;justify-content:space-between;align-items:center;min-height:40px;padding:0 var(--sp-12);border:1px solid var(--line);border-radius:var(--r-pill);background:transparent;color:var(--ink);font-size:var(--fs-13)}
 .dress-set span{color:var(--muted);font-variant-numeric:tabular-nums}
 .dress-set.is-done{border-color:#e0b25c;background:linear-gradient(180deg,#fff3d6,#f8e2b0)}
 .dress-set.is-done span{color:#8a5a12}
