@@ -44,3 +44,10 @@ test('i18n: a saved language loads its catalog once, so a reload keeps that lang
   assert.equal(needsCatalog('fr'), false);
   assert.notEqual(translate('开始复习', 'Start review', undefined, 'fr'), 'Start review');
 });
+
+test('i18n: English counts of one read in the singular', () => {
+  assert.equal(translate('{n} 张 · {due} 张待复习', '{n} cards · {due} due', { n: 1, due: 0 }, 'en'), '1 card · 0 due');
+  assert.equal(translate('{n} 张 · {due} 张待复习', '{n} cards · {due} due', { n: 2, due: 0 }, 'en'), '2 cards · 0 due');
+  assert.equal(translate('再 {n} 颗', '{n} more pine cones to Lv.{lv}', { n: 1, lv: 3 }, 'en'), '1 more pine cone to Lv.3');
+  assert.equal(translate('连续 {n} 天', 'Meet the daily goal {n} days in a row', { n: 1 }, 'en'), 'Meet the daily goal 1 day in a row');
+});

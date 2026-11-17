@@ -189,6 +189,18 @@ const CARDS = {
   ],
 };
 export const hasStarterPack = module => Object.hasOwn(CARDS, module);
+// A starter card is saved in the language it was added in. Shown in another language, each field that still holds the
+// built-in text (Chinese, English or the current language) follows the interface; a field the user edited stays as written.
+export function localizeStarter(card, locale) {
+  const match = isStarterCard(card) && /^starter-(.+)-(\d+)$/.exec(card.id), source = match && CARDS[match[1]]?.[Number(match[2]) - 1];
+  if (!source) return card;
+  let out = card;
+  for (const key of ['title', 'summary', 'category', 'example']) {
+    const pair = source[key], want = pair && inLocale(pair, locale);
+    if (want && card[key] !== want && [pair[0], pair[1], inLocale(pair, 'zh'), inLocale(pair, 'en')].includes(card[key])) out = { ...out, [key]: want };
+  }
+  return out;
+}
 // Cards ready to add to the library: ids are fixed per module and position, so a pack is never added twice.
 export function starterCards(module, locale, now = new Date()) {
   const list = CARDS[module] || [], at = now.toISOString();

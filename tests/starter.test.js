@@ -49,3 +49,11 @@ test('the one place to ask suggests a question from each original subject', asyn
   assert.deepEqual(list, PRESET_MODULES.map(id => starterQuestions(id, 'beginner', 'zh')[0]));
   assert.equal(hasStarterPack(ASK_MODULE), false);
 });
+
+test('starter cards follow the interface language unless the user edited them', async () => {
+  const { starterCards, localizeStarter } = await import('../starter-content.js');
+  const card = starterCards('coding', 'zh')[0];
+  assert.equal(localizeStarter(card, 'en').title, starterCards('coding', 'en')[0].title);
+  assert.equal(localizeStarter({ ...card, title: '我的变量' }, 'en').title, '我的变量', 'an edited field stays');
+  assert.equal(localizeStarter({ id: 'card-1', title: '变量' }, 'en').title, '变量', 'other cards are untouched');
+});

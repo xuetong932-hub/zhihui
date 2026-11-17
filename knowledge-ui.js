@@ -1,7 +1,7 @@
 import { KNOWLEDGE_KEY, emptyKnowledge, loadKnowledge, addKnowledge, mergeCards, localDay, validCard } from './knowledge-store.js';
 import { escapeHtml as e, renderAnswer } from './chat-store.js';
 import { createMemoryPanel } from './memory-ui.js';
-import { isStarterCard } from './starter-content.js';
+import { isStarterCard, localizeStarter } from './starter-content.js';
 import { pick, intlLocale, currentLocale } from './i18n.js';
 import { shelfView, bookView, cardPageView, coverColor, animateOpen, animateClose, bookDialog, confirmDialog } from './bookshelf.js';
 import { moduleIconName } from './module-icons.js';
@@ -18,11 +18,16 @@ export function createKnowledgeUI({ locale, enabled, moduleName, extract, refres
   const edits = new Map(), mergeChoices = new Map(), openSections = new Set();
   const field = (card, key) => edits.get(card.id)?.[key] ?? card[key];
   const opened = key => openSections.has(key) ? 'open' : '';
+  let shownIn = '';
   function load() {
     snapshot = null; data = emptyKnowledge(); error = ''; blocked = false; edits.clear(); mergeChoices.clear(); openSections.clear();
     try { snapshot = localStorage.getItem(KNOWLEDGE_KEY); data = loadKnowledge(snapshot); }
     catch { blocked = true; error = text('知识数据无法读取，未覆盖原记录。','Knowledge data could not be read. Original data was not overwritten.'); }
+    shownIn = '';
+    localize();
   }
+  // Starter cards follow the interface language (in memory; saved that way only when the library is saved anyway).
+  function localize() { const lang = locale(); if (lang === shownIn) return; shownIn = lang; data.cards = data.cards.map(card => localizeStarter(card, lang)); }
   load();
   function save() {
     if (blocked) return false;
@@ -51,7 +56,7 @@ export function createKnowledgeUI({ locale, enabled, moduleName, extract, refres
   const updateCard = (id, change) => { const card = data.cards.find(item => item.id === id); if (!card || blocked) return false; change(card); card.updatedAt = new Date().toISOString(); return save(); };
   const panel = createMemoryPanel({ locale, cards: () => data.cards, reviews, dueIds, moduleName, modules: enabled, googleClientId, refresh, relate, expand, updateCard, openTab: next => { tab = next; refresh(); }, startReview });
   const tabs = () => `<div class="module-tabs library-tabs" role="tablist">${[['cards', text('知识卡片', 'Cards')], ['curve', text('记忆状态', 'Memory status')], ['graph', text('知识图谱', 'Knowledge graph')], ['mindmap', text('思维导图', 'Mind map')], ['export', text('导出', 'Export')]].map(([id, label]) => `<button class="module-tab ${tab === id ? 'active' : ''}" role="tab" aria-selected="${tab === id}" data-library-tab="${id}">${label}</button>`).join('')}</div>`;
-  function view() { if (tab === 'cards' && phone() && !trash && shelf.open) return bookPage(); return tab === 'cards' ? cardsView().replace('</section>', '</section>' + tabs()) : `<section class="intro"><span class="eyebrow">${text('知识库', 'Knowledge library')}</span><h1>${text('让问过的，成为记得住的。', 'Keep what you learn.')}</h1></section>${tabs()}${panel.view(tab)}`; }
+  function view() { localize(); if (tab === 'cards' && phone() && !trash && shelf.open) return bookPage(); return tab === 'cards' ? cardsView().replace('</section>', '</section>' + tabs()) : `<section class="intro"><span class="eyebrow">${text('知识库', 'Knowledge library')}</span><h1>${text('让问过的，成为记得住的。', 'Keep what you learn.')}</h1></section>${tabs()}${panel.view(tab)}`; }
   function bind() {
     document.querySelectorAll('[data-library-tab]').forEach(button => { button.onclick = () => { if (busy || panel.busy) return; tab = button.dataset.libraryTab; refresh(); }; });
     document.querySelectorAll('[data-open-mindmap]').forEach(button => { button.onclick = () => { panel.select(button.dataset.openMindmap); tab = 'mindmap'; refresh(); window.scrollTo(0, 0); }; });
@@ -225,5 +230,5 @@ export function createKnowledgeUI({ locale, enabled, moduleName, extract, refres
     data.cards.splice(data.cards.length - fresh.length); return 0;
   }
   function activeCount() { return data.cards.filter(card => ['active','paused'].includes(card.status)).length; }
-  return {view,bind,ingest,reload:load,addCards,activeCount,hasCard:id=>data.cards.some(card=>card.id===id),get busy(){return busy||panel.busy;},cards:()=>data.cards,markWeak(id,reason){const card=data.cards.find(item=>item.id===id);if(card){card.important=true;card.reason=reason;save();}},count:module=>data.cards.filter(card=>card.module===module&&card.status==='active').length};
+  return {view,bind,ingest,reload:load,addCards,activeCount,hasCard:id=>data.cards.some(card=>card.id===id),get busy(){return busy||panel.busy;},cards:()=>{localize();return data.cards;},markWeak(id,reason){const card=data.cards.find(item=>item.id===id);if(card){card.important=true;card.reason=reason;save();}},count:module=>data.cards.filter(card=>card.module===module&&card.status==='active').length};
 }

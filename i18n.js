@@ -50,8 +50,11 @@ export function setLocale(code) { current = isLocale(code) ? code : 'en'; if (gl
 
 const fill = (text, vars) => vars ? text.replace(/\{(\w+)\}/g, (match, key) => key in vars ? String(vars[key]) : match) : text;
 // The one translation function. The locale defaults to the current interface language.
+// English counts: "{n} cards" with n = 1 reads "1 card".
+const COUNTED = /\{(\w+)\}( (?:more |review |knowledge )?)(cards|ideas|days|questions|pine cones|times|books|conversations|messages|records|reports|users|drops)\b/g;
+export const singular = (text, vars) => vars ? text.replace(COUNTED, (match, key, mid, noun) => Number(vars[key]) === 1 ? `{${key}}${mid}${noun.slice(0, -1)}` : match) : text;
 export function translate(zh, en, vars, locale = current) {
-  const text = locale === 'zh' ? zh : locale === 'en' ? en : catalogs[locale]?.[en] ?? en;
+  const text = locale === 'zh' ? zh : locale === 'en' ? singular(en, vars) : catalogs[locale]?.[en] ?? en;
   return fill(text, vars);
 }
 export const pick = (zh, en, vars) => translate(zh, en, vars);

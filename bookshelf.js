@@ -28,7 +28,7 @@ const tall = count => count >= 40 ? 3 : count >= 15 ? 2 : count >= 5 ? 1 : 0;
 function bookHtml(book, { selected, editing, last }) {
   const note = pick('{n} 张 · {due} 待复习', '{n} cards · {due} due', { n: book.count, due: book.due });
   const art = PRESET_ART.includes(book.id) ? `<img src="/illustrations/icon-${book.id}.webp" alt="" decoding="async">` : iconSvg(book.icon, 30, '#ffffff');
-  return `<div class="book-slot ${selected === book.id ? 'is-selected' : ''}"><button type="button" class="book cover-${book.color} tall-${tall(book.count)} ${selected === book.id ? 'is-selected' : last === book.id ? 'was-selected' : ''}" data-book="${book.id}" aria-label="${e(book.name)}，${e(note)}" aria-pressed="${selected === book.id}">
+  return `<div class="book-slot ${selected === book.id ? 'is-selected' : ''}"><button type="button" class="book cover-${book.color} tall-${tall(book.count)} ${selected === book.id ? 'is-selected' : last === book.id ? 'was-selected' : ''}" data-book="${book.id}" aria-label="${e(book.name)}${pick('，', ', ')}${e(note)}" aria-pressed="${selected === book.id}">
       <span class="book-spine" aria-hidden="true"><span class="book-art">${art}</span><strong class="book-title">${e(book.name)}</strong>${book.due ? '<span class="book-ribbon"></span>' : ''}</span>
       <span class="book-body"><span class="book-art">${art}</span><strong class="book-title">${e(book.name)}</strong><span class="book-note">${e(note)}</span>${book.due ? '<span class="book-ribbon" aria-hidden="true"></span>' : ''}</span></button>
       ${editing ? `<button type="button" class="book-x" data-book-delete="${book.id}" aria-label="${pick('删除「{name}」', 'Delete “{name}”', { name: e(book.name) })}">✕</button>` : ''}</div>`;

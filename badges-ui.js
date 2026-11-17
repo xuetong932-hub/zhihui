@@ -48,7 +48,7 @@ export function badgeWall(badges) {
   return `<div class="badge-wall">${badges.map(badge => {
       const last = badge.earned[badge.earned.length - 1];
       const sub = badge.tier ? (last.day ? last.day.slice(5).replace('-', '.') : pick('已获得', 'Earned')) : `${Math.min(badge.progress, badge.next)}/${badge.next}`;
-      return `<button type="button" class="badge tier-${badge.tier}" data-badge="${badge.id}" aria-label="${e(badgeName(badge.id))}${badge.tier ? ` ${tierLabel(badge, badge.tier)}` : ''}，${e(sub)}">
+      return `<button type="button" class="badge tier-${badge.tier}" data-badge="${badge.id}" aria-label="${e(badgeName(badge.id))}${badge.tier && tierLabel(badge, badge.tier) ? ` ${tierLabel(badge, badge.tier)}` : ''}${pick('，', ', ')}${e(sub)}">
         <span class="badge-art"><img src="/illustrations/badges/${badge.id}.webp" alt="" decoding="async">${badge.tier ? '' : '<span class="badge-lock" aria-hidden="true">🔒</span>'}</span>
         ${stars(badge.tier, badge.tiers.length)}<strong>${e(badgeName(badge.id))}</strong><span class="badge-sub">${e(sub)}</span></button>`;
     }).join('')}</div>`;
