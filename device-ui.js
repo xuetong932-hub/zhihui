@@ -6,11 +6,20 @@ import {downloadText} from './viz-edit.js';
 import { pick, intlLocale, currentLocale } from './i18n.js';
 const DEVICE_KEY='knowledge-review.device.v1';
 const esc=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[char]);
-export function createDeviceUI({locale,refresh,due,openReview,validateProfile,reloadLocal,owner}){
+export function createDeviceUI({locale,refresh,due,openReview,validateProfile,reloadLocal,owner,push}){
   const tr = (zh, en, vars) => pick(zh, en, vars);
   let settings={version:1,enabled:false,time:'19:00',popup:true},message='';
   // A checked file waiting for confirmation; nothing is written before the user confirms.
   let pending=null,importConsent=false,reading=false;
+  // Push reminders: status is read from the browser and server, so the view shows the last known one.
+  let pushStatus='',pushBusy=false;
+  const pushNote=()=>({denied:tr('通知已在系统设置中关闭，请先在系统里允许。','Notifications are blocked. Allow them in system settings first.'),
+    unsupported:/iPhone|iPad/.test(navigator.userAgent)?tr('iPhone 需先用 Safari 把知回「添加到主屏幕」，再从主屏幕打开。','On iPhone, add KnowBack to the Home Screen in Safari and open it from there.'):tr('这个浏览器不支持推送通知。','This browser does not support push notifications.'),
+    unavailable:tr('推送服务暂未开启。','Push reminders are not available yet.'),failed:tr('没能开启，请稍后再试。','Could not turn them on. Try again later.')})[pushStatus]||'';
+  function pushView(){
+    const on=pushStatus==='on',usable=['on','off','failed'].includes(pushStatus);
+    return `<div class="push-reminder"><label class="check-row"><input type="checkbox" id="push-toggle" ${on?'checked':''} ${usable&&!pushBusy?'':'disabled'}>${tr('小回推送提醒','Reminders from Backy')}</label><p class="field-hint">${tr('有卡片到期时提醒，每天最多 2 次：早上 9 点，和晚上 8 点（当天已复习就不打扰）。推送由系统转送，可能延迟。','When cards are due, at most twice a day: 9 am, and 8 pm unless you already reviewed. Delivered by your system, so it may arrive late.')}</p>${pushNote()?`<p class="field-hint">${pushNote()}</p>`:''}</div>`;
+  }
   function importError(code){
     const part={profile:tr('学习设置','settings'),chats:tr('问答记录','chats'),knowledge:tr('知识库','knowledge library'),reviews:tr('复习记录','review records')}[code];
     if(code==='too-large')return tr('文件过大，超过本浏览器可保存的数据量，未导入。','The file is too large for this browser’s storage. Nothing was imported.');
@@ -47,10 +56,16 @@ export function createDeviceUI({locale,refresh,due,openReview,validateProfile,re
     const dialog=document.createElement('dialog');dialog.className='review-dialog';dialog.innerHTML=`<h2>${tr('今日复习已准备好','Your review is ready')}</h2><p>${due()} ${tr('项知识等你巩固，可稍后再来。','ideas to revisit. You can return later.')}</p><div class="actions"><button class="secondary-button" id="reminder-later">${tr('稍后','Later')}</button><button class="primary-button" id="reminder-now">${tr('开始复习','Start review')}</button></div>`;
     document.body.append(dialog);dialog.querySelector('#reminder-later').onclick=()=>{dialog.close();dialog.remove();};dialog.querySelector('#reminder-now').onclick=()=>{dialog.close();dialog.remove();openReview();};dialog.addEventListener('cancel',()=>dialog.remove());dialog.showModal();
   }
-  function view(){return `<section class="intro"><h1>${tr('设备与数据','Device and data')}</h1><p>${tr('提醒由你控制；问答数据可随时导出备份。','Control reminders and export your learning data.')}</p></section><section class="panel"><h2>${tr('复习提醒','Review reminders')}</h2><p>${tr('开启前将请求系统通知授权。当前网页仅在页面运行时检查提醒；关闭页面后的定时推送尚需云端推送服务。','Permission is requested before enabling notifications. This web version checks reminders while the page runs; closed-app scheduled push needs a cloud push service.')}</p><label class="check-row"><input type="checkbox" id="opening-popup" ${settings.popup?'checked':''}>${tr('打开时显示今日复习弹窗','Show due-review popup on opening')}</label><label class="field-label" for="reminder-time">${tr('当地时间','Local time')}</label><input id="reminder-time" type="time" value="${settings.time}">
+  function view(){return `<section class="intro"><h1>${tr('设备与数据','Device and data')}</h1><p>${tr('提醒由你控制；问答数据可随时导出备份。','Control reminders and export your learning data.')}</p></section><section class="panel"><h2>${tr('复习提醒','Review reminders')}</h2>${pushView()}<label class="check-row"><input type="checkbox" id="opening-popup" ${settings.popup?'checked':''}>${tr('打开时显示今日复习弹窗','Show due-review popup on opening')}</label><label class="field-label" for="reminder-time">${tr('当地时间','Local time')}</label><input id="reminder-time" type="time" value="${settings.time}">
         <div class="calendar-reminder"><h3>${tr('添加到手机日历（推荐）','Add to your phone’s calendar (recommended)')}</h3><p>${tr('在系统日历里添加一个每天 {v0} 的“知回 · 每日复习”提醒。由日历准时提醒，关掉知回也能收到；不需要通知授权，也不会上传任何数据。', 'Adds a daily “KnowBack · Daily review” event at {v0} to your calendar. Your calendar alerts you on time even when this app is closed; no permission needed and nothing is uploaded.', { v0: settings.time })}</p><button class="primary-button" id="add-calendar">${tr('添加到日历','Add to calendar')}</button><p class="field-hint">${tr('改了时间后，请删除日历里原来的事件，再重新添加。','After changing the time, delete the old calendar event and add it again.')}</p></div>
         <h3>${tr('系统通知（App 打开时）','System notifications (while the app is open)')}</h3><div class="followups"><button class="secondary-button" id="enable-notifications">${tr('授权并开启系统提醒','Allow and enable notifications')}</button><button class="text-button" id="disable-notifications">${tr('关闭系统提醒','Disable notifications')}</button><button class="secondary-button" id="test-notification">${tr('测试已授权通知','Test authorized notification')}</button></div><p>${settings.enabled?tr('应用提醒已开启','App reminders enabled'):tr('应用提醒未开启','App reminders disabled')} · ${tr('浏览器授权：','Browser permission: ')}${'Notification'in window?Notification.permission:tr('不支持','Unsupported')}</p></section><section class="panel"><h2>${tr('数据备份','Data backup')}</h2><p>${tr('导出学习设置、文字问答、知识卡片和复习记录；不包含 API Key、录音或登录凭据。文件可能含私人问答，请妥善保存。','Exports settings, text Q&A, knowledge cards and reviews. No API keys, audio or login credentials. Keep private Q&A files safe.')}</p><button class="secondary-button" id="export-learning">${tr('导出 JSON 备份','Export JSON backup')}</button>${importView()}</section><section class="panel"><h2>${tr('跨设备同步','Cross-device sync')}</h2><p>${tr('学习记录默认保存在本浏览器。可在“账号”页用同步口令加密上传，并在其他设备下载恢复；不会自动同步。','Learning records stay in this browser by default. Use the Account page to encrypt and upload them with a sync passphrase and restore them on other devices; nothing syncs automatically.')}</p></section><p role="status">${message}</p>`;}
   function bind(){
+    if(push&&!pushBusy)push.status().then(status=>{if(status!==pushStatus&&!(pushStatus==='failed'&&status==='off')){pushStatus=status;refresh();}});
+    const toggle=document.querySelector('#push-toggle');if(toggle)toggle.onchange=async()=>{
+      pushBusy=true;refresh();
+      if(toggle.checked)pushStatus=await push.enable();else{await push.disable();pushStatus='off';}
+      pushBusy=false;refresh();
+    };
     document.querySelector('#opening-popup').onchange=event=>{settings.popup=event.target.checked;save();};
     document.querySelector('#reminder-time').onchange=event=>{if(/^\d{2}:\d{2}$/.test(event.target.value)){settings.time=event.target.value;save();refresh();}};
     // The .ics file opens in the phone's calendar app (or downloads on a computer); the event links back to 知回.

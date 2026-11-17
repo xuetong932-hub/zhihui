@@ -524,3 +524,88 @@ revoke all on function public.friend_new_code(), public.my_friend_code(), public
   public.friend_remove(text), public.friend_overview() from public, anon, authenticated;
 grant execute on function public.my_friend_code(), public.friend_reset_code(), public.friend_lookup(text), public.friend_request(text),
   public.friend_respond(text, boolean), public.friend_remove(text), public.friend_overview() to authenticated;
+
+-- ── Review reminders by push (2026-11-17) ───────────────────────────────────────────────────────────────────
+-- A device that turned reminders on registers its push subscription with the next few reminder times (kind and card
+-- counts only, no card content). Every 10 minutes pg_cron calls the server's /api/push/tick with a secret; the server
+-- takes the reminders now due through push_take_due (which checks the secret against push_config) and sends them.
+-- The operator sets the secret once (see cloud-setup.md): insert into public.push_config ... sha256 of the secret.
+create table if not exists public.push_subscriptions (
+  endpoint text primary key check (length(endpoint) <= 1000 and endpoint ~ '^https://(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|([a-z0-9-]+\.)*push\.apple\.com|[a-z0-9.-]+\.notify\.windows\.com)/'),
+  p256dh text not null check (length(p256dh) between 80 and 100),
+  auth text not null check (length(auth) between 16 and 30),
+  locale text not null default 'zh' check (locale ~ '^[a-z]{2}(-[A-Z]{2})?$'),
+  slots jsonb not null default '[]'::jsonb,
+  last_line int not null default -1,
+  user_id uuid references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create table if not exists public.push_config (
+  id int primary key check (id = 1),
+  secret_hash text not null
+);
+alter table public.push_subscriptions enable row level security;
+alter table public.push_config enable row level security;
+revoke all on public.push_subscriptions, public.push_config from anon, authenticated;
+
+-- Register or update this device. slots: [{at, kind: morning|evening|streak, n, d}], at most 6, within the next 4 days.
+create or replace function public.push_register(endpoint text, p256dh text, auth text, locale text, slots jsonb) returns void
+language plpgsql volatile security definer set search_path = '' as $$
+declare cleaned jsonb;
+begin
+  if jsonb_typeof(push_register.slots) <> 'array' or jsonb_array_length(push_register.slots) > 6 then raise exception 'invalid_push'; end if;
+  select coalesce(jsonb_agg(jsonb_build_object('at', (s->>'at')::timestamptz, 'kind', s->>'kind', 'n', least(greatest((s->>'n')::int, 0), 9999), 'd', least(greatest(coalesce((s->>'d')::int, 0), 0), 9999))), '[]'::jsonb)
+    into cleaned from jsonb_array_elements(push_register.slots) s
+    where s->>'kind' in ('morning', 'evening', 'streak') and (s->>'at')::timestamptz between now() - interval '1 hour' and now() + interval '4 days';
+  begin
+    insert into public.push_subscriptions(endpoint, p256dh, auth, locale, slots, user_id)
+      values (push_register.endpoint, push_register.p256dh, push_register.auth, push_register.locale, cleaned, auth.uid())
+      on conflict (endpoint) do update set p256dh = excluded.p256dh, auth = excluded.auth, locale = excluded.locale, slots = excluded.slots,
+        user_id = coalesce(excluded.user_id, public.push_subscriptions.user_id), updated_at = now();
+  exception when check_violation or not_null_violation or invalid_text_representation then raise exception 'invalid_push';
+  end;
+end $$;
+create or replace function public.push_unregister(endpoint text) returns void
+language sql volatile security definer set search_path = '' as $$
+  delete from public.push_subscriptions where endpoint = push_unregister.endpoint;
+$$;
+create or replace function public.push_secret_ok(secret text) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select exists(select 1 from public.push_config where id = 1 and secret_hash = encode(sha256(convert_to(coalesce(secret, ''), 'UTF8')), 'hex'));
+$$;
+-- For the server only (secret): the reminders due now — the latest due slot per device, sent at most 3 hours late —
+-- and those slots are removed so each is sent once.
+create or replace function public.push_take_due(secret text) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare result jsonb;
+begin
+  if not public.push_secret_ok(secret) then raise exception 'denied'; end if;
+  with due as (
+    select p.endpoint, (select s from jsonb_array_elements(p.slots) s where (s->>'at')::timestamptz <= now() and (s->>'at')::timestamptz > now() - interval '3 hours' order by (s->>'at')::timestamptz desc limit 1) as slot
+    from public.push_subscriptions p
+    where exists(select 1 from jsonb_array_elements(p.slots) s where (s->>'at')::timestamptz <= now())
+  ), taken as (
+    update public.push_subscriptions p set slots = coalesce((select jsonb_agg(s) from jsonb_array_elements(p.slots) s where (s->>'at')::timestamptz > now()), '[]'::jsonb)
+    from due where p.endpoint = due.endpoint
+    returning p.endpoint, p.p256dh, p.auth, p.locale, p.last_line, due.slot
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('endpoint', endpoint, 'p256dh', p256dh, 'auth', auth, 'locale', locale, 'last_line', last_line,
+    'kind', slot->>'kind', 'n', (slot->>'n')::int, 'd', (slot->>'d')::int)) filter (where slot is not null), '[]'::jsonb)
+  into result from taken;
+  return result;
+end $$;
+-- For the server only (secret): remember the line each device got, and drop subscriptions the push service says are gone.
+create or replace function public.push_after(secret text, results jsonb) returns void
+language plpgsql volatile security definer set search_path = '' as $$
+begin
+  if not public.push_secret_ok(secret) then raise exception 'denied'; end if;
+  update public.push_subscriptions p set last_line = (r->>'line')::int
+    from jsonb_array_elements(push_after.results) r where p.endpoint = r->>'endpoint' and r->>'line' is not null;
+  delete from public.push_subscriptions p using jsonb_array_elements(push_after.results) r
+    where p.endpoint = r->>'endpoint' and coalesce((r->>'gone')::boolean, false);
+end $$;
+revoke all on function public.push_register(text, text, text, text, jsonb), public.push_unregister(text), public.push_secret_ok(text),
+  public.push_take_due(text), public.push_after(text, jsonb) from public, anon, authenticated;
+grant execute on function public.push_register(text, text, text, text, jsonb), public.push_unregister(text), public.push_take_due(text),
+  public.push_after(text, jsonb) to anon, authenticated;

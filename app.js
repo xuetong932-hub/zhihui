@@ -218,8 +218,11 @@ function boot() {
         else { openDraft(blankDraft()); editing = true; }
       } });
     if (profile) chat.ensureModule();
+    // A tapped review reminder opens /m/?review: go straight to today's review instead of the opening popup.
+    const fromReminder = new URLSearchParams(location.search).has('review');
+    if (fromReminder) history.replaceState(null, '', location.pathname);
     render();
-    if (profile) chat.openingPopup();
+    if (profile && fromReminder) chat.go('review'); else if (profile) chat.openingPopup();
   } });
 
   function render() {

@@ -20,3 +20,12 @@ services:
         sync: false
       - key: ADMIN_LOGIN_EMAIL
         sync: false
+      # Review reminders by push (see docs/DEPLOY_RENDER.md): VAPID key pair, contact, and the pg_cron tick secret.
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+      - key: PUSH_SECRET
+        sync: false

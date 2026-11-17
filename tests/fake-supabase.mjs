@@ -105,7 +105,11 @@ export function createFakeSupabase({ adminEmails = ['admin@example.test'], seedA
   };
   const maskEmail = value => value ? `${value.split('@')[0].slice(0, 2)}***@${value.split('@')[1]}` : null;
   const maskPhone = value => value ? (value.length > 7 ? `${value.slice(0, 3)}***${value.slice(-4)}` : '***') : null;
+  // Push reminders: the last registration per endpoint, for checking what a device sent.
+  const pushes = new Map();
   const rpc = {
+    push_register: (id, input) => { pushes.set(input.endpoint, input); return [200, null]; },
+    push_unregister: (id, input) => { pushes.delete(input.endpoint); return [200, null]; },
     my_account: id => [200, { status: eligibility.get(id) || 'missing', registered: profiles.has(id), username: profiles.get(id)?.username || null, region: profiles.get(id)?.region || null, is_admin: admins.has(id) }],
     complete_registration(id, input) {
       if (eligibility.get(id) === 'denied') return [400, 'denied'];

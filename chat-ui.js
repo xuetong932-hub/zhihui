@@ -3,6 +3,7 @@ import { CHAT_KEY, CONFIG_KEY, loadChats, buildContext, escapeHtml as esc, rende
 import { createKnowledgeUI } from './knowledge-ui.js';
 import { createReviewUI } from './review-ui.js';
 import {createDeviceUI} from './device-ui.js';
+import {createPushReminders} from './push-ui.js';
 import {createCloudUI} from './cloud-ui.js';
 import {attachModelHelp} from './model-help.js';
 import {createAdminUI} from './admin-ui.js';
@@ -191,7 +192,8 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
   const discoverIds=()=>{const ids=activeModuleIds(getProfile()),used=ids.filter(id=>id!==ASK_MODULE&&library.cards().some(card=>card.module===id&&card.status==='active'));return used.length?used:ids.filter(id=>LEGACY_PRESETS.includes(id));};
   const discover=createDiscoverUI({locale:getLocale,refresh,cards:library.cards,profile:getProfile,account:()=>getAccount?.(),modules:()=>discoverIds().map(id=>({id,name:moduleName(id)}))});
   const square=createSquareUI({auth,getAccount,locale:getLocale,refresh,moduleName});
-  const device=createDeviceUI({locale:getLocale,refresh,validateProfile,reloadLocal,owner,due:()=>getProfile()?review.count():0,openReview:()=>{page='review';refresh();}});
+  const push=createPushReminders({auth,cards:library.cards,reviews:()=>review.events(),profile:getProfile,locale:getLocale});push.start();
+  const device=createDeviceUI({locale:getLocale,refresh,validateProfile,reloadLocal,owner,push,due:()=>getProfile()?review.count():0,openReview:()=>{page='review';refresh();}});
   const cloud=createCloudUI({locale:getLocale,validateProfile,refresh,reloadLocal,auth,getAccount,owner,signOut,getModelKey:()=>({config:{...config},apiKey}),acceptModelKey:value=>{
     if(!validConfig(value?.config)||typeof value.apiKey!=='string'||!/^[\x21-\x7e]{8,512}$/.test(value.apiKey))return false;
     config={version:1,provider:value.config.provider,model:value.config.model,workspace:value.config.workspace,search:value.config.search};apiKey=value.apiKey;consent=false;

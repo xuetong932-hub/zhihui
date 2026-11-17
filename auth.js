@@ -130,6 +130,11 @@ export function createAuth({fetchImpl=(...args)=>fetch(...args),storage=localSto
       remove:code=>api('/rest/v1/rpc/friend_remove','POST',{friend_code:code}),
       resetCode:()=>api('/rest/v1/rpc/friend_reset_code','POST',{}),
     },
+    // Review reminders by push (cloud-schema.sql push_*): this device's subscription and next reminder times.
+    push:{
+      register:({endpoint,p256dh,auth,locale,slots})=>api('/rest/v1/rpc/push_register','POST',{endpoint,p256dh,auth,locale,slots}),
+      unregister:endpoint=>api('/rest/v1/rpc/push_unregister','POST',{endpoint}),
+    },
     async signOut(){try{if(session)await request('/auth/v1/logout',{method:'POST'});}catch{/* Local sign-out still proceeds. */}finally{save(null);}},
   };
 }

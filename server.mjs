@@ -9,11 +9,12 @@ import { reviewTask } from './review-service.mjs';
 import { createFreeQuota, FREE_PROVIDER, FREE_KIND, FREE_UNSUPPORTED } from './free-quota.mjs';
 import { recognizeImage } from './recognize-service.mjs';
 import { translateText, validateTranslate } from './translate-service.mjs';
+import { pushSettingsFromEnv, secretMatches, runPushTick } from './push-service.mjs';
 
 const files = new Map([
   // The web version is the app itself (mobile/index.html); mobile/wide.css lays it out for wide screens.
   ['/', ['mobile/index.html', 'text/html; charset=utf-8']],
-  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','module-icons.js','discover-ui.js','recommend-data.js','starter-content.js','habit.js','pet.js','pet-physics.js','splash.js','bookshelf.js','achievements.js','badges-ui.js','scenes.js','profile-ui.js','mindmap-canvas.js','shop.js','shop-ui.js','journey.js','journey-ui.js','garden.js','garden-ui.js','sfx.js','tips.js', 'member-ui.js', 'calendar-ui.js', 'qr.js', 'friends-ui.js','fsrs.js','onboarding.js','tour.js', 'square-ui.js','i18n.js','theme.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','graph-view.js','mindmap.js','viz-edit.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
+  ...['app.js', 'chat-ui.js', 'chat-store.js', 'providers.js', 'knowledge-store.js', 'knowledge-ui.js','review-store.js','review-ui.js','device-ui.js','cloud-ui.js','model-help.js','local-space.js','snapshot-merge.js','auth.js','auth-ui.js','admin-ui.js','modules.js','module-icons.js','discover-ui.js','recommend-data.js','starter-content.js','habit.js','pet.js','pet-physics.js','splash.js','bookshelf.js','achievements.js','badges-ui.js','scenes.js','profile-ui.js','mindmap-canvas.js','shop.js','shop-ui.js','journey.js','journey-ui.js','garden.js','garden-ui.js','sfx.js','tips.js', 'member-ui.js', 'calendar-ui.js', 'reminders.js', 'push-ui.js', 'qr.js', 'friends-ui.js','fsrs.js','onboarding.js','tour.js', 'square-ui.js','i18n.js','theme.js','memory-viz.js','memory-ui.js','docx.js','google-docs.js','graph-view.js','mindmap.js','viz-edit.js','sw.js'].map(name => [`/${name}`, [name, 'text/javascript; charset=utf-8']]),
   ['/manifest.webmanifest',['manifest.webmanifest','application/manifest+json']],['/icon.svg',['icon.svg','image/svg+xml']],
   // PNG icons for installing to a phone (Android app package, home screen); made from icon.svg.
   ...['icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png'].map(name => [`/${name}`, [name, 'image/png']]),
@@ -76,11 +77,11 @@ export function privateAddresses(interfaces = networkInterfaces()) {
 // Phone browsers opening the start page are sent to the phone layout; "/?desktop" keeps the desktop page.
 const PHONE_AGENT = /Android.+Mobile|iPhone|iPod|Windows Phone|HarmonyOS.+Mobile/i;
 export function createApp({ modelCaller = callModel, knowledgeCaller = extractKnowledge,reviewCaller=reviewTask, relationCaller = relateKnowledge, mindmapCaller = expandMindmap, recognizeCaller = recognizeImage, translateCaller = translateText, publicConfig = () => publicConfigFromEnv(), extraRoute,
-  freeModelKey = (process.env.ZHIPU_API_KEY || '').trim(), freeQuota = createFreeQuota(), lanHosts = [], publicOrigin = '' } = {}) {
+  freeModelKey = (process.env.ZHIPU_API_KEY || '').trim(), freeQuota = createFreeQuota(), lanHosts = [], publicOrigin = '', push = pushSettingsFromEnv(), pushTick = runPushTick } = {}) {
   // Public mode: served at one HTTPS address behind the host's proxy (e.g. Render), which terminates TLS.
   const publicHost = publicOrigin ? new URL(publicOrigin).hostname : '';
   const allowedHosts = new Set(['127.0.0.1', 'localhost', ...lanHosts, ...(publicHost ? [publicHost] : [])]);
-  let activeRequests = 0;
+  let activeRequests = 0, ticking = false;
   const bearer = request => (/^Bearer ([\w.-]{10,4096})$/.exec(request.headers.authorization || '') || [])[1] || '';
   // Behind the proxy every connection comes from the proxy, so the visitor is the first X-Forwarded-For entry.
   // A visitor can prepend a forged entry, which only affects the no-account allowance and burst limit.
@@ -110,6 +111,22 @@ export function createApp({ modelCaller = callModel, knowledgeCaller = extractKn
       if (!freeModelKey) { json(response, 503, { error: 'free-unavailable' }); return; }
       try { const { allowed, ...state } = await freeQuota.use({ token: bearer(request), ip: clientIp(request), action: 'status', account: publicConfig(host) }); json(response, 200, state); }
       catch (error) { json(response, error instanceof ServiceError ? error.status : 500, { error: error instanceof ServiceError ? error.code : 'internal' }); }
+      return;
+    }
+    // Review reminders by push: the public VAPID key for subscribing, and the tick pg_cron calls with the secret.
+    if (path === '/api/push/key') {
+      if (request.method !== 'GET') { json(response, 405, { error: 'method' }); return; }
+      if (!push || !publicConfig(host).url) { json(response, 503, { error: 'push-unavailable' }); return; }
+      json(response, 200, { publicKey: push.vapid.publicKey }); return;
+    }
+    if (path === '/api/push/tick') {
+      if (request.method !== 'POST') { json(response, 405, { error: 'method' }); return; }
+      if (!push || !secretMatches(request.headers['x-push-secret'], push.secret)) { json(response, 403, { error: 'denied' }); return; }
+      if (ticking) { json(response, 429, { error: 'busy' }); return; }
+      ticking = true;
+      try { json(response, 200, await pushTick({ account: publicConfig(host), push })); }
+      catch { json(response, 502, { error: 'push' }); }
+      finally { ticking = false; }
       return;
     }
     // Test servers mount extra routes (the fake account service); production passes none.
@@ -188,7 +205,7 @@ export function createApp({ modelCaller = callModel, knowledgeCaller = extractKn
 // Local development secrets: server.local.json (gitignored via *.local.json) may hold the operator settings below.
 // Environment variables always win. Values are never logged, and are only read when this file is started directly.
 // LAN ("true"/"1") opens home-network mode so phones on the same Wi-Fi can connect; it is off unless set.
-const LOCAL_SETTINGS = ['ZHIPU_API_KEY', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'ADMIN_USERNAME', 'ADMIN_LOGIN_EMAIL', 'GOOGLE_CLIENT_ID', 'LAN', 'PUBLIC_ORIGIN'];
+const LOCAL_SETTINGS = ['ZHIPU_API_KEY', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'ADMIN_USERNAME', 'ADMIN_LOGIN_EMAIL', 'GOOGLE_CLIENT_ID', 'LAN', 'PUBLIC_ORIGIN', 'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT', 'PUSH_SECRET'];
 async function loadLocalSettings() {
   let values;
   try { values = JSON.parse(await readFile(fileURLToPath(new URL('server.local.json', import.meta.url)), 'utf8')); } catch { return []; }

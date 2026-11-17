@@ -7,6 +7,9 @@ import { validateRecognize } from '../recognize-service.mjs';
 import { validateTranslate } from '../translate-service.mjs';
 import { createFakeSupabase, FAKE_PREFIX } from './fake-supabase.mjs';
 import { readFileSync } from 'node:fs';
+import { vapidKeys } from '../webpush.mjs';
+// Throwaway push keys so the reminder switch can be tried; the tick is never called here.
+const testVapid = vapidKeys();
 // Fake account service: every code is 123456. The administrator signs in with the username and password from
 // tests/qa-admin.local.json (gitignored, never committed): {"username": "...", "password": "..."}.
 let admin = null;
@@ -35,6 +38,7 @@ const testCallers = {
   return { content: `## 直接回答\n仅用于浏览器验收的测试响应，非真实模型答案。\n## 分步骤解释\n当前模块：${input.module}；上下文消息数：${input.messages.length}。\n## 生活例子\n像给每个学科准备独立笔记本。\n## 简短总结\n<script>alert(1)</script>\n测试：${question}`, provider: input.config.provider, model: input.config.model, sources: input.config.search ? [{ url: 'https://example.com/', title: '测试来源（非知识依据）' }] : [], searchStatus: input.config.search ? 'sources-returned' : 'off', truncated: false, usage: { inputTokens: 10, outputTokens: 20 } };
 } };
 const app = createApp({ publicConfig: host => ({ url: `http://${host}${FAKE_PREFIX}`, publicKey: 'sb_publishable_fake_test_only', ...(admin ? { adminLogin: { username: admin.username, email: admin.email } } : {}) }), extraRoute: fake.route,
+  push: { vapid: { ...testVapid, subject: 'mailto:qa@example.com' }, secret: 'qa-only-'.repeat(5) },
   // Real mode: the server's default model callers and the real free key. Test mode: the fixed test callers above.
   ...(realKey ? { freeModelKey: realKey } : testCallers) });
 const port = Number(process.env.QA_PORT || 4175);

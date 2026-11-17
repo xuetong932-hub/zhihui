@@ -25,3 +25,15 @@
 - 只接受公开网址（以及本机）的 Host 和 Origin，并发送 HSTS。
 - 访客 IP 取自代理的 `X-Forwarded-For` 第一项。访客可以伪造这一项，所以未登录额度和频率限制只是基本防护；需要更严格时，要求登录后才能使用免费额度。
 - 面向公众推广前，见 `cloud-setup.md` 第 10 节的合规提示。
+
+## 复习推送提醒（可选）
+
+小回的复习提醒用 Web Push 发送：设备开启后把订阅和接下来几次提醒时间（只有时间、类型和卡片数）登记到账号服务；Supabase 的 pg_cron 每 10 分钟带密钥调用 `/api/push/tick`，服务器取出到点的提醒并发送。每天最多 2 次（9:00、20:00，当天已复习就不发晚间那条）。推送由浏览器和系统的推送服务转送，可能延迟或被系统拦截，不保证送达；iPhone 需先添加到主屏幕。
+
+1. 在 Supabase SQL 编辑器运行 `cloud-schema.sql` 的「Review reminders by push」一段。
+2. 本机生成密钥（写入被 gitignore 的 `server.local.json` 和 `push-setup.local.sql`，不打印）：`VAPID_PUBLIC_KEY`、`VAPID_PRIVATE_KEY`、`VAPID_SUBJECT`、`PUSH_SECRET`。
+3. 在 Render 的 Environment 里填入这四个值（与 `server.local.json` 相同），保存后服务会重新部署。
+4. 在 Supabase SQL 编辑器运行 `push-setup.local.sql`：写入密钥的 SHA-256 哈希，并启用 pg_cron / pg_net 定时任务。
+5. 换密钥：改 `PUSH_SECRET` 后重新生成并运行第 4 步。停用：`select cron.unschedule('knowback-push');`。
+
+免费版注意：定时调用会让服务一直保持唤醒，单个服务一个月约 744 小时，在免费额度（750 小时）以内，但不能再开第二个常驻免费服务。
