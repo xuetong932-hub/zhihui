@@ -1,5 +1,7 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{n} short": "あと {n}",
+ "Saved": "保存しました",
  "Darker text and lines": "文字と線を濃く",
  "Day. Tap for night": "昼。タップで夜に",
  "Display": "表示",

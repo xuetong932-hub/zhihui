@@ -1,5 +1,7 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{n} short": "還差 {n}",
+ "Saved": "已儲存",
  "Darker text and lines": "文字和邊線更深",
  "Day. Tap for night": "白天，點擊切換為黑夜",
  "Display": "顯示",

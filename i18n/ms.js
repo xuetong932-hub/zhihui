@@ -1,5 +1,7 @@
 // ms interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{n} short": "Kurang {n}",
+ "Saved": "Disimpan",
  "Darker text and lines": "Teks dan garisan lebih gelap",
  "Day. Tap for night": "Siang. Ketik untuk malam",
  "Display": "Paparan",

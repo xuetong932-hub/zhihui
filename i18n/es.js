@@ -1,5 +1,7 @@
 // es interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{n} short": "Faltan {n}",
+ "Saved": "Guardado",
  "Darker text and lines": "Texto y líneas más oscuros",
  "Day. Tap for night": "Día. Toca para noche",
  "Display": "Pantalla",

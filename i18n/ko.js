@@ -1,5 +1,7 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{n} short": "{n}개 부족",
+ "Saved": "저장됨",
  "Darker text and lines": "글자와 선을 더 진하게",
  "Day. Tap for night": "낮. 탭하면 밤으로",
  "Display": "표시",

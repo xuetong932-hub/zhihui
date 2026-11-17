@@ -584,7 +584,9 @@ function boot() {
   // With an outfit on, the home and room squirrel is the front-standing picture wearing it (shop-ui.js).
   const dressedClass = () => isDressed(shopData().outfit) ? 'dressed is-dressed' : '';
   const mascotPicture = pose => isDressed(shopData().outfit) ? dressedSquirrel(shopData().outfit) : `<img src="/illustrations/mascot-${pose}.webp" alt="" decoding="async" draggable="false">`;
-  function petShopView() { return shopView({ state: shopNow(), data: shopData(), tab: shopTab, dress: { part: dressPart, look: dressLook, level: petProgress().level.level } }); }
+  function petShopView() {
+    return shopView({ state: shopNow(), data: shopData(), tab: shopTab, dress: { part: dressPart, look: dressLook, level: petProgress().level.level } });
+  }
   // Dressing room: taps change the look being tried on (dressLook: part → id, or null for bare); only 穿上 saves it.
   function tryOn(part, id) {
     const saved = shopData().outfit[part] || null, shown = part in dressLook ? dressLook[part] : saved;

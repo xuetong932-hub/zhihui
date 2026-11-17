@@ -70,7 +70,8 @@ const PART_NAME = () => ({ head: pick('头饰', 'Head'), face: pick('脸部', 'F
 export const setName = id => ({ scholar: pick('学者', 'Scholar'), explorer: pick('探险家', 'Explorer'), cosy: pick('暖冬', 'Cosy'), chef: pick('小厨师', 'Little chef'), wizard: pick('小魔法师', 'Little wizard'), sailor: pick('小水手', 'Little sailor'), space: pick('小宇航员', 'Little astronaut') })[id] || id;
 // Dressing room (商城 → 装扮): Backy large in the middle wearing the saved outfit plus anything being tried on, the
 // three sets with how many of their pieces are on, one tab per part and the pieces of that part. Tapping tries a piece
-// on; the bar at the bottom puts the look on (buying what is not owned yet in one go). The dice picks a random look.
+// on; 保存 in the bar buys what is not owned yet and puts the look on (greyed out, with how many cones are missing,
+// when there are not enough). The dice picks a random look.
 export function dressView({ state, data, part, look, level }) {
   const shown = { ...data.outfit }; for (const [key, id] of Object.entries(look)) { if (id) shown[key] = id; else delete shown[key]; }
   const changed = PARTS.some(key => key in look && (look[key] || undefined) !== data.outfit[key]);
@@ -90,7 +91,7 @@ export function dressView({ state, data, part, look, level }) {
     <div class="dress-parts" role="tablist">${PARTS.map(key => `<button type="button" role="tab" aria-selected="${key === part}" class="${key === part ? 'active' : ''}" data-dress-part="${key}">${PART_NAME()[key]}</button>`).join('')}</div>
     <div class="dress-grid"><button type="button" class="dress-card dress-none ${shown[part] ? '' : 'is-on'}" data-dress-item="" aria-pressed="${!shown[part]}"><span class="dress-art">∅</span><strong>${pick('不戴', 'None')}</strong></button>${pieces.map(card).join('')}</div>
     <p class="shop-msg dress-msg" role="status"></p>
-    ${changed ? `<div class="dress-bar">${toBuy.length ? `<span>${pick('{n} 件未拥有', '{n} not owned', { n: toBuy.length })} · ${PINE}<b>${cost}</b></span>` : '<span></span>'}<button type="button" class="primary-button" data-dress-wear ${short ? 'disabled' : ''}>${short ? pick('松果不够（还差 {n}）', 'Not enough cones ({n} short)', { n: cost - state.balance }) : toBuy.length ? pick('买下并穿上', 'Buy and wear') : pick('穿上', 'Wear')}</button></div>` : ''}
+    ${changed ? `<div class="dress-bar">${toBuy.length ? `<span>${pick('{n} 件未拥有', '{n} not owned', { n: toBuy.length })} · ${PINE}<b>${cost}</b></span>` : '<span></span>'}<span class="dress-actions">${short ? `<span class="dress-short">${pick('还差 {n}', '{n} short', { n: cost - state.balance })}</span>` : ''}<button type="button" class="primary-button" data-dress-wear ${short ? 'disabled' : ''}>${pick('保存', 'Save')}</button></span></div>` : ''}
   </div>`;
 }
 export function shopView({ state, data, tab, dress }) {

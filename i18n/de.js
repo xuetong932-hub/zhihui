@@ -1,5 +1,7 @@
 // de interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{n} short": "{n} fehlen",
+ "Saved": "Gespeichert",
  "Darker text and lines": "Dunklere Schrift und Linien",
  "Day. Tap for night": "Tag. Tippen für Nacht",
  "Display": "Anzeige",

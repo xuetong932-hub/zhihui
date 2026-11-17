@@ -1041,3 +1041,7 @@ body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
 [data-theme="dark"] .display-size[aria-checked="true"]{background:var(--brand-soft);color:var(--brand-deep)}
 .pet-world .pet-tiles{grid-template-columns:repeat(5,minmax(0,1fr))}
 :root[data-text="xlarge"] .pet-world .pet-tiles{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:var(--sp-12)}
+.dress-actions{display:flex;gap:var(--sp-8);flex:none}
+.dress-actions{align-items:center}
+.dress-short{font-size:var(--fs-15);font-weight:700;color:var(--ink)}
+.dress-bar .primary-button[disabled]{opacity:1;background:var(--hairline);color:var(--stone);box-shadow:none;cursor:default}

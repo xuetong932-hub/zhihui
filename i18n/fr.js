@@ -1,5 +1,7 @@
 // fr interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{n} short": "Il manque {n}",
+ "Saved": "Enregistré",
  "Darker text and lines": "Texte et traits plus foncés",
  "Day. Tap for night": "Jour. Touchez pour la nuit",
  "Display": "Affichage",
