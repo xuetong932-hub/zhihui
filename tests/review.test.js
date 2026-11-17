@@ -95,3 +95,29 @@ test('rating hints show when each choice brings the card back, matching what rec
   const judgedWrong = ratingPreview(emptyReviews(), 'c1', ['understood', 'mastered'], { correct: false }, now);
   assert.deepEqual(judgedWrong, { understood: 0, mastered: 0 }, 'a model-judged wrong answer comes back in 10 minutes whatever is chosen');
 });
+
+test('review plan: subjects can be left out, new cards capped, retention changes the gap, minutes size the day',async()=>{
+  const {planOf}=await import('../review-store.js');
+  const now=new Date(2026,10,2,12),data=emptyReviews(),two={modules:{coding:{enabled:true},english:{enabled:true}}};
+  const cards=[card('a','2026-11-01T08:00:00'),card('b','2026-11-01T08:10:00'),card('c','2026-11-01T08:20:00'),{...card('e','2026-11-01T08:30:00'),module:'english'}];
+  assert.equal(reviewQueue(cards,data,two,now).length,4);
+  assert.equal(reviewQueue(cards,data,{...two,reviewPlan:{off:['english']}},now).length,3,'a subject left out is not reviewed');
+  assert.equal(reviewQueue(cards,data,{...two,reviewPlan:{newPerDay:5}},now).length,4);
+  const capped=reviewQueue(cards,data,{...two,reviewPlan:{newPerDay:5}},now,{extra:true});
+  assert.equal(capped.length,4,'extra practice is not capped');
+  const withSeen={...emptyReviews(),events:[{id:'x',cardId:'a',at:new Date(2026,10,2,9).toISOString(),rating:'understood',due:new Date(2026,10,5).toISOString(),interval:3}]};
+  assert.ok(reviewQueue(cards,withSeen,{...two,reviewPlan:{newPerDay:5}},now).length<=4);
+  const settled=[{at:new Date(2026,9,1,9).toISOString(),rating:'understood'},{at:new Date(2026,9,5,9).toISOString(),rating:'understood'}];
+  assert.ok(scheduleReview(settled,'understood',now,0.95).interval<scheduleReview(settled,'understood',now,0.85).interval,'firmer memory means a shorter gap');
+  assert.deepEqual(planOf({}),{off:[],newPerDay:0,retention:0.9,minutes:10});
+  assert.equal(planOf({dailyMinutes:60}).minutes,10,'the old setup minutes stay ignored');
+  assert.equal(planOf({reviewPlan:{minutes:30,retention:0.95,newPerDay:10,off:['x']}}).minutes,30);
+});
+
+test('review plan: the new-card limit counts cards first reviewed today',async()=>{
+  const now=new Date(2026,10,2,12),one={modules:{coding:{enabled:true}}};
+  const fresh=[card('n1','2026-11-01T08:00:00'),card('n2','2026-11-01T08:01:00'),card('n3','2026-11-01T08:02:00'),card('n4','2026-11-01T08:03:00'),card('n5','2026-11-01T08:04:00'),card('n6','2026-11-01T08:05:00')];
+  assert.equal(reviewQueue(fresh,emptyReviews(),{...one,reviewPlan:{newPerDay:5}},now).length,5);
+  const seenToday={...emptyReviews(),events:[{id:'e',cardId:'n1',at:new Date(2026,10,2,9).toISOString(),rating:'understood',due:new Date(2026,10,5).toISOString(),interval:3}]};
+  assert.equal(reviewQueue(fresh,seenToday,{...one,reviewPlan:{newPerDay:5}},now).length,4,'one new card was already started today');
+});

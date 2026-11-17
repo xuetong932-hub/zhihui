@@ -11,6 +11,7 @@ import { storeView, showBadge, celebrateBadge, levelCard, badgeWall, levelTitle 
 import { profileView, openAvatarSheet, avatarSrc, isPhotoAvatar } from './profile-ui.js';
 import { memberView, dailyTasks, openMemberAbout } from './member-ui.js';
 import { openLearningCalendar, activityByDay, activeDaysIn } from './calendar-ui.js';
+import { planOf, itemSeconds, PLAN_MINUTES, PLAN_NEW, PLAN_RETENTION } from './review-store.js';
 import { cleanShop, shopState, buy, refund, equip, unequip, freezeDates, protectedStreak, wearOutfit, completeSets, itemById, ITEMS, PARTS, SETS } from './shop.js';
 import { journey } from './journey.js';
 import { sfx, sfxOn, setSfx } from './sfx.js';
@@ -513,6 +514,51 @@ function boot() {
       button.mascotTimer = setTimeout(() => button.classList.remove('acting-jelly', 'acting-flip'), 900);
     });
   }
+  // 复习计划: subjects, new cards a day, daily goal, minutes a day and how firmly to remember. Saved into the profile at
+  // once (so it syncs); the estimate at the bottom follows every change.
+  function openReviewPlan() {
+    if (document.querySelector('.scene-sheet-layer')) return;
+    const layer = document.createElement('div');
+    layer.className = 'scene-sheet-layer plan-layer';
+    const save = patch => {
+      const { dailyGoal, ...rest } = patch, { off, newPerDay, minutes, retention } = planOf({ reviewPlan: rest });
+      const candidate = { ...profile, reviewPlan: { off, newPerDay, minutes, retention }, ...(dailyGoal ? { dailyGoal } : {}) };
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(candidate)); profile = candidate; } catch { return; }
+      render(); draw();
+    };
+    const seg = (key, values, now, label) => `<div class="plan-seg" role="radiogroup">${values.map(value => `<button type="button" role="radio" aria-checked="${value === now}" data-plan-${key}="${value}">${label(value)}</button>`).join('')}</div>`;
+    const draw = () => {
+      const plan = planOf(profile), goal = goalOf(profile), due = chat.reviewCount(), minutes = due ? Math.max(1, Math.ceil(due * itemSeconds(chat.reviewEvents()) / 60)) : 0;
+      const strength = { 0.85: [pick('轻松', 'Relaxed'), '85%'], 0.9: [pick('标准', 'Standard'), '90%'], 0.95: [pick('牢固', 'Firm'), '95%'] };
+      layer.innerHTML = `<div class="scene-sheet plan-sheet" role="dialog" aria-modal="true" aria-label="${pick('复习计划', 'Review plan')}">
+        <div class="scene-sheet-head"><h2>${pick('复习计划', 'Review plan')}</h2><button type="button" class="scene-close" data-scene-close aria-label="${pick('关闭', 'Close')}">✕</button></div>
+        <h3>${pick('复习哪些科目', 'Subjects to review')}</h3>
+        <div class="plan-subjects">${activeModuleIds(profile).filter(id => chat.knowledgeCount(id) > 0).map(id => { const on = !plan.off.includes(id); return `<button type="button" class="keyword-chip ${on ? 'on' : ''}" data-plan-subject="${id}" aria-pressed="${on}">${on ? '✓ ' : ''}${esc(moduleLabel(profile, id, currentLocale()))}</button>`; }).join('')}</div>
+        <h3>${pick('每天新卡上限', 'New cards a day')}</h3>
+        ${seg('new', PLAN_NEW, plan.newPerDay, n => n ? String(n) : pick('不限', 'No limit'))}
+        <h3>${pick('每日目标', 'Daily goal')}</h3>
+        ${seg('goal', DAILY_GOALS, goal, n => pick('{n} 张', '{n} cards', { n }))}
+        <h3>${pick('每天复习时长', 'Minutes a day')}</h3>
+        ${seg('minutes', PLAN_MINUTES, plan.minutes, n => pick('{n} 分钟', '{n} min', { n }))}
+        <h3>${pick('记忆强度', 'How firmly to remember')}</h3>
+        <div class="plan-seg plan-strength" role="radiogroup">${PLAN_RETENTION.map(value => `<button type="button" role="radio" aria-checked="${value === plan.retention}" data-plan-retention="${value}"><b>${strength[value][0]}</b><small>${pick('记住约 {p}', 'about {p} kept', { p: strength[value][1] })}</small></button>`).join('')}</div>
+        <p class="plan-note">${pick('越牢固，复习越勤。改动只影响以后的安排。', 'Firmer means more frequent reviews. Changes apply to future scheduling.')}</p>
+        <p class="plan-estimate" role="status">${due ? pick('今天预计复习 {n} 张，约 {m} 分钟', 'About {n} cards today, around {m} min', { n: due, m: minutes }) : pick('今天没有要复习的卡片', 'Nothing to review today')}</p>
+      </div>`;
+      layer.querySelector('[data-scene-close]').onclick = close;
+      layer.querySelectorAll('[data-plan-subject]').forEach(button => { button.onclick = () => { const id = button.dataset.planSubject, off = new Set(planOf(profile).off); if (off.has(id)) off.delete(id); else off.add(id); save({ ...planOf(profile), off: [...off] }); layer.querySelector(`[data-plan-subject="${id}"]`)?.focus(); }; });
+      layer.querySelectorAll('[data-plan-new]').forEach(button => { button.onclick = () => save({ ...planOf(profile), newPerDay: Number(button.dataset.planNew) }); });
+      layer.querySelectorAll('[data-plan-goal]').forEach(button => { button.onclick = () => save({ ...planOf(profile), dailyGoal: Number(button.dataset.planGoal) }); });
+      layer.querySelectorAll('[data-plan-minutes]').forEach(button => { button.onclick = () => save({ ...planOf(profile), minutes: Number(button.dataset.planMinutes) }); });
+      layer.querySelectorAll('[data-plan-retention]').forEach(button => { button.onclick = () => save({ ...planOf(profile), retention: Number(button.dataset.planRetention) }); });
+    };
+    const close = () => { layer.classList.remove('open'); document.removeEventListener('keydown', onKey); setTimeout(() => layer.remove(), 220); document.querySelector('[data-review-plan]')?.focus({ preventScroll: true }); };
+    const onKey = event => { if (event.key === 'Escape') close(); };
+    layer.addEventListener('click', event => { if (event.target === layer) close(); });
+    document.addEventListener('keydown', onKey);
+    draw(); document.body.append(layer); void layer.offsetWidth; layer.classList.add('open');
+    layer.querySelector('.scene-close')?.focus({ preventScroll: true });
+  }
   // Display settings (theme.js keeps them): text size, higher contrast, less motion. Same bottom sheet as the background.
   const displaySettings = () => window.knowledgeReviewDisplay?.get() || { text: 'normal', contrast: false, motion: false };
   const textSizeName = size => ({ normal: pick('标准', 'Standard'), large: pick('大', 'Large'), xlarge: pick('最大', 'Largest') })[size] || pick('标准', 'Standard');
@@ -800,6 +846,7 @@ function boot() {
     }; });
     document.querySelectorAll('[data-scene-picker]').forEach(button => { button.onclick = () => openScenePicker(button); });
     document.querySelectorAll('[data-display]').forEach(button => { button.onclick = () => openDisplaySheet(); });
+    document.querySelectorAll('[data-review-plan]').forEach(button => { button.onclick = () => openReviewPlan(); });
     document.querySelectorAll('[data-home-theme]').forEach(button => { button.onclick = () => { window.knowledgeReviewTheme?.toggle(); render(); document.querySelector('[data-home-theme]')?.focus({ preventScroll: true }); }; });
     document.querySelectorAll('[data-pet-tree]').forEach(button => { button.onclick = () => { petPage = 'tree'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('[data-open-tree]').forEach(button => { button.onclick = () => { petPage = 'tree'; mePage = 'main'; chat.go('pet'); }; });
@@ -961,7 +1008,7 @@ function boot() {
       <div class="dashboard"><section class="panel review-panel"><div class="section-heading"><h2>${t('today')}</h2><span class="pill">${chat.reviewCount()} ${t('zero')}</span></div>
         ${goalBar()}${reviewPreview()}</section>
         <aside class="panel plan-panel"><span class="eyebrow">${t('reviewPlan')}</span><p>${t('batchHint')}</p><hr><h3>${t('weekly')}</h3><p>${t('weekHint')}</p><h3>${t('notifications')}</h3><p>${t('notificationHint')}</p></aside></div>
-      <section class="modules-section"><div class="section-heading"><h2>${t('modulesTitle')}</h2></div><div class="module-grid">${activeModuleIds(profile).filter(id => isCustomModule(id) || chat.knowledgeCount(id) || chat.messageCount(id)).map(id => `<article class="panel home-module"><span class="module-badge">${moduleIcon(profile, id, 22)}</span><span class="eyebrow">${t(profile.modules[id].level)}${isCustomModule(id) ? ` · ${t('customHint')}` : ''}</span><h3>${esc(moduleLabel(profile, id, locale))}</h3>${chat.messageCount(id) ? `<div class="module-count">${chat.messageCount(id)} <span>${chat.homeText('records')}</span></div>` : ''}<button class="secondary-button module-open" data-open-module="${id}">${chat.homeText('open')} →</button></article>`).join('')}</div></section>`;
+      <section class="modules-section"><div class="section-heading"><h2>${t('modulesTitle')}</h2></div><div class="module-grid">${activeModuleIds(profile).filter(id => isCustomModule(id) || chat.knowledgeCount(id) || chat.messageCount(id)).map(id => `<article class="panel home-module"><span class="module-badge">${moduleIcon(profile, id, 22)}</span><span class="eyebrow">${t(profile.modules[id].level)}${isCustomModule(id) ? ` · ${t('customHint')}` : ''}</span><h3>${esc(moduleLabel(profile, id, currentLocale()))}</h3>${chat.messageCount(id) ? `<div class="module-count">${chat.messageCount(id)} <span>${chat.homeText('records')}</span></div>` : ''}<button class="secondary-button module-open" data-open-module="${id}">${chat.homeText('open')} →</button></article>`).join('')}</div></section>`;
   }
 
   function saveProfile(candidate) {

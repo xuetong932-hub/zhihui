@@ -1,6 +1,6 @@
 import { localDay } from './knowledge-store.js';
 import { isActiveModule } from './modules.js';
-import { memoryState, nextInterval, MAX_INTERVAL } from './fsrs.js';
+import { memoryState, nextInterval, MAX_INTERVAL, DESIRED_RETENTION } from './fsrs.js';
 export const REVIEW_KEY='knowledge-review.reviews.v1';
 export const emptyReviews=()=>({version:1,events:[]});
 // Limits follow what the app writes: answers ≤4,000 characters, model explanations ≤6,000.
@@ -36,9 +36,16 @@ export function itemSeconds(events){
 // Daily review is batched at about this many minutes so a long absence never arrives as one huge queue.
 // The duration is no longer a user setting; extra practice and same-day retries are not limited by it.
 export const DAILY_REVIEW_MINUTES=10;
+// 复习计划 (the review page): which subjects are reviewed, how many new cards a day, minutes a day (the old
+// profile.dailyMinutes from setup stays ignored) and how firmly to remember (FSRS desired retention). Kept in the profile, so it syncs with it.
+export const PLAN_MINUTES=Object.freeze([5,10,15,20,30]),PLAN_NEW=Object.freeze([5,10,20,0]),PLAN_RETENTION=Object.freeze([0.85,0.9,0.95]);
+export function planOf(profile){
+  const raw=profile?.reviewPlan&&typeof profile.reviewPlan==='object'?profile.reviewPlan:{};
+  return {off:Array.isArray(raw.off)?raw.off.filter(id=>typeof id==='string'):[],newPerDay:PLAN_NEW.includes(raw.newPerDay)?raw.newPerDay:0,retention:PLAN_RETENTION.includes(raw.retention)?raw.retention:DESIRED_RETENTION,minutes:PLAN_MINUTES.includes(raw.minutes)?raw.minutes:DAILY_REVIEW_MINUTES};
+}
 export function dailyPlan(data,profile,now=new Date()){
   const today=localDay(now),todayEvents=data.events.filter(event=>localDay(event.at)===today);
-  const budget=DAILY_REVIEW_MINUTES*60,used=todayEvents.reduce((sum,event)=>sum+spent(event),0),estimate=itemSeconds(data.events);
+  const budget=planOf(profile).minutes*60,used=todayEvents.reduce((sum,event)=>sum+spent(event),0),estimate=itemSeconds(data.events);
   return {budget,used,estimate,dayItems:Math.floor(budget/estimate),remainingItems:Math.floor(Math.max(0,budget-used)/estimate),todayEvents};
 }
 export function loadReviews(raw){
@@ -50,10 +57,10 @@ export function tomorrow(value){const date=new Date(value);date.setDate(date.get
 export function latestReview(data,id){return data.events.filter(event=>event.cardId===id).sort((a,b)=>b.at.localeCompare(a.at)).at(0);}
 // Scheduling uses FSRS-5 (fsrs.js) on the card's whole review history. Missed and still-unclear items come back in
 // about 10 minutes the same day; later days follow FSRS at 90% desired retention, up to 365 days.
-export function scheduleReview(history,rating,now=new Date()){
+export function scheduleReview(history,rating,now=new Date(),retention=DESIRED_RETENTION){
   const date=new Date(now);
   if(rating==='wrong'||rating==='unclear')return {interval:0,due:new Date(date.getTime()+10*60000).toISOString()};
-  const state=memoryState([...(history||[]),{at:date.toISOString(),rating}]),interval=nextInterval(state.s);
+  const state=memoryState([...(history||[]),{at:date.toISOString(),rating}]),interval=nextInterval(state.s,retention);
   date.setDate(date.getDate()+interval);date.setHours(0,0,0,0);return {interval,due:date.toISOString()};
 }
 // One card's reviews in time order (the input FSRS replays).
@@ -65,16 +72,23 @@ export const cardHistory=(data,id)=>data.events.filter(event=>event.cardId===id)
 // The plan is time-based (measured answer time); extra practice keeps the order without any cap.
 export function reviewQueue(cards,data,profile,now=new Date(),{extra=false}={}){
   const today=localDay(now),weekStart=new Date(now);weekStart.setDate(weekStart.getDate()-((weekStart.getDay()+6)%7));weekStart.setHours(0,0,0,0);
-  const plan=dailyPlan(data,profile,now),todayEvents=plan.todayEvents,completedToday=new Set(todayEvents.map(event=>event.cardId));
-  const eligible=cards.filter(card=>card.status==='active'&&card.extraction==='ready'&&isActiveModule(profile,card.module));
+  const plan=dailyPlan(data,profile,now),todayEvents=plan.todayEvents,completedToday=new Set(todayEvents.map(event=>event.cardId)),settings=planOf(profile);
+  const eligible=cards.filter(card=>card.status==='active'&&card.extraction==='ready'&&isActiveModule(profile,card.module)&&!settings.off.includes(card.module));
   const recentDay=eligible.map(card=>localDay(card.createdAt)).filter(day=>day<today).sort().at(-1);
   const candidates=eligible.map(card=>{
     const last=latestReview(data,card.id),info=dueInfo(card,last),due=dueTime(info);
     const sunday=now.getDay()===0&&!completedToday.has(card.id)&&new Date(card.createdAt)>=weekStart&&localDay(card.createdAt)<today;
     const weak=Boolean(last&&['wrong','unclear','guessed'].includes(last.rating));
     const retry=Boolean(last&&localDay(last.at)===today&&['wrong','unclear'].includes(last.rating));
-    return {card,due,weak,sunday,retry,ready:isDue(info,now),recent:!retry&&localDay(card.createdAt)===recentDay};
+    return {card,due,weak,sunday,retry,fresh:!last,ready:isDue(info,now),recent:!retry&&localDay(card.createdAt)===recentDay};
   }).filter(item=>item.ready||(item.sunday&&!item.retry)||extra);
+  // New-card limit: cards never reviewed before, counting the ones first reviewed today.
+  if(settings.newPerDay&&!extra){
+    const firstToday=new Set(todayEvents.filter(event=>!data.events.some(other=>other.cardId===event.cardId&&other.at<event.at)).map(event=>event.cardId));
+    const room=Math.max(0,settings.newPerDay-firstToday.size);
+    const keep=new Set(candidates.filter(item=>item.fresh).sort((a,b)=>Number(Boolean(b.card.important))-Number(Boolean(a.card.important))||a.card.createdAt.localeCompare(b.card.createdAt)).slice(0,room).map(item=>item.card.id));
+    for(let i=candidates.length-1;i>=0;i--)if(candidates[i].fresh&&!keep.has(candidates[i].card.id))candidates.splice(i,1);
+  }
   const important=(a,b)=>Number(Boolean(b.card.important))-Number(Boolean(a.card.important));
   const retries=candidates.filter(item=>item.retry).sort((a,b)=>a.due-b.due);
   const recent=candidates.filter(item=>item.recent).sort((a,b)=>important(a,b)||a.due-b.due||a.card.createdAt.localeCompare(b.card.createdAt));
@@ -86,11 +100,11 @@ export function reviewQueue(cards,data,profile,now=new Date(),{extra=false}={}){
   const recentTake=Math.min(recent.length,Math.max(recentQuota,open-older.length),open);
   return [...retries.filter(item=>item.ready),...recent.slice(0,recentTake),...older.slice(0,open-recentTake)].map(item=>item.card);
 }
-export function recordReview(data,cardId,{answer,correct,explanation,rating,seconds},now=new Date()){
+export function recordReview(data,cardId,{answer,correct,explanation,rating,seconds,retention},now=new Date()){
   // Self-reported mastery never upgrades a model-judged incorrect answer.
   const effective=correct===false&&!['wrong','unclear'].includes(rating)?'wrong':rating;
   if(!['wrong','unclear','guessed','understood','mastered'].includes(effective))throw new Error('rating');
-  const event={id:crypto.randomUUID(),cardId,at:now.toISOString(),answer,correct,explanation,rating:effective,...scheduleReview(cardHistory(data,cardId),effective,now)};
+  const event={id:crypto.randomUUID(),cardId,at:now.toISOString(),answer,correct,explanation,rating:effective,...scheduleReview(cardHistory(data,cardId),effective,now,retention)};
   // Time on the item, capped so a question left open while away does not count as study time.
   if(Number.isFinite(seconds))event.seconds=Math.min(REVIEW_LIMITS.seconds,Math.max(0,Math.round(seconds)));
   data.events.push(event);return event;
@@ -115,7 +129,7 @@ export function streakDays(events,now=new Date()){
 export function sessionStars({reviewed,correct}){if(!reviewed)return 0;const rate=correct/reviewed;return rate>=0.8?3:rate>=0.5?2:1;}
 // What each rating would schedule now, for the hints under the rating buttons: { rating: days }, 0 meaning again in
 // about 10 minutes. A model-judged wrong answer counts as "wrong" whatever is chosen (as recordReview does).
-export function ratingPreview(data,cardId,ratings,{correct}={},now=new Date()){
+export function ratingPreview(data,cardId,ratings,{correct,retention}={},now=new Date()){
   const history=cardHistory(data,cardId);
-  return Object.fromEntries(ratings.map(rating=>[rating,scheduleReview(history,correct===false&&!['wrong','unclear'].includes(rating)?'wrong':rating,now).interval]));
+  return Object.fromEntries(ratings.map(rating=>[rating,scheduleReview(history,correct===false&&!['wrong','unclear'].includes(rating)?'wrong':rating,now,retention).interval]));
 }

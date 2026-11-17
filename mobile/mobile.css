@@ -1129,3 +1129,20 @@ body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
 [data-theme="dark"] .cal-day.lv-2,[data-theme="dark"] .cal-legend .lv-2{background:#2c7046}
 [data-theme="dark"] .cal-day.lv-3,[data-theme="dark"] .cal-legend .lv-3{background:#3f9d63}
 [data-theme="dark"] .cal-day.lv-4,[data-theme="dark"] .cal-legend .lv-4{background:#6cc98c;color:#0d1f14}
+/* 复习计划: the card on the review page and its sheet. */
+.review-plan-card{display:flex;align-items:center;gap:var(--sp-12);width:100%;margin:0 0 var(--sp-12);padding:var(--sp-12) var(--sp-16);border:1px solid var(--line);border-radius:var(--r-16,16px);background:var(--canvas,#fff);color:var(--ink);font:inherit;text-align:left;box-shadow:var(--shadow-1)}
+.review-plan-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:10px;background:var(--brand-soft);color:var(--brand)}
+.review-plan-text{display:flex;flex-direction:column;gap:var(--sp-4);flex:1;min-width:0}
+.review-plan-text strong{font-size:15px}
+.review-plan-text small{font-size:13px;color:var(--muted)}
+.plan-sheet h3{margin:var(--sp-16) 0 var(--sp-8);font-size:14px;color:var(--ink)}
+.plan-subjects{display:flex;flex-wrap:wrap;gap:var(--sp-8)}
+.plan-seg{display:flex;gap:var(--sp-4);padding:var(--sp-4);border-radius:var(--r-16,16px);background:var(--surface,#f1ece2)}
+.plan-seg button{flex:1;min-height:40px;padding:var(--sp-4);border:0;border-radius:12px;background:none;color:var(--muted);font:inherit;font-size:14px;font-weight:600}
+.plan-seg button[aria-checked="true"]{background:#fffdf9;color:var(--brand-deep);box-shadow:0 2px 8px rgba(86,64,32,.12)}
+.plan-strength button{display:flex;flex-direction:column;align-items:center;gap:var(--sp-4);padding:var(--sp-8) var(--sp-4)}
+.plan-strength small{font-size:12px;font-weight:500;color:var(--muted)}
+.plan-note{margin:var(--sp-8) 0 0;font-size:12px;color:var(--muted)}
+.plan-estimate{margin:var(--sp-16) 0 0;padding:var(--sp-12) var(--sp-16);border-radius:var(--r-16,16px);background:var(--brand-soft);color:var(--brand-deep);font-size:14px;font-weight:600}
+[data-theme="dark"] .review-plan-card{background:#1f2327}
+[data-theme="dark"] .plan-seg button[aria-checked="true"]{background:#2b3036;color:#cfe9d5}
