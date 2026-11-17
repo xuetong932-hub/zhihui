@@ -16,7 +16,7 @@
   .tabbar .tab-pill{display:none}
   .tabbar .tab-pet{order:0}
   .tabbar .tab-pet .pet-avatar,.tabbar .tab-pet.active .pet-avatar{width:32px;height:32px;margin:0;border:0;box-shadow:none;transform:none}
-  .tabbar .tab-pet .pet-avatar img{width:28px}
+  .tabbar .tab-pet .pet-avatar img{width:28px;margin-top:0}
   .tabbar .tab-pet::after{content:attr(aria-label);font-size:var(--fs-15);font-weight:500}
   .tabbar .tab-pet.active::after{font-weight:700}
   [data-theme="dark"] .tabbar .tab.active{background:rgba(124,196,160,.16)}

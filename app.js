@@ -10,6 +10,7 @@ import { achievements, newBadges } from './achievements.js';
 import { storeView, showBadge, celebrateBadge, levelCard, badgeWall, levelTitle } from './badges-ui.js';
 import { profileView, openAvatarSheet, avatarSrc, isPhotoAvatar } from './profile-ui.js';
 import { memberView, dailyTasks, openMemberAbout } from './member-ui.js';
+import { openLearningCalendar, activityByDay, activeDaysIn } from './calendar-ui.js';
 import { cleanShop, shopState, buy, refund, equip, unequip, freezeDates, protectedStreak, wearOutfit, completeSets, itemById, ITEMS, PARTS, SETS } from './shop.js';
 import { journey } from './journey.js';
 import { sfx, sfxOn, setSfx } from './sfx.js';
@@ -237,7 +238,7 @@ function boot() {
   function tabBar(locked) {
     return `<nav class="tabbar" aria-label="${pick('主导航', 'Main')}"><span class="tab-pill" aria-hidden="true"></span>${TABS.map(([id, icon, pages, name]) => {
       const on = pages.includes(chat.page), label = name();
-      if (id === 'pet') return `<button class="tab tab-pet ${on ? 'active' : ''}" data-tab="pet" aria-label="${label}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}><span class="pet-avatar"><img src="/illustrations/mascot-wave.webp" alt="" draggable="false"></span></button>`;
+      if (id === 'pet') return `<button class="tab tab-pet ${on ? 'active' : ''}" data-tab="pet" aria-label="${label}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}><span class="pet-avatar"><img src="/illustrations/mascot-head.webp" alt="" draggable="false"></span></button>`;
       return `<button class="tab ${on ? 'active' : ''}" data-tab="${id}" ${on ? 'aria-current="page"' : ''} ${locked ? 'disabled' : ''}>${iconSvg(icon, 24)}<span class="tab-label">${label}</span></button>`;
     }).join('')}</nav>`;
   }
@@ -296,11 +297,11 @@ function boot() {
   }
   // 我的 → learning summary: streak, live cards, cards reviewed in the last 7 days, with a bar for each day.
   function meSummary() {
-    const { cards, week, reviewed } = weekSummary(chat.reviewEvents(), chat.knowledgeCards()), top = Math.max(1, ...week.map(item => item.count));
-    const weekday = new Intl.DateTimeFormat(intlLocale(currentLocale()), { weekday: 'narrow' });
+    const { cards, reviewed } = weekSummary(chat.reviewEvents(), chat.knowledgeCards()), now = new Date();
+    const days = activeDaysIn(activityByDay({ events: chat.reviewEvents(), questions: chat.questionDates() }), now.getFullYear(), now.getMonth());
     const stat = (value, label) => `<span class="me-stat"><b>${value}</b><small>${label}</small></span>`;
-    return `<button type="button" class="me-summary" data-me-library aria-label="${pick('学习小结，打开知识库', 'Learning summary, open the library')}"><span class="me-stats">${stat(shieldStreaks().any, pick('连续天数', 'Day streak'))}${stat(cards, pick('知识卡片', 'Cards'))}${stat(reviewed, pick('近 7 天复习', 'Reviewed, 7 days'))}</span>
-      <span class="me-week" aria-hidden="true">${week.map((item, i) => { const [y, m, d] = item.day.split('-').map(Number); return `<span class="me-day ${i === 6 ? 'today' : ''}"><i data-bar="${Math.round(item.count / top * 100)}"></i><small>${weekday.format(new Date(y, m - 1, d))}</small></span>`; }).join('')}</span></button>`;
+    return `<div class="me-summary"><button type="button" class="me-stats" data-me-library aria-label="${pick('学习小结，打开知识库', 'Learning summary, open the library')}">${stat(shieldStreaks().any, pick('连续天数', 'Day streak'))}${stat(cards, pick('知识卡片', 'Cards'))}${stat(reviewed, pick('近 7 天复习', 'Reviewed, 7 days'))}</button>
+      <button type="button" class="me-calendar" data-me-calendar aria-haspopup="dialog"><span class="me-calendar-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/><rect x="7" y="13" width="3" height="3" rx=".6" fill="currentColor" stroke="none"/></svg></span><span class="me-calendar-label">${pick('学习日历', 'Learning calendar')}</span><span class="me-calendar-note">${pick('本月学习 {n} 天', '{n} days this month', { n: days })}</span><span class="me-chevron" aria-hidden="true">›</span></button></div>`;
   }
   // Daily goal: cards reviewed today against the goal, days in a row it was met, and the check-in image once reached.
   function goalState() {
@@ -762,7 +763,7 @@ function boot() {
     const on = (selector, handler) => { const element = document.querySelector(selector); if (element) element.onclick = handler; };
     document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => { petPage = 'room'; mePage = 'main'; chat.go(button.dataset.tab); }; });
     document.querySelectorAll('[data-me-library]').forEach(button => { button.onclick = () => { chat.go('library'); window.scrollTo(0, 0); }; });
-    document.querySelectorAll('.me-day i[data-bar]').forEach(bar => { bar.style.height = `${Math.max(4, Math.round(Number(bar.dataset.bar) * 0.48))}px`; /* 48px tallest */ });
+    document.querySelectorAll('[data-me-calendar]').forEach(button => { button.onclick = () => openLearningCalendar({ events: chat.reviewEvents(), questions: chat.questionDates(), goal: goalOf(profile), streak: shieldStreaks().any }); });
     document.querySelectorAll('[data-me-profile]').forEach(button => { button.onclick = () => { mePage = 'profile'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('[data-profile-back]').forEach(button => { button.onclick = () => { mePage = 'main'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('[data-avatar-change]').forEach(button => { button.onclick = () => openAvatarSheet(() => render()); });

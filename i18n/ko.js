@@ -1,5 +1,15 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{m} days this month": "이번 달 {m}일 학습",
+ "{n} cards reviewed": "카드 {n}장 복습",
+ "{n} days this month": "이번 달 {n}일 학습",
+ "{n}-day streak": "{n}일 연속",
+ "{q} questions": "질문 {q}회",
+ "Learning calendar": "학습 달력",
+ "Less": "적음",
+ "Next month": "다음 달",
+ "Nothing learned": "학습 기록 없음",
+ "Previous month": "이전 달",
  "{n} reviewed": "{n}장 복습함",
  "+{n} drop each": "장당 +{n} 물방울",
  "+{n} drops": "+{n} 물방울",

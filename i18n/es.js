@@ -1,5 +1,15 @@
 // es interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{m} days this month": "{m} días este mes",
+ "{n} cards reviewed": "{n} tarjetas repasadas",
+ "{n} days this month": "{n} días este mes",
+ "{n}-day streak": "Racha de {n} días",
+ "{q} questions": "{q} preguntas",
+ "Learning calendar": "Calendario de estudio",
+ "Less": "Menos",
+ "Next month": "Mes siguiente",
+ "Nothing learned": "Sin estudio",
+ "Previous month": "Mes anterior",
  "{n} reviewed": "{n} repasadas",
  "+{n} drop each": "+{n} gota cada una",
  "+{n} drops": "+{n} gotas",

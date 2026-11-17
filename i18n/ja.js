@@ -1,5 +1,15 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{m} days this month": "今月 {m} 日学習",
+ "{n} cards reviewed": "{n} 枚復習",
+ "{n} days this month": "今月 {n} 日学習",
+ "{n}-day streak": "{n} 日連続",
+ "{q} questions": "質問 {q} 回",
+ "Learning calendar": "学習カレンダー",
+ "Less": "少ない",
+ "Next month": "次の月",
+ "Nothing learned": "学習記録なし",
+ "Previous month": "前の月",
  "{n} reviewed": "{n} 枚復習済み",
  "+{n} drop each": "1 枚ごとに +{n} しずく",
  "+{n} drops": "+{n} しずく",

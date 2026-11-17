@@ -1,5 +1,15 @@
 // ms interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{m} days this month": "{m} hari bulan ini",
+ "{n} cards reviewed": "{n} kad diulang kaji",
+ "{n} days this month": "{n} hari bulan ini",
+ "{n}-day streak": "{n} hari berturut-turut",
+ "{q} questions": "{q} soalan",
+ "Learning calendar": "Kalendar belajar",
+ "Less": "Kurang",
+ "Next month": "Bulan depan",
+ "Nothing learned": "Tiada pembelajaran",
+ "Previous month": "Bulan lepas",
  "{n} reviewed": "{n} diulang kaji",
  "+{n} drop each": "+{n} titisan setiap kad",
  "+{n} drops": "+{n} titisan",

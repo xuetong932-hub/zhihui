@@ -1,5 +1,15 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "{m} days this month": "本月學習 {m} 天",
+ "{n} cards reviewed": "複習 {n} 張",
+ "{n} days this month": "本月學習 {n} 天",
+ "{n}-day streak": "連續 {n} 天",
+ "{q} questions": "提問 {q} 次",
+ "Learning calendar": "學習日曆",
+ "Less": "較少",
+ "Next month": "下個月",
+ "Nothing learned": "沒有學習記錄",
+ "Previous month": "上個月",
  "{n} reviewed": "已複習 {n} 張",
  "+{n} drop each": "每張 +{n} 水滴",
  "+{n} drops": "+{n} 水滴",
