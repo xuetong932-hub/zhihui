@@ -30,7 +30,7 @@
 
 .home-scene-wrap .m-hello,.home-scene-wrap .today-big,.home-scene-wrap .today-meta>span:not(.today-goal){text-shadow:0 0 14px #fbf7f0,0 0 4px #fbf7f0}
 [data-theme="dark"] .home-scene-wrap .m-hello,[data-theme="dark"] .home-scene-wrap .today-big,[data-theme="dark"] .home-scene-wrap .today-meta>span:not(.today-goal){text-shadow:0 1px 10px #000c}
-.home-scene-wrap{display:flex;flex-direction:column;min-height:calc(min(100vw,640px) * 16 / 9 * .66 - 72px)}
+.home-scene-wrap{display:flex;flex-direction:column}
 .m-hello{margin:var(--sp-8) var(--sp-4) var(--sp-12)}
 .m-hello h1{margin:var(--sp-4) 0 0;font-size:34px;line-height:1.2}
 .today-status{margin:clamp(var(--sp-24),7vw,var(--sp-48)) var(--sp-4) 0}
@@ -1189,9 +1189,10 @@ body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
 .today-card.at-1{clip-path:inset(0 0 calc(100% - 20px) 0 round 24px 24px 0 0)}
 .today-card.at-2,.today-card.at-hidden{clip-path:inset(0 0 calc(100% - 36px) 0 round 24px 24px 0 0)}
 @media (prefers-reduced-motion:reduce){.today-card{transition:none}}
-/* 今日清单 under the ask bar (2026-11-17): section 24px below, heading 12px above the stack. The cards behind sit
+/* 今日清单 under the ask bar (2026-11-17): 16px below it (the banner has no minimum height, so no gap grows on
+   wider screens), heading 12px above the stack. The cards behind sit
    44px apart, so their tags (subject and 新学 / 到期 / 薄弱) stay readable while the front card is shown. */
-.home-scene-wrap~.today-section{margin-top:var(--sp-24)}
+.home-scene-wrap~.today-section{margin-top:var(--sp-16)}
 .today-section .section-heading{margin:0 var(--sp-4) var(--sp-12)}
 .today-stack{height:288px;margin-top:0}
 .today-card.at-1{transform:translateY(-44px) scale(.95);clip-path:inset(0 0 calc(100% - 48px) 0 round 24px 24px 0 0)}
