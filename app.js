@@ -288,7 +288,8 @@ function boot() {
     const lv = petProgress().level;
     return `<button type="button" class="me-head" data-me-profile aria-label="${pick('个人主页', 'Profile')}"><span class="avatar-wrap"><span class="me-avatar ${isPhotoAvatar() ? 'is-photo' : ''}"><img src="${avatarSrc()}" alt="" decoding="async"></span>${frameImage(shopData().frame)}</span><div><h1>${esc(name)} <span class="me-lv">Lv.${lv.level} ${levelTitle(lv.level)}</span></h1><p>${account?.local ? (pick('记录只保存在这台设备', 'Records stay on this device')) : (pick('学习记录保存在本机，可在账号中加密同步', 'Records are kept here; encrypted sync is in Account'))}</p></div><span class="me-chevron" aria-hidden="true">›</span></button>
       ${meSummary()}
-      <div class="me-group"><h2>${pick('学习', 'Learning')}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), pick('目标 {v0} 张', 'Goal {v0}', { v0: goalOf(profile) }))}${row('id="theme-toggle"', iconSvg(dark ? 'moon' : 'sun'), pick('外观', 'Appearance'), dark ? (pick('黑夜', 'Night')) : (pick('白天', 'Day')))}${row('id="language"', iconSvg('globe'), pick('语言', 'Language'), localeName(locale))}${row('id="sfx-toggle" data-sfx-toggle', iconSvg('music'), pick('音效', 'Sound effects'), sfxOn() ? pick('开', 'On') : pick('关', 'Off'))}${row('id="tips-toggle" data-tips-toggle', iconSvg('smile'), pick('小回提示', 'Backy’s tips'), readTips().off ? pick('关', 'Off') : pick('开', 'On'))}</div>
+      <div class="me-group"><h2>${pick('学习', 'Learning')}</h2>${row('id="settings"', iconSvg('bookmark'), t('settings'), pick('目标 {v0} 张', 'Goal {v0}', { v0: goalOf(profile) }))}${row('id="language"', iconSvg('globe'), pick('语言', 'Language'), localeName(locale))}</div>
+      <div class="me-group"><h2>${pick('个性化', 'Personalize')}</h2>${row('data-scene-picker aria-haspopup="dialog"', iconSvg('palette'), pick('背景', 'Background'), savedScene().name())}${row('data-display aria-haspopup="dialog"', '<span class="me-aa" aria-hidden="true">Aa</span>', pick('显示', 'Display'), textSizeName(displaySettings().text))}${row('id="sfx-toggle" data-sfx-toggle', iconSvg('music'), pick('音效', 'Sound effects'), sfxOn() ? pick('开', 'On') : pick('关', 'Off'))}${row('id="tips-toggle" data-tips-toggle', iconSvg('smile'), pick('小回提示', 'Backy’s tips'), readTips().off ? pick('关', 'Off') : pick('开', 'On'))}</div>
       <div class="me-group"><h2>${pick('账号与设备', 'Account & device')}</h2>${account?.local ? row('data-signin', iconSvg('user'), pick('登录 / 注册', 'Sign in / Register')) : row('data-cloud', iconSvg('user'), pick('账号与同步', 'Account & sync'))}${row('data-device', iconSvg('camera'), pick('设备与提醒', 'Device & reminders'))}${account?.is_admin ? row('data-admin', iconSvg('chart'), pick('管理', 'Admin')) : ''}${row('data-model-settings', iconSvg('flask'), chat.homeText('modelSettings'))}${row('data-onboarding', iconSvg('compass'), pick('新手指引', 'Guided tour'))}</div>
       ${androidBrowser() ? `<div class="me-group"><h2>${pick('安卓 App', 'Android app')}</h2><a class="me-row" href="/zhihui.apk" download="zhihui.apk"><span class="me-icon">${iconSvg('download')}</span><span class="me-label">${pick('下载安卓 App', 'Download the Android app')}</span><span class="me-value">${pick('约 1 MB', 'About 1 MB')}</span><span class="me-chevron" aria-hidden="true">›</span></a><p class="me-note">${pick('安装时手机会提示"未知来源应用"，选择仍然安装即可。', 'Your phone will warn about an app from an unknown source; choose to install anyway.')}</p></div>` : ''}`;
   }
@@ -510,6 +511,36 @@ function boot() {
       button.mascotTimer = setTimeout(() => button.classList.remove('acting-jelly', 'acting-flip'), 900);
     });
   }
+  // Display settings (theme.js keeps them): text size, higher contrast, less motion. Same bottom sheet as the background.
+  const displaySettings = () => window.knowledgeReviewDisplay?.get() || { text: 'normal', contrast: false, motion: false };
+  const textSizeName = size => ({ normal: pick('标准', 'Standard'), large: pick('大', 'Large'), xlarge: pick('最大', 'Largest') })[size] || pick('标准', 'Standard');
+  function openDisplaySheet() {
+    if (document.querySelector('.scene-sheet-layer')) return;
+    const layer = document.createElement('div');
+    layer.className = 'scene-sheet-layer display-layer';
+    const draw = () => {
+      const now = displaySettings(), api = window.knowledgeReviewDisplay;
+      const toggle = (key, title, note) => `<button type="button" class="display-toggle" role="switch" aria-checked="${now[key]}" data-display-toggle="${key}"><span class="display-text"><strong>${title}</strong><small>${note}</small></span><span class="display-state">${now[key] ? pick('开', 'On') : pick('关', 'Off')}</span><span class="display-switch" aria-hidden="true"></span></button>`;
+      layer.innerHTML = `<div class="scene-sheet display-sheet" role="dialog" aria-modal="true" aria-label="${pick('显示', 'Display')}">
+        <div class="scene-sheet-head"><h2>${pick('显示', 'Display')}</h2><button type="button" class="scene-close" data-scene-close aria-label="${pick('关闭', 'Close')}">✕</button></div>
+        <h3>${pick('文字大小', 'Text size')}</h3>
+        <div class="display-sizes" role="radiogroup" aria-label="${pick('文字大小', 'Text size')}">${['normal', 'large', 'xlarge'].map(size => `<button type="button" class="display-size size-${size}" role="radio" aria-checked="${now.text === size}" data-display-size="${size}"><b aria-hidden="true">A</b><span>${textSizeName(size)}</span></button>`).join('')}</div>
+        ${toggle('contrast', pick('提高对比度', 'Higher contrast'), pick('文字和边线更深', 'Darker text and lines'))}
+        ${toggle('motion', pick('减少动画', 'Less motion'), pick('停止移动和滑动效果', 'Stops moving and sliding effects'))}
+        <div class="display-foot"><span>${pick('已保存在这台设备上。', 'Saved on this device.')}</span><button type="button" class="secondary-button" data-display-reset ${api?.isDefault() ? 'disabled' : ''}>${pick('重置', 'Reset')}</button></div>
+      </div>`;
+      layer.querySelectorAll('[data-display-size]').forEach(button => { button.onclick = () => { const size = button.dataset.displaySize; api?.set({ text: size }); render(); draw(); layer.querySelector(`[data-display-size="${size}"]`)?.focus(); }; });
+      layer.querySelectorAll('[data-display-toggle]').forEach(button => { button.onclick = () => { const key = button.dataset.displayToggle; api?.set({ [key]: !displaySettings()[key] }); render(); draw(); layer.querySelector(`[data-display-toggle="${key}"]`)?.focus(); }; });
+      layer.querySelector('[data-display-reset]').onclick = () => { api?.reset(); render(); draw(); };
+      layer.querySelector('[data-scene-close]').onclick = close;
+    };
+    const close = () => { layer.classList.remove('open'); document.removeEventListener('keydown', onKey); setTimeout(() => layer.remove(), 220); document.querySelector('[data-display]')?.focus({ preventScroll: true }); };
+    const onKey = event => { if (event.key === 'Escape') close(); };
+    layer.addEventListener('click', event => { if (event.target === layer) close(); });
+    document.addEventListener('keydown', onKey);
+    draw(); document.body.append(layer); void layer.offsetWidth; layer.classList.add('open');
+    layer.querySelector('.display-size[aria-checked="true"]')?.focus({ preventScroll: true });
+  }
   // Home background picker (phone home only): day / night at the top (the app's own two modes), then the scenes by
   // category as thumbnails. Choosing one swaps the home scene at once; the sheet stays open to try others.
   function openScenePicker(opener) {
@@ -689,7 +720,7 @@ function boot() {
     const goalText = reached ? pick('今日目标完成 ✓', 'Goal reached ✓') : pick('今日目标 {v0} / {goal} 张', 'Today’s goal {v0} / {goal}', { v0: Math.min(done, goal), goal });
     const dark = document.documentElement.dataset.theme === 'dark', picture = sceneImage(savedScene(), dark);
     return `<section class="home-scene-wrap"><img class="home-scene ${picture.own ? 'is-night' : ''}" src="${picture.src}" alt="" decoding="async">
-        <div class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1><button type="button" class="scene-button" data-scene-picker aria-haspopup="dialog" aria-label="${pick('换背景', 'Change background')}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m4 17 4.5-4.5 3.5 3.5 2.5-2.5 5.5 5"/></svg></button></div>
+        <div class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1><button type="button" class="scene-button" data-home-theme aria-label="${dark ? pick('黑夜，点击切换为白天', 'Night. Tap for day') : pick('白天，点击切换为黑夜', 'Day. Tap for night')}">${iconSvg(dark ? 'moon' : 'sun')}</button></div>
         <div class="today-status"><button type="button" class="today-mascot ${dressedClass()}" data-pose="${due ? 'wave' : total ? 'cheer' : 'think'}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}">${mascotPicture(due ? 'wave' : total ? 'cheer' : 'think')}</button>${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
           <div class="today-meta"><span class="today-goal"><span class="task-ring" aria-hidden="true">${ring}</span>${goalText}</span><span><b>${streak}</b>${pick(' 天连续', ' day streak')}</span><span><b>${met}</b>${pick(' 天达成', ' days met')}</span></div></div>
         ${total ? `<button class="task-start" data-review>${due ? (pick('开始复习', 'Start review')) : (pick('再练一会', 'Practise more'))} →</button><button type="button" class="ask-mic" data-open-module="${ASK_MODULE}" data-ask-mic aria-label="${pick('语音提问', 'Ask by voice')}"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg></button>` : `<button class="task-start" data-open-module="${ASK_MODULE}">${pick('去提问', 'Ask a question')} →</button>`}${reached ? shareButton('task-share') : ''}</section>
@@ -749,6 +780,8 @@ function boot() {
     document.querySelectorAll('[data-shop-item]').forEach(button => { button.onclick = () => openShopItem(button.dataset.shopItem); });
     document.querySelectorAll('[data-soon]').forEach(button => { button.onclick = () => { button.classList.remove('is-poke'); void button.offsetWidth; button.classList.add('is-poke'); }; });
     document.querySelectorAll('[data-scene-picker]').forEach(button => { button.onclick = () => openScenePicker(button); });
+    document.querySelectorAll('[data-display]').forEach(button => { button.onclick = () => openDisplaySheet(); });
+    document.querySelectorAll('[data-home-theme]').forEach(button => { button.onclick = () => { window.knowledgeReviewTheme?.toggle(); render(); document.querySelector('[data-home-theme]')?.focus({ preventScroll: true }); }; });
     document.querySelectorAll('[data-pet-tree]').forEach(button => { button.onclick = () => { petPage = 'tree'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('[data-open-tree]').forEach(button => { button.onclick = () => { petPage = 'tree'; mePage = 'main'; chat.go('pet'); }; });
     document.querySelectorAll('[data-tree-back]').forEach(button => { button.onclick = () => { petPage = 'room'; render(); window.scrollTo(0, 0); }; });
