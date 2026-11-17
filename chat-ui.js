@@ -510,6 +510,7 @@ export function createChatUI({ getProfile, getLocale, refresh,validateProfile,ad
     // Used by the phone tab bar: the current page, and switching pages (ignored while something is running).
     get page() { return page; },
     go(next) { if (busy || testing || library.busy || review.busy || cloud.busy || admin.busy) return; page = next; notice = ''; refresh(); window.scrollTo(0, 0); },
+    openModule,
     reviewEvents: () => review.events().events,
     // For the squirrel's level and badges (achievements.js): knowledge cards and the times questions were asked.
     knowledgeCards: () => library.cards(),

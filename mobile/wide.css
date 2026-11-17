@@ -15,7 +15,8 @@
   .tabbar .tab .tab-label{font-size:var(--fs-15)}
   .tabbar .tab-pill{display:none}
   .tabbar .tab-pet{order:0}
-  .tabbar .tab-pet .pet-avatar{width:32px;height:32px;margin:0}
+  .tabbar .tab-pet .pet-avatar,.tabbar .tab-pet.active .pet-avatar{width:32px;height:32px;margin:0;border:0;box-shadow:none;transform:none}
+  .tabbar .tab-pet .pet-avatar img{width:28px}
   .tabbar .tab-pet::after{content:attr(aria-label);font-size:var(--fs-15);font-weight:500}
   .tabbar .tab-pet.active::after{font-weight:700}
   [data-theme="dark"] .tabbar .tab.active{background:rgba(124,196,160,.16)}
@@ -73,4 +74,8 @@
   .garden-page{max-width:520px;margin:0 auto}
   /* Backy outside its room: no tab bar under it here, it stands on the bottom of the window. */
   .float-home{bottom:var(--sp-24);right:var(--sp-32);width:96px}
+  /* 会员中心: a centred column like review. */
+  .member-page{width:100%;max-width:720px;margin:0 auto}
+  .member-hero{margin:0;border-radius:var(--r-20,20px)}
+  .member-top+.member-hero{margin-top:0}
 }

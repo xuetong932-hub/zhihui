@@ -684,9 +684,12 @@ button.me-head{width:calc(100% - 8px);padding:0;border:0;background:none;color:v
 [data-layout="mobile"] #app:has(.home-scene) .header .brand{color:#fffaf2;text-shadow:0 1px 2px rgba(64,40,16,.4),0 2px 10px rgba(64,40,16,.35)}
 [data-layout="mobile"] #app:has(.home-scene) .header .brand-mark{background:linear-gradient(180deg,#fffdf8,#f3ece0);color:#30694f;text-shadow:none;box-shadow:0 4px 12px rgba(64,40,16,.28),0 1px 2px rgba(64,40,16,.2),inset 0 1px 0 #fff,inset 0 -2px 0 rgba(86,64,32,.08)}
 [data-theme="dark"][data-layout="mobile"] #app:has(.home-scene) .header .brand-mark{background:linear-gradient(180deg,#f3eadb,#d9cdb8);color:#24563f}
-/* Squirrel tab: about as tall as an icon with its label, so 小回 is easy to see. */
-.tab-pet .pet-avatar{width:44px;height:44px}
-.tab-pet .pet-avatar img{width:40px;margin-top:var(--sp-4)}
+/* Squirrel tab: a little bigger than the other tabs and lifted slightly out of the bar, in a soft green ring. */
+.tab-pet .pet-avatar{width:52px;height:52px;margin-top:-16px;border:3px solid #d7ebdd;box-shadow:0 6px 14px rgba(48,105,79,.22),0 2px 4px rgba(86,64,32,.14)}
+.tab-pet .pet-avatar img{width:46px;margin-top:var(--sp-4)}
+.tab-pet.active .pet-avatar{border:3px solid #9fd0b3;transform:translateY(-2px)}
+[data-theme="dark"] .tab-pet .pet-avatar{border-color:#2c4a3a}
+[data-theme="dark"] .tab-pet.active .pet-avatar{border:3px solid #4fa37c}
 /* Shop (shop-ui.js). Furniture sits in the nest at fixed places, positioned in % of the nest picture. */
 .pet-decor{position:absolute;top:0;left:0;width:100%;height:calc(100vw * 16 / 9);max-height:1140px;z-index:-1;pointer-events:none}
 .decor{position:absolute;height:auto;transform:translateX(-50%);filter:drop-shadow(0 6px 8px rgba(60,40,20,.22))}
@@ -1045,3 +1048,59 @@ body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
 .dress-actions{align-items:center}
 .dress-short{font-size:var(--fs-15);font-weight:700;color:var(--ink)}
 .dress-bar .primary-button[disabled]{opacity:1;background:var(--hairline);color:var(--stone);box-shadow:none;cursor:default}
+/* 会员中心 (member-ui.js): sky header with 小回, a gold member card, four perks, spendable cones, daily tasks. */
+.member-page{display:flex;flex-direction:column;gap:var(--sp-12);padding-bottom:var(--sp-24)}
+.member-hero{position:relative;display:flex;align-items:center;gap:var(--sp-12);min-height:136px;margin:0 calc(var(--sp-16) * -1);padding:var(--sp-16) var(--sp-16) var(--sp-32);overflow:hidden;background:linear-gradient(180deg,#8fc6ef 0%,#bfe0f6 55%,#d9efc9 78%,#a9d58b 100%)}
+.member-hero::after{content:"";position:absolute;left:-10%;right:-10%;bottom:-40px;height:72px;border-radius:50%;background:linear-gradient(180deg,#9fd07c,#7fbd62);opacity:.85}
+.member-avatar{position:relative;z-index:1;display:grid;place-items:center;flex:none;width:64px;height:64px;border-radius:50%;overflow:hidden;background:#fffdf8;border:3px solid #fff;box-shadow:0 4px 12px rgba(40,70,100,.22)}
+.member-avatar img{width:56px;height:auto;margin-top:var(--sp-8)}
+.member-who{position:relative;z-index:1;display:flex;flex-direction:column;gap:var(--sp-4)}
+.member-who h1{margin:0;font-size:22px;color:#fff;text-shadow:0 1px 6px rgba(30,60,90,.35)}
+.member-lv{align-self:flex-start;padding:var(--sp-4) var(--sp-8);line-height:1;border-radius:999px;background:linear-gradient(180deg,#f6cf6c,#e3a93c);color:#5b3a06;font-size:12px;font-weight:700}
+.member-mascot{position:absolute;right:var(--sp-8);bottom:var(--sp-8);z-index:1;width:112px;height:auto;filter:drop-shadow(0 6px 8px rgba(40,60,30,.25))}
+.member-card{position:relative;z-index:1;display:flex;align-items:center;gap:var(--sp-12);margin-top:calc(var(--sp-32) * -1);padding:var(--sp-12) var(--sp-12) var(--sp-12) var(--sp-16);border-radius:var(--r-20,20px);background:linear-gradient(110deg,#fff6db,#ffe6a8);box-shadow:0 8px 20px rgba(160,110,20,.18)}
+.member-card img{width:52px;height:52px;object-fit:contain;filter:drop-shadow(0 3px 4px rgba(150,100,10,.25))}
+.member-card div{display:flex;flex-direction:column;gap:var(--sp-4);flex:1}
+.member-card strong{font-size:18px;color:#5b3a06}
+.member-card span{font-size:13px;color:#8a6420}
+.member-more{flex:none;min-height:36px;padding:0 var(--sp-16);border:0;border-radius:999px;background:linear-gradient(180deg,#f6cf6c,#e3a93c);color:#4a2f05;font:inherit;font-size:14px;font-weight:700;box-shadow:0 3px 8px rgba(180,120,20,.3)}
+.member-perks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:var(--sp-12) var(--sp-4);border-radius:var(--r-20,20px);background:var(--canvas,#fff);box-shadow:var(--shadow-1)}
+.member-perk{display:flex;flex-direction:column;align-items:center;gap:var(--sp-4);padding:var(--sp-4);border:0;background:none;color:var(--ink);font:inherit;font-size:13px}
+.member-perk+.member-perk{border-left:1px solid var(--divider)}
+.member-perk img{width:44px;height:44px;object-fit:contain;filter:drop-shadow(0 3px 4px rgba(70,48,24,.16))}
+.member-points{display:flex;align-items:center;gap:var(--sp-8);padding:var(--sp-16);border-radius:var(--r-20,20px);background:linear-gradient(180deg,#eef8e8,#d9efc9);box-shadow:var(--shadow-1)}
+.member-coin{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:linear-gradient(180deg,#ffe7a3,#f2c45a);box-shadow:inset 0 -2px 0 rgba(150,100,10,.25)}
+.member-coin .pine-icon{width:24px;height:24px;vertical-align:0}
+.member-points b{font-size:28px;font-family:var(--font-display);color:var(--ink)}
+.member-points-label{flex:1;font-size:13px;color:var(--muted)}
+.member-exchange{flex:none;min-height:36px;padding:0 var(--sp-16);border:1px solid var(--brand);border-radius:999px;background:#fffdf9;color:var(--brand-deep);font:inherit;font-size:14px;font-weight:700}
+.member-tasks{padding:var(--sp-12) var(--sp-12) var(--sp-16);border-radius:var(--r-20,20px);background:var(--canvas,#fff);box-shadow:var(--shadow-1)}
+.member-tasks .section-heading{margin:0 var(--sp-4) var(--sp-12)}
+.member-task-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.member-task{display:flex;flex-direction:column;align-items:center;gap:var(--sp-4);padding:0 var(--sp-4);text-align:center}
+.member-task+.member-task{border-left:1px solid var(--divider)}
+.member-task-icon{display:grid;place-items:center;width:44px;height:44px;margin-bottom:var(--sp-4);border-radius:14px;color:#fff}
+.task-ask .member-task-icon{background:linear-gradient(180deg,#f2b552,#e5913a)}
+.task-review .member-task-icon{background:linear-gradient(180deg,#6fb0ea,#4a8fd6)}
+.task-goal .member-task-icon{background:linear-gradient(180deg,#5fbf8a,#3f9d6b)}
+.member-task strong{font-size:14px}
+.member-task small{min-height:32px;font-size:12px;line-height:1.35;color:var(--muted)}
+.member-task-btn{min-height:34px;margin-top:var(--sp-4);padding:0 var(--sp-16);border:0;border-radius:999px;background:var(--brand-soft);color:var(--brand-deep);font:inherit;font-size:13px;font-weight:700}
+.member-task-btn.is-done{display:inline-flex;align-items:center;background:var(--hairline-soft);color:var(--stone)}
+.member-about-list{display:flex;flex-direction:column;gap:var(--sp-12);margin:var(--sp-8) 0 0;padding:0;list-style:none}
+.member-about-list li{display:flex;align-items:center;gap:var(--sp-12);padding:var(--sp-8) var(--sp-12);border-radius:var(--r-16,16px)}
+.member-about-list li.is-focus{background:var(--brand-soft)}
+.member-about-list img{width:44px;height:44px;object-fit:contain}
+.member-about-list span{display:flex;flex-direction:column;gap:var(--sp-4)}
+.member-about-list small{font-size:13px;color:var(--muted)}
+.member-about-note{margin:var(--sp-16) 0 0;font-size:13px;color:var(--muted)}
+[data-theme="dark"] .member-hero{background:linear-gradient(180deg,#1d3a52 0%,#264a63 55%,#2b4a33 80%,#2f5a35 100%)}
+[data-theme="dark"] .member-hero::after{background:linear-gradient(180deg,#386a3c,#2c5530)}
+[data-theme="dark"] .member-card{background:linear-gradient(110deg,#3a3120,#4a3c1c)}
+[data-theme="dark"] .member-card strong{color:#f6d98a}
+[data-theme="dark"] .member-card span{color:#d6b871}
+[data-theme="dark"] .member-perks,[data-theme="dark"] .member-tasks{background:#1f2327}
+[data-theme="dark"] .member-points{background:linear-gradient(180deg,#22301f,#1f2a1c)}
+[data-theme="dark"] .member-exchange{background:#1f2327}
+.member-page .member-top{margin-bottom:0}
+.member-top+.member-hero{margin-top:calc(var(--sp-12) * -1)}
