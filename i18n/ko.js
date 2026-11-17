@@ -1,5 +1,8 @@
 // ko interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "card stack": "카드 더미",
+ "Today’s list: swipe up or down to switch, tap to review": "오늘의 목록: 위아래로 밀어 넘기고, 누르면 복습",
+ "What would you like to ask?": "무엇이 궁금하세요?",
  "{m} min a day · goal {g} · {k} subjects": "하루 {m}분 · 목표 {g}장 · 과목 {k}개",
  "{n} cards": "{n}장",
  "{n} min": "{n}분",

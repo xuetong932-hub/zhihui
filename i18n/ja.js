@@ -1,5 +1,8 @@
 // ja interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "card stack": "カードの束",
+ "Today’s list: swipe up or down to switch, tap to review": "今日のリスト：上下にスワイプで切り替え、タップで復習",
+ "What would you like to ask?": "何を聞きたい？",
  "{m} min a day · goal {g} · {k} subjects": "1 日 {m} 分 · 目標 {g} 枚 · {k} 科目",
  "{n} cards": "{n} 枚",
  "{n} min": "{n} 分",

@@ -42,6 +42,6 @@ export function mindmapSvg(tree, collapsed = new Set(), { focus = null, selected
     });
     row += count;
   });
-  const root = `<g class="mm-node mm-root${sel(basePath)}" data-path="${basePath}" tabindex="0" role="button"><rect x="${rootX}" y="${rootY - 24}" width="${rootW}" height="48" rx="12" fill="${zoomed ? BRANCH_COLORS[focus % BRANCH_COLORS.length] : '#30694f'}"/><text x="${rootX + rootW / 2}" y="${rootY + 5}" text-anchor="middle" font-size="${zoomed ? 15 : 14}" font-weight="700" fill="#fff"><title>${esc(base.label)}</title>${esc(short(base.label, 12))}</text></g>`;
+  const root = `<g class="mm-node mm-root${sel(basePath)}" data-path="${basePath}" tabindex="0" role="button"><rect x="${rootX}" y="${rootY - 24}" width="${rootW}" height="48" rx="12" fill="${zoomed ? BRANCH_COLORS[focus % BRANCH_COLORS.length] : '#30a14e'}"/><text x="${rootX + rootW / 2}" y="${rootY + 5}" text-anchor="middle" font-size="${zoomed ? 15 : 14}" font-weight="700" fill="#fff"><title>${esc(base.label)}</title>${esc(short(base.label, 12))}</text></g>`;
   return `<div class="mindmap-wrap"><svg class="mindmap" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(base.label)}">${parts.join('')}${root}</svg></div>`;
 }

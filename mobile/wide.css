@@ -10,8 +10,8 @@
   [data-layout="mobile"] #app .header .brand-mark,[data-layout="mobile"] #app:has(.home-scene) .header .brand-mark{background:var(--brand);color:#fff;box-shadow:none}
   .tabbar{left:var(--sp-16);right:auto;top:var(--sp-16);bottom:var(--sp-16);width:calc(var(--side) - var(--sp-32));height:auto;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:var(--sp-4);padding:72px var(--sp-12) var(--sp-12);border-radius:var(--r-20)}
   .tabbar .tab{flex:none;height:48px;flex-direction:row;justify-content:flex-start;gap:var(--sp-12);padding:0 var(--sp-16);border-radius:var(--r-12);color:var(--steel)}
-  .tabbar .tab:hover{background:rgba(48,105,79,.06)}
-  .tabbar .tab.active{background:rgba(48,105,79,.12);color:var(--accent)}
+  .tabbar .tab:hover{background:color-mix(in srgb,var(--brand) 6%,transparent)}
+  .tabbar .tab.active{background:color-mix(in srgb,var(--brand) 12%,transparent);color:var(--accent)}
   .tabbar .tab .tab-label{font-size:var(--fs-15)}
   .tabbar .tab-pill{display:none}
   .tabbar .tab-pet{order:0}
@@ -38,7 +38,7 @@
   .home-scene-wrap .today-status{max-width:560px}
   .home-scene-wrap .today-mascot{right:-220px;top:-24px;width:160px}
   .home-scene-wrap .task-start{max-width:420px}
-  .home-scene-wrap .ask-mic{margin-left:176px}
+  .home-scene-wrap .ask-bar{max-width:520px;margin-left:176px}
   main:has(> .home-scene-wrap) > .m-section{margin:0}
   main > .home-starter{margin-top:0}
   /* The squirrel's room keeps its portrait shape (the cushion, jar and furniture are placed on that picture) as a

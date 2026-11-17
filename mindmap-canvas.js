@@ -13,7 +13,7 @@ const short = (value, max) => { const text = String(value || '').replace(/\s+/g,
 export function layoutMindmap(tree) {
   const nodes = new Map(), kids = tree.children || [];
   const span = node => Math.max(1, (node.children || []).reduce((sum, child) => sum + span(child), 0));
-  nodes.set('', { x: 0, y: 0, w: SIZE[0][0], h: SIZE[0][1], depth: 0, side: 0, color: '#30694f', label: tree.label, parent: null });
+  nodes.set('', { x: 0, y: 0, w: SIZE[0][0], h: SIZE[0][1], depth: 0, side: 0, color: '#30a14e', label: tree.label, parent: null });
   const place = (node, path, depth, side, color, top, parent) => {
     const rows = span(node), [w, h] = SIZE[Math.min(depth, 2)], x = side * (depth === 1 ? 190 : 190 + (depth - 1) * 200);
     nodes.set(path, { x, y: top + rows * ROW / 2, w, h, depth, side, color, label: node.label, parent });

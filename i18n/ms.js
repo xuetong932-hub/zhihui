@@ -1,5 +1,8 @@
 // ms interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "card stack": "timbunan kad",
+ "Today’s list: swipe up or down to switch, tap to review": "Senarai hari ini: leret ke atas atau bawah untuk tukar, ketik untuk ulang kaji",
+ "What would you like to ask?": "Apa yang anda mahu tanya?",
  "{m} min a day · goal {g} · {k} subjects": "{m} min sehari · matlamat {g} · {k} subjek",
  "{n} cards": "{n} kad",
  "{n} min": "{n} min",

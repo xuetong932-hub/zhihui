@@ -1,5 +1,8 @@
 // zh-TW interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "card stack": "卡片堆",
+ "Today’s list: swipe up or down to switch, tap to review": "今日清單，上下滑動切換，點按開始複習",
+ "What would you like to ask?": "想問點什麼？",
  "{m} min a day · goal {g} · {k} subjects": "每天 {m} 分鐘 · 目標 {g} 張 · {k} 個科目",
  "{n} cards": "{n} 張",
  "{n} min": "{n} 分鐘",

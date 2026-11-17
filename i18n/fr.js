@@ -1,5 +1,8 @@
 // fr interface text, keyed by the English source (i18n/source.json). Machine-translated; review by a native speaker.
 export default {
+ "card stack": "pile de cartes",
+ "Today’s list: swipe up or down to switch, tap to review": "Liste du jour : glisse vers le haut ou le bas pour changer, touche pour réviser",
+ "What would you like to ask?": "Que veux-tu demander ?",
  "{m} min a day · goal {g} · {k} subjects": "{m} min par jour · objectif {g} · {k} matières",
  "{n} cards": "{n} cartes",
  "{n} min": "{n} min",
