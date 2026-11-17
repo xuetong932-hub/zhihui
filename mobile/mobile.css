@@ -1144,7 +1144,7 @@ body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
 [data-theme="dark"] .review-plan-card{background:#1f2327}
 [data-theme="dark"] .plan-seg button[aria-checked="true"]{background:#2b3036;color:#cfe9d5}
 /* 今日清单 as a card stack (app.js bindTodayStack): the current card in front, the next two peeking out above it,
-   the passed card slides up out of sight; it loops. Coloured by tag: 新学 sky, 到期 indigo, 薄弱 pink. */
+   the passed card slides up out of sight; it loops. Coloured by subject (hue-*); the tag chip keeps its own colour. */
 .today-stack{position:relative;height:232px;margin-top:var(--sp-32);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;border-radius:24px}
 .today-stack:focus-visible{outline:2px solid var(--brand);outline-offset:4px}
 .today-card{position:absolute;left:0;right:0;bottom:0;height:200px;padding:var(--sp-16);overflow:hidden;border-radius:24px;background:linear-gradient(150deg,var(--c1),var(--c2));color:#fff;box-shadow:0 12px 26px rgba(40,28,12,.2);transform-origin:50% 0;transition:transform .38s cubic-bezier(.2,.9,.25,1),opacity .3s ease}
@@ -1158,13 +1158,25 @@ body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
 .today-card-art img{width:112px;height:112px;object-fit:contain}
 .today-chip{position:relative;z-index:1;display:inline-flex;align-items:center;gap:var(--sp-4);padding:var(--sp-4) var(--sp-12);border:1px solid rgba(255,255,255,.45);border-radius:999px;background:rgba(255,255,255,.24);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:13px;font-weight:600}
 .today-kind{position:absolute;top:var(--sp-16);right:var(--sp-16);z-index:1;padding:var(--sp-4) var(--sp-12);border-radius:999px;background:rgba(255,253,249,.92);color:var(--brand-deep);font-size:12px;font-weight:700}
-.today-card.kind-new{--c1:#38bdf8;--c2:#0284c7}
-.today-card.kind-due{--c1:#818cf8;--c2:#4f46e5}
-.today-card.kind-weak{--c1:#ff9a9e;--c2:#db2777}
+/* Subject colours on today's cards (2026-11-17): light → deep shades of one hue each, from the ysdaima UI palettes
+   (Tailwind 400 → 600). */
+.today-card.hue-blue{--c1:#38bdf8;--c2:#0284c7}
+.today-card.hue-indigo{--c1:#818cf8;--c2:#4f46e5}
+.today-card.hue-orange{--c1:#fb923c;--c2:#ea580c}
+.today-card.hue-green{--c1:#4ade80;--c2:#16a34a}
+.today-card.hue-pink{--c1:#f472b6;--c2:#db2777}
+.today-card.hue-amber{--c1:#fbbf24;--c2:#d97706}
+.today-card.hue-purple{--c1:#c084fc;--c2:#9333ea}
+.today-card.hue-teal{--c1:#2dd4bf;--c2:#0d9488}
+.today-card.hue-red{--c1:#f87171;--c2:#dc2626}
+.today-card.hue-slate{--c1:#94a3b8;--c2:#475569}
+.today-card.hue-violet{--c1:#a18cd1;--c2:#7c3aed}
+.today-card.hue-cyan{--c1:#22d3ee;--c2:#0891b2}
+.today-card.hue-lime{--c1:#a3e635;--c2:#65a30d}
 .today-card .today-kind{background:rgba(255,255,255,.92)}
-.today-card.kind-new .today-kind{color:#0369a1}
-.today-card.kind-due .today-kind{color:#4338ca}
-.today-card.kind-weak .today-kind{color:#be185d}
+.today-card.kind-new .today-kind{color:#16a34a}
+.today-card.kind-due .today-kind{color:#2563eb}
+.today-card.kind-weak .today-kind{color:#db2777}
 .today-card-text{position:absolute;left:var(--sp-16);right:88px;bottom:var(--sp-16);z-index:1;display:flex;flex-direction:column;gap:var(--sp-4);text-shadow:0 1px 4px rgba(20,16,10,.35)}
 .today-card-text strong{font-size:22px;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .today-card-text small{font-size:13px;opacity:.92}

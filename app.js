@@ -9,6 +9,7 @@ import { startPetPlay, flyCone } from './pet-physics.js';
 import { achievements, newBadges } from './achievements.js';
 import { storeView, showBadge, celebrateBadge, levelCard, badgeWall, levelTitle } from './badges-ui.js';
 import { profileView, openAvatarSheet, avatarSrc, isPhotoAvatar } from './profile-ui.js';
+import { coverColor } from './bookshelf.js';
 import { memberView, dailyTasks, openMemberAbout } from './member-ui.js';
 import { createFriendsUI, codeIn } from './friends-ui.js';
 import { openLearningCalendar, activityByDay, activeDaysIn } from './calendar-ui.js';
@@ -1018,16 +1019,20 @@ function boot() {
       const when = days <= 0 ? (pick('今天', 'today')) : days === 1 ? (pick('昨天', 'yesterday')) : pick('{days} 天前', '{days} days ago', { days });
       return pick('上次复习：{when}', 'Last reviewed {when}', { when });
     };
-    // A stack of cards coloured by their tag (新学 / 到期 / 薄弱, Morandi tones), the current one in front and the next two
-    // peeking out above; swipe (or wheel / ↑↓) to move through them in a loop, tap to start reviewing.
+    // A stack of cards coloured by subject (subjectHue), the current one in front and the next two peeking out above;
+    // swipe (or wheel / ↑↓) to move through them in a loop, tap to start reviewing.
     const art = id => ['coding', 'english', 'work', 'life'].includes(id) ? `<img src="/illustrations/icon-${id}.webp" alt="" decoding="async">` : moduleIcon(profile, id, 64, '#ffffff');
-    const cardsHtml = items.map(({ card, last, kind }, i) => `<article class="today-card kind-${kind}" data-today-card="${i}" aria-hidden="${i ? 'true' : 'false'}">
+    const cardsHtml = items.map(({ card, last, kind }, i) => `<article class="today-card kind-${kind} hue-${subjectHue(card.module)}" data-today-card="${i}" aria-hidden="${i ? 'true' : 'false'}">
         <span class="today-card-art" aria-hidden="true">${art(card.module)}</span>
         <span class="today-chip">${moduleIcon(profile, card.module, 14, '#ffffff')}${esc(moduleLabel(profile, card.module, locale))}</span><span class="today-kind">${kinds[kind]}</span>
         <span class="today-card-text"><strong>${esc(card.title)}</strong>${last ? `<small>${ago(last)}</small>` : ''}</span><span class="today-count">${i + 1} / ${items.length}</span></article>`).join('');
     return `<div class="today-stack" data-today-stack tabindex="0" role="button" aria-roledescription="${pick('卡片堆', 'card stack')}" aria-label="${pick('今日清单，上下滑动切换，点按开始复习', 'Today’s list: swipe up or down to switch, tap to review')}">${cardsHtml}</div><div class="preview-actions">${button}</div>`;
   }
 
+  // Each subject has its own colour on today's cards; subjects the user made take the hue of their book cover.
+  const SUBJECT_HUE = { coding: 'blue', english: 'indigo', work: 'orange', life: 'green', health: 'pink', finance: 'amber', design: 'purple', science: 'teal', humanities: 'red', law: 'slate', mind: 'violet', other: 'cyan' };
+  const COVER_HUE = { sky: 'blue', sage: 'green', honey: 'amber', coral: 'orange', lavender: 'purple', teal: 'teal', rose: 'pink', olive: 'lime' };
+  const subjectHue = id => SUBJECT_HUE[id] || COVER_HUE[coverColor(profile, id)] || 'blue';
   // Today's card stack, in a loop: the front card, the next two behind it, the one just passed out of sight above.
   let todayIndex = 0;
   function bindTodayStack(stack) {
