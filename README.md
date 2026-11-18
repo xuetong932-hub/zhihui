@@ -1,38 +1,79 @@
-# 知回 / KnowBack
+# KnowBack (知回)
 
-可运行的学习应用本地原型，v0.4.0，交接快照日期 2026-11-01。
+**What you ask comes back.** KnowBack turns the questions you ask AI into knowledge cards and brings them back for review right before you would forget them, with a squirrel named Backy to keep you going.
 
-**Claude 接手请先读 [START_HERE.md](START_HERE.md)，再读 [CLAUDE.md](CLAUDE.md)。**
+- **Live demo:** https://zhihui.onrender.com (phone layout; works on desktop too)
+- **Video:** https://youtu.be/bDHABwyX9Cw
+- 中文说明: [README.zh-CN.md](README.zh-CN.md)
 
-- [完整用户需求](docs/REQUIREMENTS.md)
-- [当前状态、已知问题与后续优先级](docs/STATUS_AND_NEXT_STEPS.md)
-- [架构、文件地图、API 与数据结构](docs/ARCHITECTURE.md)
-- [启动和验收流程](docs/ACCEPTANCE.md)
-- [云项目接通说明](cloud-setup.md)
-- [历史开发记录（含过时描述，仅参考）](docs/DEVELOPMENT_HISTORY.md)
+## Features
 
-## 运行
+- **Ask anything** by typing, voice or photo. The AI explains it clearly.
+- **Automatic knowledge cards.** After each answer, the key idea, an everyday example and your original question become a card, filed under a subject (Coding, Health, Finance…). No note-taking.
+- **Spaced review.** A daily stack of cards, coloured by subject. Review each one as a flashcard, a multiple-choice question, or an "explain it in your own words" prompt that the AI grades.
+- **See what you know.** Memory status (strong / steady / fading), a knowledge graph of related ideas, and a mind map for every card.
+- **Backy the squirrel.** At most two gentle push reminders a day (09:00 when cards are due; 20:00 only if you have not reviewed yet). Pine cones, a growing beanstalk, outfits and a learning calendar.
+- **Friends, a learning square and 10 interface languages** (简体中文, 繁體中文, English, 日本語, 한국어, Bahasa Melayu, Español, Français, Português, Deutsch).
 
-需要 Node.js 22+；建议 Node.js 24 LTS。当前无第三方运行依赖，不需要先安装 npm 包。
+## How it works
+
+Reviews are scheduled with an independent implementation of **FSRS-5** ([`fsrs.js`](fsrs.js)). Recall probability after $t$ days for a memory of stability $S$ follows the power forgetting curve
+
+$$R(t, S) = \left(1 + \tfrac{19}{81}\cdot\tfrac{t}{S}\right)^{-0.5}$$
+
+and the next review is set where $R$ falls to the desired retention (90% by default, adjustable in the review plan). Stability and difficulty are rebuilt from each card's review history, so nothing extra is stored.
+
+**Privacy first.** Learning data stays in the browser by default. Cloud sync is end-to-end encrypted with the user's own passphrase. For push reminders, the device plans its own reminder times and sends the server only times and card counts, never card content.
+
+## Tech stack
+
+| Part | Built with |
+|---|---|
+| App | Plain JavaScript ES modules, HTML, CSS. A PWA with a service worker. No framework, no build step |
+| Server | Node.js 22+ ([`server.mjs`](server.mjs)), no runtime dependencies. Model calls are proxied, and keys stay on the server |
+| Accounts & data | Supabase (PostgreSQL, row-level security, security-definer functions, `pg_cron`) |
+| AI | Zhipu AI GLM-4-Flash as the built-in free model; users can connect their own provider |
+| Push | Web Push (VAPID + aes128gcm) implemented with Node's `crypto` ([`webpush.mjs`](webpush.mjs)) |
+| Hosting | Render (auto-deploys from this repository) |
+
+## Run it locally
+
+Requires Node.js 22 or later. There are no packages to install.
 
 ```sh
-npm run check
-npm test
-npm start
+npm run check   # syntax check
+npm test        # ~186 tests (Node's built-in runner, includes local HTTP tests)
+npm start       # http://127.0.0.1:4174
 ```
 
-默认地址 http://127.0.0.1:4174/ 。Windows PowerShell 可设置 `$env:PORT = '4180'` 再运行 `npm start`；macOS/Linux 可运行 `PORT=4180 npm start`。仅监听本机。
+The app needs an account service to sign in. To try it without one, run the isolated test server, which includes a fake account service (any email; the code is `123456`) and fixed test answers instead of a real model:
 
-隔离验收：`node tests/browser-fixture.mjs`，默认端口 4175，支持 `QA_PORT` 环境变量；其响应是明确标注的测试内容，不连接真实模型。
+```sh
+node tests/browser-fixture.mjs   # http://127.0.0.1:4175, phone layout at /m/
+```
 
-## 状态摘要
+For a real setup, put the settings in environment variables or in a git-ignored `server.local.json`: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` (the public key only), and optionally `ZHIPU_API_KEY` (free model) and `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` / `PUSH_SECRET` (push reminders). Run [`cloud-schema.sql`](cloud-schema.sql) in Supabase first. More detail: [cloud-setup.md](cloud-setup.md) and [docs/DEPLOY_RENDER.md](docs/DEPLOY_RENDER.md).
 
-已有本地 onboarding、中英界面、模型配置、帮助链接与首次提示、文字问答、知识整理、重复重点、逐题复习、初始间隔排程、语音入口、通知授权设置和导出功能。
+## Project map
 
-模型、搜索、提炼与判题需用户自己的 Key；云账号与加密备份需要真实 Supabase 配置，目前只有接入代码及 SQL，未完成真实多用户联调。后台定时推送、原生安装包、账号绑定与服务端年龄控制尚未完成。PWA 清单不是原生应用成品。
+| Path | What it is |
+|---|---|
+| `app.js`, `chat-ui.js`, `review-ui.js`, `knowledge-ui.js` | App shell, ask flow, review session, knowledge library |
+| `review-store.js`, `fsrs.js`, `reminders.js` | Review queue, FSRS scheduling, reminder planning |
+| `server.mjs`, `model-service.mjs`, `knowledge-service.mjs`, `push-service.mjs` | Server, model proxy, card extraction, push sending |
+| `cloud-schema.sql` | Supabase tables and functions (re-runnable) |
+| `i18n/` | Catalogs for the 8 languages beyond Chinese and English |
+| `illustrations/`, `scenes/` | Art used by the app |
+| `tests/` | Automated tests and the isolated QA server |
+| `docs/` | Requirements, architecture and deployment notes (mostly in Chinese) |
 
-浏览器学习数据不在源码目录，不随 ZIP 搬迁；更换端口或浏览器可能看到全新空间。API Key 默认只在页面内存，云同步时仅在用户勾选后加入加密密文。App 需要登录：运行前设置 `SUPABASE_URL` 和 `SUPABASE_PUBLISHABLE_KEY`（见 cloud-setup.md）；没有云项目时可用 `node tests/browser-fixture.mjs` 的假账号服务体验，验证码为 123456。
+## AI use and credits
 
-用户最终目标是中国及海外多端应用，当前暂缓发布；不再逐步等待确认。不要把曾讨论的预算建议视为购买授权。
+- **Claude Code** (Anthropic): AI coding assistant used throughout development. The author designed the product, features and interface, reviewed every change and tested on a phone; Claude wrote most of the code and tests under that direction.
+- **Zhipu AI GLM-4-Flash**: the in-app free model for answers, card extraction, quiz questions and grading.
+- **LibTV** (image models such as Doubao Seedream): the Backy mascot, outfits, badges and most scene illustrations. Some home-scene photos are from Unsplash under the Unsplash License; sources are listed in [docs/BACKGROUNDS.md](docs/BACKGROUNDS.md).
+- **FSRS** scheduling formulas and default parameters come from the open-source [open-spaced-repetition](https://github.com/open-spaced-repetition) project (MIT). This repository contains an independent implementation.
+- **[jsQR](https://github.com/cozmo/jsQR)** (Apache-2.0) for scanning friend QR codes; see [`vendor/`](vendor/).
+- **Smiley Sans** font (SIL Open Font License); see [`fonts/SmileySans-OFL.txt`](fonts/SmileySans-OFL.txt).
 
-交接包里的 `VALIDATION_REPORT.txt` 为本次检查结果，`FILE_MANIFEST.sha256` 用于核对快照内容。
+© 2026 KnowBack. All rights reserved unless stated otherwise above.
