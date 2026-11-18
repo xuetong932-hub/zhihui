@@ -849,7 +849,7 @@ export default {
  "Expand with model (uses model)": "Bungkus dengan model (menggunakan model)",
  "Expanding…": "Memproses...",
  "Explain an experience in four steps: Situation, Task, Action, Result. Useful in interviews and reports.": "Terangkan pengalaman dalam empat langkah: Situation, Task, Action, Result. Berguna dalam wawancara dan laporan.",
- "Explain in your own words:": "Terjemahkan dalam bahasa anda sendiri:",
+ "Explain in your own words: {title}": "Terangkan dengan kata-kata anda sendiri: {title}",
  "Explain more simply": "Terangkan dengan lebih mudah",
  "Explore the reasons behind everyday things": "Kaji sebab-sebab perkara sehari-hari",
  "Export": "Eksport",

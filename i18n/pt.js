@@ -849,7 +849,7 @@ export default {
  "Expand with model (uses model)": "Expandir com modelo (usa modelo)",
  "Expanding…": "Expandindo…",
  "Explain an experience in four steps: Situation, Task, Action, Result. Useful in interviews and reports.": "Explique uma experiência em quatro etapas: Situação, Tarefa, Ação, Resultado. Útil em entrevistas e relatórios.",
- "Explain in your own words:": "Explicar com suas próprias palavras:",
+ "Explain in your own words: {title}": "Explique com suas próprias palavras: {title}",
  "Explain more simply": "Explique de forma mais simples",
  "Explore the reasons behind everyday things": "Explorar as razões por trás das coisas do dia a dia",
  "Export": "Exportar",

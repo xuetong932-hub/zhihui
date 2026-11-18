@@ -849,7 +849,7 @@ export default {
  "Expand with model (uses model)": "모델로 확장하다（모델을 사용한다）",
  "Expanding…": "확장 중…",
  "Explain an experience in four steps: Situation, Task, Action, Result. Useful in interviews and reports.": "상황(Situation), 과제(Task), 행동(Action), 결과(Result) 네 단계로 경험을 설명해요. 면접과 보고서에 유용해요.",
- "Explain in your own words:": "자신만의 말로 설명해 주세요:",
+ "Explain in your own words: {title}": "자신의 말로 설명해 보세요: {title}",
  "Explain more simply": "더 쉽게 설명해 주세요",
  "Explore the reasons behind everyday things": "일상 속 이유를 탐구하다",
  "Export": "내보내기",

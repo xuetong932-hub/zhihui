@@ -51,3 +51,15 @@ test('i18n: English counts of one read in the singular', () => {
   assert.equal(translate('再 {n} 颗', '{n} more pine cones to Lv.{lv}', { n: 1, lv: 3 }, 'en'), '1 more pine cone to Lv.3');
   assert.equal(translate('连续 {n} 天', 'Meet the daily goal {n} days in a row', { n: 1 }, 'en'), 'Meet the daily goal 1 day in a row');
 });
+
+// A label glued to inserted text ('…words:' + title) loses the English space after the colon; such sentences use a
+// {placeholder} so every language places its own spacing.
+test('i18n: no English label ending in a colon is concatenated with inserted text', async () => {
+  const { readFileSync, readdirSync } = await import('node:fs');
+  const root = new URL('../', import.meta.url);
+  for (const file of readdirSync(root).filter(name => name.endsWith('.js'))) {
+    const source = readFileSync(new URL(file, root), 'utf8');
+    assert.doesNotMatch(source, /[,(]\s*(['"])[^'"\n]*[A-Za-z]:\1\)\s*\+/, `${file}: use a {placeholder} instead of 'Label:' + text`);
+  }
+  assert.equal(translate('请用自己的话解释：{title}', 'Explain in your own words: {title}', { title: 'SPF and PA' }, 'en'), 'Explain in your own words: SPF and PA');
+});

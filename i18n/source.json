@@ -458,7 +458,7 @@
  "Expanding…": "正在展开…",
  "Explain an experience in four steps: Situation, Task, Action, Result. Useful in interviews and reports.": "用情境（Situation）、任务（Task）、行动（Action）、结果（Result）四步讲清一段经历，常用于面试和汇报。",
  "Explain in your own words, graded by the model": "用自己的话解释，模型判分",
- "Explain in your own words:": "请用自己的话解释：",
+ "Explain in your own words: {title}": "请用自己的话解释：{title}",
  "Explain more simply": "再简单一点",
  "Explore the reasons behind everyday things": "弄懂身边的为什么",
  "Explorer": "探险家",

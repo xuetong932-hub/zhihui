@@ -849,7 +849,7 @@ export default {
  "Expand with model (uses model)": "用模型展開（調用模型）",
  "Expanding…": "正在展開…",
  "Explain an experience in four steps: Situation, Task, Action, Result. Useful in interviews and reports.": "用情境（Situation）、任務（Task）、行動（Action）、結果（Result）四步講清一段經歷，常用於面試和匯報。",
- "Explain in your own words:": "請用自己的話解釋：",
+ "Explain in your own words: {title}": "請用自己的話解釋：{title}",
  "Explain more simply": "再簡單一點",
  "Explore the reasons behind everyday things": "弄懂身邊的為什麼",
  "Export": "導出",

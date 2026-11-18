@@ -849,7 +849,7 @@ export default {
  "Expand with model (uses model)": "モデルで展開（モデルを呼び出します）",
  "Expanding…": "展開中…",
  "Explain an experience in four steps: Situation, Task, Action, Result. Useful in interviews and reports.": "状況（Situation）、タスク（Task）、行動（Action）、結果（Result）の四つのステップで経験を説明：面接や報告で役立ちます。",
- "Explain in your own words:": "あなたの言葉で説明してください：",
+ "Explain in your own words: {title}": "自分の言葉で説明してください：{title}",
  "Explain more simply": "もっと簡単に説明",
  "Explore the reasons behind everyday things": "身の回りのことの理由を探る",
  "Export": "エクスポート",
