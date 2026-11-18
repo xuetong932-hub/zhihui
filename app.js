@@ -1022,44 +1022,63 @@ function boot() {
       const when = days <= 0 ? (pick('今天', 'today')) : days === 1 ? (pick('昨天', 'yesterday')) : pick('{days} 天前', '{days} days ago', { days });
       return pick('上次复习：{when}', 'Last reviewed {when}', { when });
     };
-    // A stack of cards coloured by subject (subjectHue), the current one in front and the next two peeking out above;
-    // swipe (or wheel / ↑↓) to move through them in a loop, tap to start reviewing.
+    // One tab per subject above a row of cards coloured by subject (subjectHue); swipe left / right (or ←→) to move
+    // through the chosen tab's cards, tap one to start reviewing (all of today's cards, whichever tab is shown).
     const art = id => ['coding', 'english', 'work', 'life'].includes(id) ? `<img src="/illustrations/icon-${id}.webp" alt="" decoding="async">` : moduleIcon(profile, id, 64, '#ffffff');
-    const cardsHtml = items.map(({ card, last, kind }, i) => `<article class="today-card kind-${kind} hue-${subjectHue(card.module)}" data-today-card="${i}" aria-hidden="${i ? 'true' : 'false'}">
+    const cardsHtml = items.map(({ card, last, kind }, i) => `<article class="today-card kind-${kind} hue-${subjectHue(card.module)}" data-today-card="${esc(card.module)}">
         <span class="today-card-art" aria-hidden="true">${art(card.module)}</span>
         <span class="today-chip">${moduleIcon(profile, card.module, 14, '#ffffff')}${esc(moduleLabel(profile, card.module, locale))}</span><span class="today-kind">${kinds[kind]}</span>
-        <span class="today-card-text"><strong>${esc(card.title)}</strong>${last ? `<small>${ago(last)}</small>` : ''}</span><span class="today-count">${i + 1} / ${items.length}</span></article>`).join('');
-    return `<div class="today-stack" data-today-stack tabindex="0" role="button" aria-roledescription="${pick('卡片堆', 'card stack')}" aria-label="${pick('今日清单，上下滑动切换，点按开始复习', 'Today’s list: swipe up or down to switch, tap to review')}">${cardsHtml}</div><div class="preview-actions">${button}</div>`;
+        <span class="today-card-text"><strong>${esc(card.title)}</strong>${last ? `<small>${ago(last)}</small>` : ''}</span><span class="today-count"></span></article>`).join('');
+    const subjects = [...new Set(items.map(item => item.card.module))];
+    const tab = (id, label, count, hue) => `<button type="button" role="tab" class="today-tab${hue ? ` hue-${hue}` : ''}" data-today-tab="${esc(id)}">${label}<b>${count}</b></button>`;
+    const tabsHtml = subjects.length > 1 ? `<div class="today-tabs" role="tablist" aria-label="${pick('知识分类', 'Subjects')}">${tab('', pick('全部', 'All'), items.length, '')}${subjects.map(id => tab(id, esc(moduleLabel(profile, id, locale)), items.filter(item => item.card.module === id).length, subjectHue(id))).join('')}</div>` : '';
+    return `${tabsHtml}<div class="today-track" data-today-stack tabindex="0" role="button" aria-label="${pick('今日清单，左右滑动切换，点按开始复习', 'Today’s list: swipe left or right to switch, tap to review')}">${cardsHtml}</div><div class="preview-actions">${button}</div>`;
   }
 
   // Each subject has its own colour on today's cards; subjects the user made take the hue of their book cover.
   const SUBJECT_HUE = { coding: 'blue', english: 'indigo', work: 'orange', life: 'green', health: 'pink', finance: 'amber', design: 'purple', science: 'teal', humanities: 'red', law: 'slate', mind: 'violet', other: 'cyan' };
   const COVER_HUE = { sky: 'blue', sage: 'green', honey: 'amber', coral: 'orange', lavender: 'purple', teal: 'teal', rose: 'pink', olive: 'lime' };
   const subjectHue = id => SUBJECT_HUE[id] || COVER_HUE[coverColor(profile, id)] || 'blue';
-  // Today's card stack, in a loop: the front card, the next two behind it, the one just passed out of sight above.
-  let todayIndex = 0;
-  function bindTodayStack(stack) {
-    const cards = [...stack.querySelectorAll('[data-today-card]')];
+  // Today's list: the chosen subject tab (kept across renders) filters the cards; the row scrolls sideways with
+  // snap points, so the card follows the finger. Tapping a card (not a swipe) opens review.
+  let todayTab = '';
+  function bindTodayStack(track) {
+    const cards = [...track.querySelectorAll('[data-today-card]')], tabs = [...document.querySelectorAll('[data-today-tab]')];
     if (!cards.length) return;
-    todayIndex = Math.min(todayIndex, cards.length - 1);
-    const n = cards.length;
-    const place = () => cards.forEach((card, i) => { const at = (i - todayIndex + n) % n; card.className = card.className.replace(/\s?at-(gone|\d+|hidden)/g, '') + ` at-${at <= 2 ? at : at === n - 1 ? 'gone' : 'hidden'}`; card.setAttribute('aria-hidden', String(at !== 0)); });
-    const go = step => { if (n < 2) { stack.classList.remove('is-edge'); void stack.offsetWidth; stack.classList.add('is-edge'); return; } todayIndex = (todayIndex + step + n) % n; place(); };
-    place();
-    let start = null, wheelAt = 0;
-    stack.addEventListener('pointerdown', event => { start = { y: event.clientY, x: event.clientX, t: Date.now() }; stack.setPointerCapture?.(event.pointerId); });
-    stack.addEventListener('pointerup', event => {
-      if (!start) return;
-      const dy = event.clientY - start.y, dx = event.clientX - start.x; start = null;
-      if (Math.abs(dy) > 36 && Math.abs(dy) > Math.abs(dx)) go(dy < 0 ? 1 : -1);
-      else if (Math.abs(dy) < 8 && Math.abs(dx) < 8) document.querySelector('[data-review]')?.click();
+    if (!tabs.some(button => button.dataset.todayTab === todayTab)) todayTab = '';
+    const show = id => {
+      todayTab = id;
+      tabs.forEach(button => button.setAttribute('aria-selected', String(button.dataset.todayTab === id)));
+      const shown = cards.filter(card => { const on = !id || card.dataset.todayCard === id; card.hidden = !on; return on; });
+      shown.forEach((card, i) => { card.querySelector('.today-count').textContent = `${i + 1} / ${shown.length}`; });
+      track.classList.toggle('is-single', shown.length === 1);
+      track.scrollLeft = 0;
+    };
+    show(todayTab);
+    tabs.find(button => button.dataset.todayTab === todayTab)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    tabs.forEach(button => { button.onclick = () => { show(button.dataset.todayTab); button.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' }); }; });
+    const step = dir => { const card = cards.find(item => !item.hidden); track.scrollBy({ left: dir * (card ? card.offsetWidth + 12 : track.clientWidth), behavior: reducedMotion() ? 'auto' : 'smooth' }); };
+    const open = () => document.querySelector('[data-review]')?.click();
+    // Touch scrolls the row natively; a mouse drags it by hand, then it settles on the card it was pulled towards.
+    let start = null;
+    track.addEventListener('pointerdown', event => {
+      start = { x: event.clientX, y: event.clientY, left: track.scrollLeft, mouse: event.pointerType === 'mouse', card: event.target.closest('[data-today-card]') };
+      if (start.mouse) { track.setPointerCapture?.(event.pointerId); track.classList.add('is-dragging'); }
     });
-    stack.addEventListener('pointercancel', () => { start = null; });
-    stack.addEventListener('wheel', event => { if (Math.abs(event.deltaY) < 8) return; event.preventDefault(); const now = Date.now(); if (now - wheelAt < 350) return; wheelAt = now; go(event.deltaY > 0 ? 1 : -1); }, { passive: false });
-    stack.addEventListener('keydown', event => {
-      if (event.key === 'ArrowDown') { event.preventDefault(); go(1); }
-      else if (event.key === 'ArrowUp') { event.preventDefault(); go(-1); }
-      else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); document.querySelector('[data-review]')?.click(); }
+    track.addEventListener('pointermove', event => { if (start?.mouse) track.scrollLeft = start.left - (event.clientX - start.x); });
+    const finish = event => {
+      if (!start) return;
+      const dx = event.clientX - start.x, dy = event.clientY - start.y, { mouse, left, card: pressed } = start;
+      start = null; track.classList.remove('is-dragging');
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) { if (event.type === 'pointerup' && pressed) open(); return; }
+      if (mouse) { const card = cards.find(item => !item.hidden), width = card ? card.offsetWidth + 12 : track.clientWidth; track.scrollLeft = left; track.scrollTo({ left: (Math.round(left / width) + (Math.abs(dx) > 36 ? (dx < 0 ? 1 : -1) : 0)) * width, behavior: reducedMotion() ? 'auto' : 'smooth' }); }
+    };
+    track.addEventListener('pointerup', finish);
+    track.addEventListener('pointercancel', finish);
+    track.addEventListener('keydown', event => {
+      if (event.key === 'ArrowRight') { event.preventDefault(); step(1); }
+      else if (event.key === 'ArrowLeft') { event.preventDefault(); step(-1); }
+      else if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); }
     });
   }
   function homeView() {
