@@ -32,7 +32,7 @@ const files = new Map([
   ...['zh-TW', 'ja', 'ko', 'ms', 'es', 'fr', 'pt', 'de'].map(code => [`/i18n/${code}.js`, [`i18n/${code}.js`, 'text/javascript; charset=utf-8']]),
   // Product page (welcome/): what 知回 does, download and install links.
   ['/vendor/jsQR.js', ['vendor/jsQR.js', 'text/javascript; charset=utf-8']], ['/welcome', ['welcome/index.html', 'text/html; charset=utf-8']], ['/welcome/', ['welcome/index.html', 'text/html; charset=utf-8']], ['/welcome/welcome.css', ['welcome/welcome.css', 'text/css; charset=utf-8']], ['/welcome/welcome.js', ['welcome/welcome.js', 'text/javascript; charset=utf-8']],
-  ['/m', ['mobile/index.html', 'text/html; charset=utf-8']], ['/m/', ['mobile/index.html', 'text/html; charset=utf-8']], ['/m/mobile.css', ['mobile/mobile.css', 'text/css; charset=utf-8']], ['/m/wide.css', ['mobile/wide.css', 'text/css; charset=utf-8']],
+  ['/m', ['mobile/index.html', 'text/html; charset=utf-8']], ['/m/', ['mobile/index.html', 'text/html; charset=utf-8']], ['/m/mobile.css', ['mobile/mobile.css', 'text/css; charset=utf-8']], ['/m/wide.css', ['mobile/wide.css', 'text/css; charset=utf-8']], ['/m/web.css', ['mobile/web.css', 'text/css; charset=utf-8']],
   ['/oauth-callback.html', ['oauth-callback.html', 'text/html; charset=utf-8']],
 ]);
 const headers = {

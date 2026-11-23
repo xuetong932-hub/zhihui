@@ -872,6 +872,7 @@ function boot() {
     document.querySelectorAll('[data-review-plan]').forEach(button => { button.onclick = () => openReviewPlan(); });
     const stack = document.querySelector('[data-today-stack]');
     if (stack) bindTodayStack(stack);
+    homeMotion();
     document.querySelectorAll('[data-home-theme]').forEach(button => { button.onclick = () => { window.knowledgeReviewTheme?.toggle(); render(); document.querySelector('[data-home-theme]')?.focus({ preventScroll: true }); }; });
     document.querySelectorAll('[data-pet-tree]').forEach(button => { button.onclick = () => { petPage = 'tree'; render(); window.scrollTo(0, 0); }; });
     document.querySelectorAll('[data-open-tree]').forEach(button => { button.onclick = () => { petPage = 'tree'; mePage = 'main'; chat.go('pet'); }; });
@@ -1032,6 +1033,34 @@ function boot() {
   const SUBJECT_HUE = { coding: 'blue', english: 'indigo', work: 'orange', life: 'green', health: 'pink', finance: 'amber', design: 'purple', science: 'teal', humanities: 'red', law: 'slate', mind: 'violet', other: 'cyan' };
   const COVER_HUE = { sky: 'blue', sage: 'green', honey: 'amber', coral: 'orange', lavender: 'purple', teal: 'teal', rose: 'pink', olive: 'lime' };
   const subjectHue = id => SUBJECT_HUE[id] || COVER_HUE[coverColor(profile, id)] || 'blue';
+  // Home motion (2026-11-23, after React Bits' count-up and blur-in): the first time home shows in a visit its parts
+  // rise in one after another (main.is-intro, CSS), and the due count counts up to its value — from 0 the first time,
+  // from the last shown value when it changes. Nothing moves with reduced motion.
+  let homeIntro = true, shownDue = null, countRun = null;
+  function homeMotion() {
+    const main = document.querySelector('main'), count = document.querySelector('.today-big strong');
+    if (!main || !document.querySelector('.home-scene-wrap')) return;
+    if (homeIntro && !reducedMotion()) main.classList.add('is-intro'), setTimeout(() => main.classList.remove('is-intro'), 1600);
+    homeIntro = false;
+    const to = count ? Number(count.textContent) : NaN;
+    if (!Number.isFinite(to)) return;
+    const duration = 700, now = performance.now();
+    // Home re-renders right after it opens; a count still running carries on in the new element.
+    if (!(countRun && countRun.to === to && now - countRun.start < duration)) {
+      const from = shownDue ?? 0; shownDue = to;
+      if (from === to || reducedMotion()) { countRun = null; return; }
+      countRun = { from, to, start: now };
+    }
+    const { from, start } = countRun;
+    count.setAttribute('aria-label', String(to)); count.textContent = String(from);
+    const tick = time => {
+      if (!count.isConnected) return;
+      const k = Math.min(1, (time - start) / duration);
+      count.textContent = String(Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
   // Today's list: the chosen subject tab (kept across renders) filters the cards; the row scrolls sideways with
   // snap points, so the card follows the finger. Tapping a card (not a swipe) opens review.
   let todayTab = '';
@@ -1068,6 +1097,13 @@ function boot() {
     };
     track.addEventListener('pointerup', finish);
     track.addEventListener('pointercancel', finish);
+    // On the web the rows light up where the pointer is (a soft spotlight in the subject colour).
+    track.addEventListener('pointermove', event => {
+      const card = event.pointerType === 'mouse' && event.target.closest('[data-today-card]');
+      if (!card) return;
+      const box = card.getBoundingClientRect();
+      card.style.setProperty('--mx', `${Math.round(event.clientX - box.left)}px`); card.style.setProperty('--my', `${Math.round(event.clientY - box.top)}px`);
+    });
     track.addEventListener('keydown', event => {
       if (event.key === 'ArrowRight') { event.preventDefault(); step(1); }
       else if (event.key === 'ArrowLeft') { event.preventDefault(); step(-1); }

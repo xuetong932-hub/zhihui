@@ -1275,3 +1275,24 @@ body:has(.scene-sheet-layer) .pet-play.is-float{display:none}
 .friend-enter input{min-height:48px;padding:0 var(--sp-16);border:1px solid var(--line);border-radius:var(--r-16,16px);background:var(--canvas,#fff);color:var(--ink);font:inherit;font-size:18px;letter-spacing:.06em;text-transform:uppercase}
 .friend-enter .primary-button{min-height:48px;border-radius:999px}
 [data-theme="dark"] .friend-card,[data-theme="dark"] .friends-list ul{background:#1e293b}
+
+/* Motion and touch (2026-11-23, after React Bits): home rises in once per visit (app.js homeMotion adds main.is-intro):
+   date and count fade up from a light blur, then the buttons, then today's list card by card. Buttons and cards give a
+   small press (scale .97). Counts use tabular figures so they do not jump while they change. */
+@keyframes rise-blur{from{opacity:0;transform:translateY(10px);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+@keyframes rise-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+main.is-intro .home-scene-wrap .m-hello,main.is-intro .home-scene-wrap .today-status{animation:rise-blur .7s var(--ease-out) both}
+main.is-intro .home-scene-wrap .today-status{animation-delay:.08s}
+main.is-intro .home-scene-wrap .task-start{animation:rise-in .5s var(--ease-out) .18s both}
+main.is-intro .home-scene-wrap .ask-bar{animation:rise-in .5s var(--ease-out) .24s both}
+main.is-intro .today-section .section-heading,main.is-intro .today-tabs{animation:rise-in .5s var(--ease-out) .3s both}
+main.is-intro .today-card{animation:rise-in .55s var(--ease-out) .36s both}
+main.is-intro .today-card:nth-child(2){animation-delay:.42s}
+main.is-intro .today-card:nth-child(3){animation-delay:.48s}
+main.is-intro .today-card:nth-child(4){animation-delay:.54s}
+main.is-intro .today-card:nth-child(n+5){animation-delay:.6s}
+main.is-intro > .home-starter{animation:rise-in .5s var(--ease-out) .5s both}
+.task-start,.primary-button,.secondary-button,.today-card,.today-tab{transition:transform var(--dur-1) var(--ease-out)}
+:is(.task-start,.primary-button,.secondary-button,.today-card,.today-tab):active{transform:scale(.97)}
+.today-big strong,.today-count,.today-tab b,.today-meta b{font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){main.is-intro *{animation:none!important}:is(.task-start,.primary-button,.secondary-button,.today-card,.today-tab):active{transform:none}}
