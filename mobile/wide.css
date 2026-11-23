@@ -38,7 +38,7 @@
   .home-scene-wrap .today-status{max-width:560px}
   .home-scene-wrap .today-mascot{right:-220px;top:-24px;width:160px}
   .home-scene-wrap .task-start{max-width:420px}
-  .home-scene-wrap .ask-bar{max-width:520px;margin-left:176px}
+  .home-scene-wrap .ask-bar{max-width:420px;margin-left:0}
   main:has(> .home-scene-wrap) > .m-section{margin:0}
   main > .home-starter{margin-top:0}
   /* The squirrel's room keeps its portrait shape (the cushion, jar and furniture are placed on that picture) as a
