@@ -778,7 +778,7 @@ function boot() {
   function homePhoneView() {
     const zh = locale === 'zh', due = chat.reviewCount(), events = chat.reviewEvents(), today = localDay(new Date());
     const done = new Set(events.filter(event => localDay(event.at) === today).map(event => event.cardId)).size, total = done + due, shields = shieldStreaks(), streak = shields.any;
-    const goal = goalOf(profile), reached = done >= goal, met = shields.goal;
+    const goal = goalOf(profile), reached = done >= goal;
     const length = 2 * Math.PI * 42, progress = Math.min(1, done / goal);
     const ring = `<svg class="task-ring-svg" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="8"/><circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(length * progress).toFixed(1)} ${length.toFixed(1)}" transform="rotate(-90 50 50)"/></svg>`;
     const date = new Intl.DateTimeFormat(intlLocale(currentLocale()), { month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
@@ -789,9 +789,9 @@ function boot() {
     const goalText = reached ? pick('今日目标完成 ✓', 'Goal reached ✓') : pick('今日目标 {v0} / {goal} 张', 'Today’s goal {v0} / {goal}', { v0: Math.min(done, goal), goal });
     const dark = document.documentElement.dataset.theme === 'dark', picture = sceneImage(savedScene(), dark);
     return `<section class="home-scene-wrap"><img class="home-scene ${picture.own ? 'is-night' : ''}" src="${picture.src}" alt="" decoding="async">
-        <div class="m-hello"><span class="eyebrow">${date}</span><h1>${t('hello')}</h1><button type="button" class="scene-button" data-home-theme aria-label="${dark ? pick('黑夜，点击切换为白天', 'Night. Tap for day') : pick('白天，点击切换为黑夜', 'Day. Tap for night')}">${iconSvg(dark ? 'moon' : 'sun')}</button></div>
+        <div class="m-hello"><span class="eyebrow">${date}</span><h1 class="sr-only">${t('hello')}</h1></div>
         <div class="today-status"><button type="button" class="today-mascot ${dressedClass()}" data-pose="${due ? 'wave' : total ? 'cheer' : 'think'}" aria-haspopup="dialog" aria-label="${pick('松鼠的动作', 'Squirrel actions')}">${mascotPicture(due ? 'wave' : total ? 'cheer' : 'think')}</button>${due ? `<p class="today-big"><strong>${due}</strong><span>${t('zero')}</span></p>` : `<p class="today-big today-done">${status}</p>`}
-          <div class="today-meta"><span class="today-goal"><span class="task-ring" aria-hidden="true">${ring}</span>${goalText}</span><span><b>${streak}</b>${pick(' 天连续', ' day streak')}</span><span><b>${met}</b>${pick(' 天达成', ' days met')}</span></div></div>
+          <div class="today-meta"><span class="today-goal"><span class="task-ring" aria-hidden="true">${ring}</span>${goalText}</span>${streak ? `<span><b>${streak}</b>${pick(' 天连续', ' day streak')}</span>` : ''}</div></div>
         ${total ? `<button class="task-start" data-review>${due ? (pick('开始复习', 'Start review')) : (pick('再练一会', 'Practise more'))} →</button><div class="ask-bar"><button type="button" class="ask-field" data-open-module="${ASK_MODULE}" data-ask-type><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><span>${pick('想问点什么？', 'What would you like to ask?')}</span></button><button type="button" class="ask-mic" data-open-module="${ASK_MODULE}" data-ask-mic aria-label="${pick('语音提问', 'Ask by voice')}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button></div>` : `<button class="task-start" data-open-module="${ASK_MODULE}">${pick('去提问', 'Ask a question')} →</button>`}${reached ? shareButton('task-share') : ''}</section>
       <section class="m-section today-section"><div class="section-heading"><h2>${pick('今日清单', 'Today’s list')}</h2></div>${reviewPreview()}</section>
       ${chat.starterHome() ? `<div class="m-section frost-panel home-starter">${chat.starterHome()}</div>` : ''}`;
@@ -1015,20 +1015,13 @@ function boot() {
     if (!items.length) return `<div class="empty-state"><img class="empty-art mascot-art" src="/illustrations/mascot-${hasCards ? 'sleep' : 'think'}.webp" alt="" decoding="async"><h3>${hasCards ? (pick('今天没有到期的复习', 'Nothing due today')) : t('emptyTitle')}</h3><p>${hasCards ? (pick('新卡片从第二天开始复习；想现在练习，可以进入复习后选择“自主加练”。', 'New cards are reviewed from tomorrow. To practise now, open Review and choose Extra practice.')) : t('emptyHint')}</p>${button}</div>`;
     const styles = moduleStyles([...new Set([...activeModuleIds(profile), ...items.map(item => item.card.module)])]);
     const kinds = { new: pick('新学', 'New'), due: pick('到期', 'Due'), weak: pick('薄弱', 'Weak') };
-    const ago = at => {
-      if (!at) return ''; // the "New" tag already says it has never been reviewed
-      const [y, m, d] = localDay(at).split('-').map(Number), now = new Date();
-      const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()) - new Date(y, m - 1, d)) / 86400000);
-      const when = days <= 0 ? (pick('今天', 'today')) : days === 1 ? (pick('昨天', 'yesterday')) : pick('{days} 天前', '{days} days ago', { days });
-      return pick('上次复习：{when}', 'Last reviewed {when}', { when });
-    };
     // One tab per subject above a row of cards coloured by subject (subjectHue); swipe left / right (or ←→) to move
     // through the chosen tab's cards, tap one to start reviewing (all of today's cards, whichever tab is shown).
     const art = id => ['coding', 'english', 'work', 'life'].includes(id) ? `<img src="/illustrations/icon-${id}.webp" alt="" decoding="async">` : moduleIcon(profile, id, 64, '#ffffff');
-    const cardsHtml = items.map(({ card, last, kind }, i) => `<article class="today-card kind-${kind} hue-${subjectHue(card.module)}" data-today-card="${esc(card.module)}">
+    const cardsHtml = items.map(({ card, kind }) => `<article class="today-card kind-${kind} hue-${subjectHue(card.module)}" data-today-card="${esc(card.module)}">
         <span class="today-card-art" aria-hidden="true">${art(card.module)}</span>
         <span class="today-chip">${moduleIcon(profile, card.module, 14, '#ffffff')}${esc(moduleLabel(profile, card.module, locale))}</span><span class="today-kind">${kinds[kind]}</span>
-        <span class="today-card-text"><strong>${esc(card.title)}</strong>${last ? `<small>${ago(last)}</small>` : ''}</span><span class="today-count"></span></article>`).join('');
+        <span class="today-card-text"><strong>${esc(card.title)}</strong></span><span class="today-count"></span></article>`).join('');
     const subjects = [...new Set(items.map(item => item.card.module))];
     const tab = (id, label, count, hue) => `<button type="button" role="tab" class="today-tab${hue ? ` hue-${hue}` : ''}" data-today-tab="${esc(id)}">${label}<b>${count}</b></button>`;
     const tabsHtml = subjects.length > 1 ? `<div class="today-tabs" role="tablist" aria-label="${pick('知识分类', 'Subjects')}">${tab('', pick('全部', 'All'), items.length, '')}${subjects.map(id => tab(id, esc(moduleLabel(profile, id, locale)), items.filter(item => item.card.module === id).length, subjectHue(id))).join('')}</div>` : '';
