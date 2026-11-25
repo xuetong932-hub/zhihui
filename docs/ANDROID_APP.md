@@ -16,7 +16,8 @@
 
 ## 当前包信息
 
-- 包名：`com.zhihui.app`，版本 1.0.0.0（versionCode 1）
+- 包名：`com.zhihui.app`，版本 1.0.1（versionCode 2，2026-11-25：图标换成品牌鲜绿 #30A14E）
+- 最低系统 Android 7.0（minSdk 24；PWABuilder 现在的库不再支持更低版本）
 - 手机没有 Chrome 时退回 App 内置 WebView
 - 启动地址 `/`，安卓手机会被转到手机版 `/m/`
 
@@ -24,10 +25,10 @@
 
 只改网站内容不需要。只有改 App 名称、图标、包名、启动方式，或 Android 系统要求更新时才需要：
 
-1. 在 pwabuilder.com 输入网址，选 Android → Other Android。
-2. 包名保持 `com.zhihui.app`，版本号和 versionCode 加一。
-3. 签名选择 **Use mine**，上传 `android-signing/signing.keystore`，填写 `signing-key-info.txt` 里的别名和密码。
-4. 用新 APK 替换 `downloads/zhihui.apk`；`assetlinks.json` 指纹不变，不用改。
+1. 先把要改的图标等推上线（PWABuilder 从线上网站读取图标）。
+2. 向 `https://pwabuilder-cloudapk.azurewebsites.net/generateAppPackage` POST 打包设置（包名保持 `com.zhihui.app`，版本号和 versionCode 加一，`signingMode: "none"`，minSdk 24），得到**未签名**的 APK。这样签名密钥不会离开本机。
+3. 在本机用 Android build-tools 的 `zipalign -p -f 4` 对齐，再用 `apksigner sign --ks android-signing/signing.keystore` 签名（密码通过环境变量传入，不写进命令行）。需要 Java 11 以上。
+4. `apksigner verify --print-certs` 确认证书 SHA-256 仍是 `0d8277d5…51df3fb7`，然后替换 `downloads/zhihui.apk`；`assetlinks.json` 指纹不变，不用改。
 
 ## 限制
 
